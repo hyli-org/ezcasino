@@ -11,8 +11,8 @@ use hyle::{
     utils::modules::{module_bus_client, Module},
 };
 use sdk::{
-    BlobTransaction, Block, ContractInput, Hashed, HyleContract, ProofTransaction, TransactionData,
-    TxHash, HYLE_TESTNET_CHAIN_ID,
+    BlobTransaction, Block, BlockHeight, ContractInput, Hashed, HyleContract, ProofTransaction,
+    TransactionData, TxHash, HYLE_TESTNET_CHAIN_ID,
 };
 use tracing::{error, info};
 
@@ -32,6 +32,7 @@ pub struct ProverModuleBusClient {
 }
 pub struct ProverModuleCtx {
     pub app: Arc<AppModuleCtx>,
+    pub start_height: BlockHeight,
 }
 
 impl Module for ProverModule {
@@ -118,6 +119,9 @@ impl ProverModule {
     }
 
     fn prove_blackjack_tx(&mut self, tx: BlobTransaction, tx_ctx: sdk::TxContext) {
+        if tx_ctx.block_height.0 < self.ctx.start_height.0 {
+            return;
+        }
         if let Some((index, blob)) = tx
             .blobs
             .iter()

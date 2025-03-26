@@ -88,8 +88,10 @@ async fn main() -> Result<()> {
         node_client,
         blackjack_cn: args.contract_name.into(),
     });
+    let start_height = app_ctx.node_client.get_block_height().await?;
     let prover_ctx = Arc::new(ProverModuleCtx {
         app: app_ctx.clone(),
+        start_height,
     });
 
     handler.build_module::<AppModule>(app_ctx.clone()).await?;
