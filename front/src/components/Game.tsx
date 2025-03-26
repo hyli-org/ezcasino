@@ -218,14 +218,14 @@ const Game: React.FC = () => {
               </div>
 
               <div className="play-area">
-                <div className="dealer-score">Dealer: {gameOver && gameState ? gameState.bank_count : '??'}</div>
+                <div className="dealer-score">Dealer: {dealerHand.length > 2 ? gameState?.bank_count || 0 : '??'}</div>
                 <div className="hand">
                   {dealerHand.map((card, index) => (
                     <Card
                       key={index}
                       suit={card.suit}
                       value={card.value}
-                      hidden={index === 1 && !gameOver}
+                      hidden={index === 1 && dealerHand.length <= 2}
                     />
                   ))}
                 </div>
