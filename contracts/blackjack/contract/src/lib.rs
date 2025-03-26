@@ -107,10 +107,10 @@ impl BlackJack {
             cards.extend(CARDS);
         }
 
-        let card_1: usize = rnd.random_range(0..TOTAL_CARDS);
-        let card_2: usize = rnd.random_range(0..(TOTAL_CARDS - 1));
-        let card_3: usize = rnd.random_range(0..(TOTAL_CARDS - 2));
-        let card_4: usize = rnd.random_range(0..(TOTAL_CARDS - 3));
+        let card_1: usize = rnd.random_range(0..TOTAL_CARDS - 1);
+        let card_2: usize = rnd.random_range(0..(TOTAL_CARDS - 2));
+        let card_3: usize = rnd.random_range(0..(TOTAL_CARDS - 3));
+        let card_4: usize = rnd.random_range(0..(TOTAL_CARDS - 4));
 
         let card_1 = cards.remove(card_1);
         let card_2 = cards.remove(card_2);
@@ -193,11 +193,68 @@ impl BlackJack {
     }
 
     pub fn hit(&mut self, user: &Identity, blockhash: &BlockHash) -> Result<String, String> {
-        Ok(format!(
-            "Hit for user {user} with block hash {blockhash}",
-            user = user,
-            blockhash = blockhash.0
-        ))
+        let Some(table) = self.tables.get_mut(user) else {
+            return Err("Table not setup. Start a new game first".to_string());
+        };
+
+        if !matches!(table.state, TableState::Ongoing) {
+            return Err("Cannot hit on finished game!".to_string());
+        }
+
+        let mut hasher = SipHasher::new();
+        hasher.write(blockhash.0.as_bytes());
+        let mut rnd = hasher.into_rng();
+
+        let card_id_user = rnd.random_range(0..(table.remaining_cards.len() - 1));
+        let card_id_bank = rnd.random_range(0..(table.remaining_cards.len() - 2));
+
+        let card_user = table.remaining_cards.remove(card_id_user);
+        let card_bank = table.remaining_cards.remove(card_id_bank);
+
+        table.user.push(card_user);
+        table.bank.push(card_bank);
+
+        let user_score = Self::compute_score(table.user.as_slice());
+
+        if user_score == 21_u32 {
+            table.state = TableState::Won;
+            Ok(format!(
+                "Initiated new game for user {user} with block hash {blockhash}, BLACKJACK!!!!",
+                user = user,
+                blockhash = blockhash.0
+            ))
+        } else if user_score > 21_u32 {
+            table.state = TableState::Lost;
+            Ok(format!(
+                "Initiated new game for user {user} with block hash {blockhash}, BURST",
+                user = user,
+                blockhash = blockhash.0
+            ))
+        } else {
+            let bank_score = Self::compute_score(table.bank.as_slice());
+            if bank_score == 21_u32 {
+                table.state = TableState::Lost;
+                Ok(format!(
+                    "Initiated new game for user {user} with block hash {blockhash} and lost immediately",
+                    user = user,
+                    blockhash = blockhash.0
+                ))
+            } else if bank_score > 21_u32 {
+                table.state = TableState::Won;
+                Ok(format!(
+                    "Initiated new game for user {user} with block hash {blockhash}, BLACKJACK!!!!",
+                    user = user,
+                    blockhash = blockhash.0
+                ))
+            } else {
+                // Still Ongoing
+                Ok(format!(
+                    "Initiated new game for user {user} with block hash {blockhash}",
+                    user = user,
+                    blockhash = blockhash.0
+                ))
+            }
+        }
     }
     pub fn stand(&mut self, user: &Identity) -> Result<String, String> {
         Ok(format!("Stand for user {user}", user = user,))
