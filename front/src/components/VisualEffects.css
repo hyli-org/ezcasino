@@ -8,6 +8,70 @@
   z-index: 1;
 }
 
+/* Effet d'assombrissement */
+.visual-effects.lose {
+  background: rgba(0, 0, 0, 0.4);
+  transition: background-color 0.5s ease;
+}
+
+.visual-effects.lose .sun {
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+/* Soleil */
+.sun {
+  position: absolute;
+  top: 50px;
+  right: 50px;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle at center, #ffd700, #ffa500);
+  border-radius: 50%;
+  box-shadow: 0 0 50px #ffa500;
+  z-index: 1;
+}
+
+/* Nuages */
+.cloud {
+  position: absolute;
+  background: rgba(100, 100, 100, 0.8);
+  border-radius: 50px;
+  animation: float 20s linear infinite;
+  z-index: 2;
+}
+
+.cloud::before,
+.cloud::after {
+  content: '';
+  position: absolute;
+  background: inherit;
+  border-radius: 50%;
+}
+
+.cloud::before {
+  width: 100px;
+  height: 100px;
+  top: -50px;
+  left: 50px;
+}
+
+.cloud::after {
+  width: 80px;
+  height: 80px;
+  top: -40px;
+  right: 50px;
+}
+
+@keyframes float {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100vw);
+  }
+}
+
 .firework {
   position: absolute;
   width: 4px;
@@ -52,16 +116,20 @@
 
 .lightning {
   position: absolute;
-  width: 4px;
+  width: 40px;
   height: 100px;
-  background: linear-gradient(to bottom, 
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.8) 20%,
-    rgba(255, 255, 255, 0.8) 80%,
-    rgba(255, 255, 255, 0) 100%
-  );
   animation: flash 0.5s ease-out forwards;
   transform-origin: top;
+  z-index: 1;
+}
+
+.lightning svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: #ffeb3b;
+  stroke-width: 2;
+  filter: drop-shadow(0 0 10px rgba(255, 235, 59, 0.8));
 }
 
 @keyframes flash {

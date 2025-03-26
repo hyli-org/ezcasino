@@ -9,7 +9,24 @@ interface VisualEffectsProps {
 const VisualEffects: React.FC<VisualEffectsProps> = ({ isWin, isLose }) => {
   const [fireworks, setFireworks] = useState<Array<{ x: number; y: number; color: string; delay: number }>>([]);
   const [raindrops, setRaindrops] = useState<Array<{ x: number; y: number; speed: number }>>([]);
-  const [lightning, setLightning] = useState<Array<{ x: number; y: number }>>([]);
+  const [lightning, setLightning] = useState<Array<{ x: number; y: number; path: string }>>([]);
+  const [clouds, setClouds] = useState<Array<{ y: number; size: number; delay: number; startX: number }>>([]);
+
+  const generateLightningPath = () => {
+    const points = [];
+    let x = 20; // Point de départ au centre
+    let y = 0;
+    points.push(`M ${x} ${y}`);
+
+    // Générer des points aléatoires pour créer un zigzag
+    while (y < 100) {
+      x += (Math.random() - 0.5) * 30; // Déplacement horizontal aléatoire
+      y += Math.random() * 20; // Déplacement vertical aléatoire
+      points.push(`L ${x} ${y}`);
+    }
+
+    return points.join(' ');
+  };
 
   useEffect(() => {
     if (isWin) {
@@ -35,14 +52,25 @@ const VisualEffects: React.FC<VisualEffectsProps> = ({ isWin, isLose }) => {
       // Créer des éclairs
       const newLightning = Array.from({ length: 5 }, () => ({
         x: Math.random() * window.innerWidth,
-        y: Math.random() * (window.innerHeight / 2)
+        y: Math.random() * (window.innerHeight / 3) + (window.innerHeight / 3), // Position sous les nuages
+        path: generateLightningPath()
       }));
       setLightning(newLightning);
+
+      // Créer des nuages répartis sur toute la largeur
+      const newClouds = Array.from({ length: 8 }, (_, index) => ({
+        y: Math.random() * (window.innerHeight / 3), // Nuages dans le tiers supérieur
+        size: 150 + Math.random() * 100, // Taille aléatoire
+        delay: Math.random() * 10, // Délai aléatoire pour un effet plus naturel
+        startX: (index * window.innerWidth) / 8 // Répartir les nuages sur toute la largeur
+      }));
+      setClouds(newClouds);
     }
   }, [isWin, isLose]);
 
   return (
-    <div className="visual-effects">
+    <div className={`visual-effects ${isLose ? 'lose' : ''}`}>
+      <div className="sun" />
       {isWin && fireworks.map((firework, index) => (
         <div
           key={index}
@@ -57,6 +85,19 @@ const VisualEffects: React.FC<VisualEffectsProps> = ({ isWin, isLose }) => {
       ))}
       {isLose && (
         <>
+          {clouds.map((cloud, index) => (
+            <div
+              key={`cloud-${index}`}
+              className="cloud"
+              style={{
+                width: cloud.size,
+                height: cloud.size / 2,
+                top: cloud.y,
+                left: cloud.startX,
+                animationDelay: `${cloud.delay}s`
+              }}
+            />
+          ))}
           {raindrops.map((raindrop, index) => (
             <div
               key={index}
@@ -77,7 +118,11 @@ const VisualEffects: React.FC<VisualEffectsProps> = ({ isWin, isLose }) => {
                 top: flash.y,
                 animationDelay: `${Math.random() * 2}s`
               }}
-            />
+            >
+              <svg viewBox="0 0 40 100">
+                <path d={flash.path} />
+              </svg>
+            </div>
           ))}
         </>
       )}
