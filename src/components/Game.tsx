@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Card from './Card';
+import VisualEffects from './VisualEffects';
 
 type Suit = '♠' | '♣' | '♥' | '♦';
 type CardType = {
@@ -19,6 +20,8 @@ const Game: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [initialPosition, setInitialPosition] = useState({ x: 0, y: 0 });
+  const [showWinEffect, setShowWinEffect] = useState(false);
+  const [showLoseEffect, setShowLoseEffect] = useState(false);
 
   const createDeck = () => {
     const suits: Suit[] = ['♠', '♣', '♥', '♦'];
@@ -92,6 +95,8 @@ const Game: React.FC = () => {
       setGameOver(true);
       setMessage('Bust! You went over 21.');
       setPlayerMoney(prev => prev - currentBet);
+      setShowLoseEffect(true);
+      setTimeout(() => setShowLoseEffect(false), 4000);
     }
   };
 
@@ -114,25 +119,43 @@ const Game: React.FC = () => {
     if (dealerScore > 21) {
       setMessage('Dealer busts! You win!');
       setPlayerMoney(prev => prev + currentBet);
+      setShowWinEffect(true);
+      setTimeout(() => setShowWinEffect(false), 4000);
     } else if (dealerScore > playerScore) {
       setMessage('Dealer wins!');
       setPlayerMoney(prev => prev - currentBet);
+      setShowLoseEffect(true);
+      setTimeout(() => setShowLoseEffect(false), 4000);
     } else if (dealerScore < playerScore) {
       setMessage('You win!');
       setPlayerMoney(prev => prev + currentBet);
+      setShowWinEffect(true);
+      setTimeout(() => setShowWinEffect(false), 4000);
     } else {
       setMessage('Push! It\'s a tie!');
     }
   };
 
   useEffect(() => {
-    // Calculer la position initiale au montage du composant
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-    setInitialPosition({
-      x: windowWidth / 2,
-      y: windowHeight / 2
-    });
+    // Centrer la fenêtre au chargement
+    const centerWindow = () => {
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+      const gameWidth = 400; // Largeur de la fenêtre
+      const gameHeight = 600; // Hauteur approximative de la fenêtre
+      
+      setWindowPosition({
+        x: (windowWidth - gameWidth) / 2,
+        y: (windowHeight - gameHeight) / 2
+      });
+    };
+
+    centerWindow();
+    window.addEventListener('resize', centerWindow);
+
+    return () => {
+      window.removeEventListener('resize', centerWindow);
+    };
   }, []);
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -150,9 +173,14 @@ const Game: React.FC = () => {
     if (isDragging) {
       const newX = e.clientX - dragStart.x;
       const newY = e.clientY - dragStart.y;
+      
+      // Limiter le déplacement aux bords de l'écran
+      const maxX = window.innerWidth - 400; // Largeur de la fenêtre
+      const maxY = window.innerHeight - 600; // Hauteur approximative de la fenêtre
+      
       setWindowPosition({
-        x: newX,
-        y: newY
+        x: Math.max(0, Math.min(newX, maxX)),
+        y: Math.max(0, Math.min(newY, maxY))
       });
     }
   };
@@ -178,93 +206,97 @@ const Game: React.FC = () => {
   }, []);
 
   return (
-    <div 
-      className="win95-window"
-      style={{
-        transform: `translate(${windowPosition.x}px, ${windowPosition.y}px)`,
-        cursor: isDragging ? 'grabbing' : 'default'
-      }}
-      onMouseDown={handleMouseDown}
-    >
-      <div className="win95-title-bar">
-        <span>Blackjack</span>
-        <div className="window-controls">
-          <button className="minimize">-</button>
-          <button className="maximize">□</button>
-          <button className="close">×</button>
+    <>
+      <VisualEffects isWin={showWinEffect} isLose={showLoseEffect} />
+      <div 
+        className="win95-window"
+        style={{
+          transform: `translate(${windowPosition.x}px, ${windowPosition.y}px)`,
+          cursor: isDragging ? 'grabbing' : 'default',
+          transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+        }}
+        onMouseDown={handleMouseDown}
+      >
+        <div className="win95-title-bar">
+          <span>Blackjack</span>
+          <div className="window-controls">
+            <button className="minimize">-</button>
+            <button className="maximize">□</button>
+            <button className="close">×</button>
+          </div>
+        </div>
+        
+        <div className="menu-bar">
+          <span className="menu-item">Game</span>
+          <span className="menu-item">Options</span>
+          <span className="menu-item">Help</span>
+        </div>
+
+        <div className="game-container">
+          <div className="counters">
+            <div className="counter">
+              <span className="counter-label">Your Money</span>
+              <div className="led-display">${playerMoney}</div>
+            </div>
+            <div className="counter">
+              <span className="counter-label">Bet</span>
+              <div className="led-display">${currentBet}</div>
+            </div>
+          </div>
+
+          <div className="play-area">
+            <div className="dealer-score">Dealer: {gameOver ? calculateScore(dealerHand) : '??'}</div>
+            <div className="hand">
+              {dealerHand.map((card, index) => (
+                <Card
+                  key={index}
+                  suit={card.suit}
+                  value={card.value}
+                  hidden={index === 1 && !gameOver}
+                />
+              ))}
+            </div>
+
+            <div className="player-score">Player: {calculateScore(playerHand)}</div>
+            <div className="hand">
+              {playerHand.map((card, index) => (
+                <Card
+                  key={index}
+                  suit={card.suit}
+                  value={card.value}
+                />
+              ))}
+            </div>
+
+            {message && <p className="score">{message}</p>}
+          </div>
+
+          <div className="controls">
+            <button 
+              className="win95-button" 
+              onClick={() => startNewGame()}
+              disabled={!gameOver}
+            >
+              DEAL
+            </button>
+            <button 
+              className="win95-button" 
+              onClick={() => hit()} 
+              disabled={gameOver}
+            >
+              HIT
+            </button>
+            <button 
+              className="win95-button" 
+              onClick={() => stand()} 
+              disabled={gameOver}
+            >
+              STAND
+            </button>
+          </div>
         </div>
       </div>
-      
-      <div className="menu-bar">
-        <span className="menu-item">Game</span>
-        <span className="menu-item">Options</span>
-        <span className="menu-item">Help</span>
-      </div>
-
-      <div className="game-container">
-        <div className="counters">
-          <div className="counter">
-            <span className="counter-label">Your Money</span>
-            <div className="led-display">${playerMoney}</div>
-          </div>
-          <div className="counter">
-            <span className="counter-label">Bet</span>
-            <div className="led-display">${currentBet}</div>
-          </div>
-        </div>
-
-        <div className="play-area">
-          <div className="dealer-score">Dealer: {gameOver ? calculateScore(dealerHand) : '??'}</div>
-          <div className="hand">
-            {dealerHand.map((card, index) => (
-              <Card
-                key={index}
-                suit={card.suit}
-                value={card.value}
-                hidden={index === 1 && !gameOver}
-              />
-            ))}
-          </div>
-
-          <div className="player-score">Player: {calculateScore(playerHand)}</div>
-          <div className="hand">
-            {playerHand.map((card, index) => (
-              <Card
-                key={index}
-                suit={card.suit}
-                value={card.value}
-              />
-            ))}
-          </div>
-
-          {message && <p className="score">{message}</p>}
-        </div>
-
-        <div className="controls">
-          <button 
-            className="win95-button" 
-            onClick={() => startNewGame()}
-            disabled={!gameOver}
-          >
-            DEAL
-          </button>
-          <button 
-            className="win95-button" 
-            onClick={() => hit()} 
-            disabled={gameOver}
-          >
-            HIT
-          </button>
-          <button 
-            className="win95-button" 
-            onClick={() => stand()} 
-            disabled={gameOver}
-          >
-            STAND
-          </button>
-        </div>
-      </div>
-    </div>
+    </>
   );
 };
 
