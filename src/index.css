@@ -447,12 +447,13 @@ body::before {
   padding: 2px;
   box-shadow: 2px 2px 0 var(--win95-border);
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  top: 0;
+  left: 0;
+  transform: translate(0, 0);
   user-select: none;
   z-index: 1000;
   width: 400px;
+  will-change: transform;
 }
 
 .menu-bar {
