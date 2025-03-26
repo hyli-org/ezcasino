@@ -1,0 +1,630 @@
+:root {
+  --win95-blue: #000080;
+  --win95-gray: #c0c0c0;
+  --win95-dark-gray: #808080;
+  --win95-light-gray: #ffffff;
+  --win95-border: #808080;
+  --win95-highlight: #ffffff;
+  --win95-shadow: #404040;
+  --win95-green: #008000;
+  --led-red: #ff0000;
+  --led-bg: #300;
+  --win95-sky: #00BFFF;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "MS Sans Serif", "Segoe UI", sans-serif;
+}
+
+body {
+  background: linear-gradient(
+    180deg,
+    var(--win95-sky) 0%,
+    var(--win95-sky) 60%,
+    #228B22 60%,
+    #228B22 100%
+  );
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Soleil */
+.sun {
+  position: fixed;
+  top: 40px;
+  right: 80px;
+  width: 100px;
+  height: 100px;
+  background: #FFD700;
+  border-radius: 50%;
+  box-shadow: 0 0 50px #FFD700;
+  z-index: -2;
+}
+
+.sun::before {
+  content: '';
+  position: absolute;
+  top: -20px;
+  left: -20px;
+  right: -20px;
+  bottom: -20px;
+  background: radial-gradient(circle, #FFD700 40%, transparent 70%);
+  border-radius: 50%;
+}
+
+/* Fleurs */
+.flower1, .flower2, .flower3, .flower4, .flower5, .flower6, .flower7, .flower8, .flower9, .flower10 {
+  position: fixed;
+  width: 20px;
+  height: 20px;
+  background: #FF69B4;
+  border-radius: 50%;
+  z-index: -1;
+}
+
+.flower1::before, .flower2::before, .flower3::before, .flower4::before, .flower5::before,
+.flower6::before, .flower7::before, .flower8::before, .flower9::before, .flower10::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: #FF69B4;
+  border-radius: 50%;
+}
+
+.flower1::after, .flower2::after, .flower3::after, .flower4::after, .flower5::after,
+.flower6::after, .flower7::after, .flower8::after, .flower9::after, .flower10::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: yellow;
+  border-radius: 50%;
+  top: 5px;
+  left: 5px;
+}
+
+.flower1 { bottom: 5vh; left: 5%; transform: rotate(45deg); }
+.flower2 { bottom: 8vh; left: 25%; transform: rotate(30deg); }
+.flower3 { bottom: 12vh; left: 45%; transform: rotate(60deg); }
+.flower4 { bottom: 6vh; left: 75%; transform: rotate(20deg); }
+.flower5 { bottom: 10vh; left: 95%; transform: rotate(45deg); }
+.flower6 { bottom: 15vh; left: 8%; transform: rotate(15deg); scale: 0.8; }
+.flower7 { bottom: 18vh; left: 35%; transform: rotate(75deg); scale: 0.9; }
+.flower8 { bottom: 14vh; left: 55%; transform: rotate(25deg); scale: 0.85; }
+.flower9 { bottom: 20vh; left: 95%; transform: rotate(40deg); scale: 0.75; }
+.flower10 { bottom: 16vh; left: 15%; transform: rotate(55deg); scale: 0.95; }
+
+.flower1::before { transform: rotate(72deg); }
+.flower2::before { transform: rotate(72deg); }
+.flower3::before { transform: rotate(72deg); }
+.flower4::before { transform: rotate(72deg); }
+.flower5::before { transform: rotate(72deg); }
+.flower6::before { transform: rotate(72deg); }
+.flower7::before { transform: rotate(72deg); }
+.flower8::before { transform: rotate(72deg); }
+.flower9::before { transform: rotate(72deg); }
+.flower10::before { transform: rotate(72deg); }
+
+body::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40vh;
+  background: radial-gradient(
+    ellipse at center,
+    #32CD32 0%,
+    #228B22 100%
+  );
+  transform: skewY(-5deg);
+  transform-origin: bottom;
+  z-index: -1;
+}
+
+/* Première vache */
+.cow1 {
+  position: fixed;
+  bottom: 15vh;
+  left: 20vw;
+  width: 120px;
+  height: 72px;
+  background: white;
+  border-radius: 60px;
+  z-index: -1;
+}
+
+.cow1::before {
+  content: '';
+  position: absolute;
+  left: -30px;
+  top: -24px;
+  width: 60px;
+  height: 48px;
+  background: white;
+  border-radius: 30px;
+}
+
+.cow1::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 30px;
+  background: black;
+  bottom: -24px;
+  left: 18px;
+  box-shadow: 60px 0 0 black;
+}
+
+/* Taches de la première vache */
+.cow1-spots {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+.cow1-spots::before {
+  content: '';
+  position: absolute;
+  width: 48px;
+  height: 36px;
+  background: black;
+  border-radius: 24px;
+  left: 12px;
+  top: 6px;
+}
+
+.cow1-spots::after {
+  content: '';
+  position: absolute;
+  width: 42px;
+  height: 30px;
+  background: black;
+  border-radius: 21px;
+  right: 12px;
+  bottom: 6px;
+}
+
+/* Yeux de la première vache */
+.cow1 .eye {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: black;
+  border-radius: 50%;
+  top: -20px;
+}
+
+.cow1 .eye.left {
+  left: -15px;
+}
+
+.cow1 .eye.right {
+  left: 15px;
+}
+
+/* Oreilles de la première vache */
+.cow1 .ear {
+  position: absolute;
+  width: 20px;
+  height: 30px;
+  background: black;
+  border-radius: 10px;
+  top: -25px;
+}
+
+.cow1 .ear.left {
+  left: -25px;
+  transform: rotate(-30deg);
+}
+
+.cow1 .ear.right {
+  left: 25px;
+  transform: rotate(30deg);
+}
+
+/* Deuxième vache */
+.cow2 {
+  position: fixed;
+  bottom: 20vh;
+  right: 25vw;
+  width: 96px;
+  height: 60px;
+  background: white;
+  border-radius: 48px;
+  z-index: -1;
+  transform: scaleX(-1);
+}
+
+.cow2::before {
+  content: '';
+  position: absolute;
+  left: -24px;
+  top: -18px;
+  width: 48px;
+  height: 36px;
+  background: white;
+  border-radius: 24px;
+}
+
+.cow2::after {
+  content: '';
+  position: absolute;
+  width: 9px;
+  height: 24px;
+  background: black;
+  bottom: -18px;
+  left: 15px;
+  box-shadow: 48px 0 0 black;
+}
+
+/* Taches de la deuxième vache */
+.cow2-spots {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+.cow2-spots::before {
+  content: '';
+  position: absolute;
+  width: 36px;
+  height: 30px;
+  background: black;
+  border-radius: 18px;
+  left: 9px;
+  top: 3px;
+}
+
+.cow2-spots::after {
+  content: '';
+  position: absolute;
+  width: 30px;
+  height: 24px;
+  background: black;
+  border-radius: 15px;
+  right: 9px;
+  bottom: 6px;
+}
+
+/* Yeux de la deuxième vache */
+.cow2 .eye {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: black;
+  border-radius: 50%;
+  top: -16px;
+}
+
+.cow2 .eye.left {
+  left: -12px;
+}
+
+.cow2 .eye.right {
+  left: 12px;
+}
+
+/* Oreilles de la deuxième vache */
+.cow2 .ear {
+  position: absolute;
+  width: 16px;
+  height: 24px;
+  background: black;
+  border-radius: 8px;
+  top: -20px;
+}
+
+.cow2 .ear.left {
+  left: -20px;
+  transform: rotate(-30deg);
+}
+
+.cow2 .ear.right {
+  left: 20px;
+  transform: rotate(30deg);
+}
+
+/* Troisième vache */
+.cow3 {
+  position: fixed;
+  bottom: 18vh;
+  left: 60vw;
+  width: 108px;
+  height: 66px;
+  background: white;
+  border-radius: 54px;
+  z-index: -1;
+}
+
+.cow3::before {
+  content: '';
+  position: absolute;
+  left: -27px;
+  top: -21px;
+  width: 54px;
+  height: 42px;
+  background: white;
+  border-radius: 27px;
+}
+
+.cow3::after {
+  content: '';
+  position: absolute;
+  width: 9px;
+  height: 27px;
+  background: black;
+  bottom: -21px;
+  left: 15px;
+  box-shadow: 54px 0 0 black;
+}
+
+/* Taches de la troisième vache */
+.cow3-spots {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+.cow3-spots::before {
+  content: '';
+  position: absolute;
+  width: 42px;
+  height: 33px;
+  background: black;
+  border-radius: 21px;
+  left: 12px;
+  top: 6px;
+}
+
+.cow3-spots::after {
+  content: '';
+  position: absolute;
+  width: 36px;
+  height: 27px;
+  background: black;
+  border-radius: 18px;
+  right: 12px;
+  bottom: 3px;
+}
+
+/* Yeux de la troisième vache */
+.cow3 .eye {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  background: black;
+  border-radius: 50%;
+  top: -18px;
+}
+
+.cow3 .eye.left {
+  left: -14px;
+}
+
+.cow3 .eye.right {
+  left: 14px;
+}
+
+/* Oreilles de la troisième vache */
+.cow3 .ear {
+  position: absolute;
+  width: 18px;
+  height: 27px;
+  background: black;
+  border-radius: 9px;
+  top: -22px;
+}
+
+.cow3 .ear.left {
+  left: -22px;
+  transform: rotate(-30deg);
+}
+
+.cow3 .ear.right {
+  left: 22px;
+  transform: rotate(30deg);
+}
+
+.win95-window {
+  background-color: var(--win95-gray);
+  border: 2px solid;
+  border-color: var(--win95-highlight) var(--win95-shadow) var(--win95-shadow) var(--win95-highlight);
+  padding: 2px;
+  box-shadow: 2px 2px 0 var(--win95-border);
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  user-select: none;
+  z-index: 1000;
+  width: 400px;
+}
+
+.menu-bar {
+  background-color: var(--win95-gray);
+  border-bottom: 1px solid var(--win95-shadow);
+  padding: 2px 0;
+  display: flex;
+  gap: 10px;
+}
+
+.menu-item {
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.menu-item:hover {
+  background-color: var(--win95-blue);
+  color: white;
+}
+
+.win95-title-bar {
+  background-color: var(--win95-blue);
+  color: white;
+  padding: 2px 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  font-size: 12px;
+  cursor: grab;
+}
+
+.win95-title-bar:active {
+  cursor: grabbing;
+}
+
+.window-controls {
+  display: flex;
+  gap: 2px;
+}
+
+.window-controls button {
+  width: 20px;
+  height: 20px;
+  border: 1px solid;
+  border-color: var(--win95-highlight) var(--win95-shadow) var(--win95-shadow) var(--win95-highlight);
+  background: var(--win95-gray);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.window-controls button:active {
+  border-color: var(--win95-shadow) var(--win95-highlight) var(--win95-highlight) var(--win95-shadow);
+}
+
+.counters {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  background-color: var(--win95-gray);
+  margin-bottom: 10px;
+}
+
+.counter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.counter-label {
+  font-size: 11px;
+  color: black;
+}
+
+.led-display {
+  background-color: var(--led-bg);
+  color: var(--led-red);
+  font-family: "Digital", monospace;
+  padding: 2px 8px;
+  border: inset 2px var(--win95-shadow);
+  font-size: 16px;
+  min-width: 60px;
+  text-align: right;
+}
+
+.win95-button {
+  background-color: var(--win95-gray);
+  border: 1px solid;
+  border-color: var(--win95-highlight) var(--win95-shadow) var(--win95-shadow) var(--win95-highlight);
+  padding: 2px 8px;
+  cursor: pointer;
+  font-weight: normal;
+  min-width: 60px;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.win95-button:active {
+  border-color: var(--win95-shadow) var(--win95-highlight) var(--win95-highlight) var(--win95-shadow);
+}
+
+.win95-button:disabled {
+  color: var(--win95-shadow);
+  cursor: not-allowed;
+}
+
+.card {
+  background-color: white;
+  border: 1px solid black;
+  width: 71px;
+  height: 96px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 4px;
+  font-size: 1.2em;
+  position: relative;
+}
+
+.card.red {
+  color: red;
+}
+
+.card.black {
+  color: black;
+}
+
+.game-container {
+  padding: 2px;
+  background-color: var(--win95-gray);
+  position: relative;
+}
+
+.play-area {
+  background-color: #008000;
+  padding: 20px;
+  margin: 4px;
+  min-height: 300px;
+  border: inset 2px var(--win95-shadow);
+}
+
+.hand {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 16px;
+  padding: 8px;
+  background-color: var(--win95-gray);
+  border-top: 1px solid var(--win95-shadow);
+}
+
+.score {
+  font-size: 1.2em;
+  margin: 8px 0;
+  font-weight: bold;
+  color: white;
+}
+
+h2 {
+  color: white;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
