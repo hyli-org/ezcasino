@@ -207,13 +207,17 @@ impl BlackJack {
         let mut rnd = hasher.into_rng();
 
         let card_id_user = rnd.random_range(0..(table.remaining_cards.len() - 1));
-        let card_id_bank = rnd.random_range(0..(table.remaining_cards.len() - 2));
-
         let card_user = table.remaining_cards.remove(card_id_user);
-        let card_bank = table.remaining_cards.remove(card_id_bank);
-
         table.user.push(card_user);
-        table.bank.push(card_bank);
+
+        let bank_score = Self::compute_score(&table.bank);
+
+        if bank_score <= 16 {
+            let card_id_bank = rnd.random_range(0..(table.remaining_cards.len() - 1));
+            let card_bank = table.remaining_cards.remove(card_id_bank);
+
+            table.bank.push(card_bank);
+        }
 
         let user_score = Self::compute_score(table.user.as_slice());
 
