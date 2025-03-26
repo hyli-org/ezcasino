@@ -11,7 +11,6 @@ type CardType = {
 };
 
 const Game: React.FC = () => {
-  const [deck, setDeck] = useState<CardType[]>([]);
   const [playerHand, setPlayerHand] = useState<CardType[]>([]);
   const [dealerHand, setDealerHand] = useState<CardType[]>([]);
   const [gameOver, setGameOver] = useState(false);
@@ -26,54 +25,7 @@ const Game: React.FC = () => {
   const [showLoseEffect, setShowLoseEffect] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const createDeck = () => {
-    const suits: Suit[] = ['♠', '♣', '♥', '♦'];
-    const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-    const newDeck: CardType[] = [];
-
-    for (const suit of suits) {
-      for (const value of values) {
-        newDeck.push({ suit, value });
-      }
-    }
-
-    return shuffleDeck(newDeck);
-  };
-
-  const shuffleDeck = (deck: CardType[]) => {
-    const newDeck = [...deck];
-    for (let i = newDeck.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [newDeck[i], newDeck[j]] = [newDeck[j], newDeck[i]];
-    }
-    return newDeck;
-  };
-
-  const calculateScore = (hand: CardType[]) => {
-    let score = 0;
-    let aces = 0;
-
-    for (const card of hand) {
-      if (card.value === 'A') {
-        aces++;
-      } else if (['K', 'Q', 'J'].includes(card.value)) {
-        score += 10;
-      } else {
-        score += parseInt(card.value);
-      }
-    }
-
-    for (let i = 0; i < aces; i++) {
-      if (score + 11 <= 21) {
-        score += 11;
-      } else {
-        score += 1;
-      }
-    }
-
-    return score;
-  };
+  const [gameState, setGameState] = useState<GameState | null>(null);
 
   const convertToCard = (value: number): CardType => {
     const suits: Suit[] = ['♠', '♣', '♥', '♦'];
@@ -89,22 +41,23 @@ const Game: React.FC = () => {
     return { suit, value: cardValue };
   };
 
-  const updateGameState = (gameState: GameState) => {
-    const playerCards = gameState.user.map(convertToCard);
-    const dealerCards = gameState.bank.map(convertToCard);
+  const updateGameState = (newGameState: GameState) => {
+    const playerCards = newGameState.user.map(convertToCard);
+    const dealerCards = newGameState.bank.map(convertToCard);
 
     setPlayerHand(playerCards);
     setDealerHand(dealerCards);
-    setCurrentBet(gameState.bet);
-    setGameOver(gameState.state !== 'Ongoing');
+    setCurrentBet(newGameState.bet);
+    setGameOver(newGameState.state !== 'Ongoing');
+    setGameState(newGameState);
 
     // Gérer les messages et effets en fonction de l'état
-    if (gameState.state === 'Won') {
+    if (newGameState.state === 'Won') {
       setMessage('You win!');
       setPlayerMoney(prev => prev + currentBet);
       setShowWinEffect(true);
       setTimeout(() => setShowWinEffect(false), 4000);
-    } else if (gameState.state === 'Lost') {
+    } else if (newGameState.state === 'Lost') {
       setMessage('Dealer wins!');
       setPlayerMoney(prev => prev - currentBet);
       setShowLoseEffect(true);
@@ -156,7 +109,19 @@ const Game: React.FC = () => {
   };
 
   useEffect(() => {
-    // Centrer la fenêtre au chargement
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, dragStart]);
+
+  // Centrer la fenêtre au chargement
+  useEffect(() => {
     const centerWindow = () => {
       const windowWidth = window.innerWidth;
       const windowHeight = window.innerHeight;
@@ -175,6 +140,10 @@ const Game: React.FC = () => {
     return () => {
       window.removeEventListener('resize', centerWindow);
     };
+  }, []);
+
+  useEffect(() => {
+    startNewGame();
   }, []);
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -207,23 +176,6 @@ const Game: React.FC = () => {
   const handleMouseUp = () => {
     setIsDragging(false);
   };
-
-  useEffect(() => {
-    if (isDragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    }
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDragging, dragStart]);
-
-  // Ajout de l'initialisation du jeu au montage
-  useEffect(() => {
-    startNewGame();
-  }, []);
 
   return (
     <>
@@ -269,7 +221,7 @@ const Game: React.FC = () => {
               </div>
 
               <div className="play-area">
-                <div className="dealer-score">Dealer: {gameOver ? calculateScore(dealerHand) : '??'}</div>
+                <div className="dealer-score">Dealer: {gameOver && gameState ? gameState.bank_count : '??'}</div>
                 <div className="hand">
                   {dealerHand.map((card, index) => (
                     <Card
@@ -281,7 +233,7 @@ const Game: React.FC = () => {
                   ))}
                 </div>
 
-                <div className="player-score">Player: {calculateScore(playerHand)}</div>
+                <div className="player-score">Player: {gameState?.user_count || 0}</div>
                 <div className="hand">
                   {playerHand.map((card, index) => (
                     <Card
