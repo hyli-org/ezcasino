@@ -1,0 +1,20 @@
+[workspace]
+resolver = "2"
+members = [
+  "contracts/blackjack/host",
+  "contracts/blackjack/contract",
+  "contracts/blackjack/methods",
+  "server",
+]
+
+[workspace.dependencies]
+sdk = { git = "https://github.com/hyle-org/hyle", package = "hyle-contract-sdk", tag = "v0.13.0-rc.2" }                                # don't forget to update methods/guest/Cargo.toml 
+client-sdk = { git = "https://github.com/hyle-org/hyle", default-features = false, package = "hyle-client-sdk", tag = "v0.13.0-rc.2" }
+hyle = { git = "https://github.com/Hyle-org/hyle.git", package = "hyle", tag = "v0.13.0-rc.2" }
+
+[workspace.package]
+version = "0.4.1"
+edition = "2021"
+homepage = "https://hyle.eu/"
+repository = "https://github.com/Hyle-org/ezcasino/"
+# licence = ""
