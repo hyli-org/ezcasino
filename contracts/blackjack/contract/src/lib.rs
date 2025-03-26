@@ -51,12 +51,22 @@ pub const CARDS: [u32; 13] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 pub const NB_CARDPACKS: usize = 6 * 4;
 pub const TOTAL_CARDS: usize = NB_CARDPACKS * CARDS.len();
 
+#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, Clone, Default)]
+pub enum TableState {
+    Lost,
+    #[default]
+    Ongoing,
+    Won,
+}
+
 /// The state of the contract, that is totally serialized on-chain
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Table {
     pub remaining_cards: Vec<u32>,
     pub bank: Vec<u32>,
     pub user: Vec<u32>,
+    pub bet: u32,
+    pub state: TableState,
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, Clone, Default)]
@@ -81,6 +91,12 @@ impl BlackJack {
 
 impl BlackJack {
     pub fn new_game(&mut self, user: &Identity, blockhash: &BlockHash) -> Result<String, String> {
+        if let Some(table) = self.tables.get(user) {
+            if matches!(table.state, TableState::Ongoing) {
+                return Err("Finish the ongoing first!".to_string());
+            }
+        }
+
         let mut hasher = SipHasher::new();
         hasher.write(blockhash.0.as_bytes());
         let mut rnd = hasher.into_rng();
@@ -111,17 +127,31 @@ impl BlackJack {
         let user_score = Self::compute_score(table.user.as_slice());
 
         if user_score == 21_u32 {
+            table.state = TableState::Won;
+            self.tables.insert(user.clone(), table);
             Ok(format!(
                 "Initiated new game for user {user} with block hash {blockhash}, BLACKJACK!!!!",
                 user = user,
                 blockhash = blockhash.0
             ))
         } else {
-            Ok(format!(
-                "Initiated new game for user {user} with block hash {blockhash}",
-                user = user,
-                blockhash = blockhash.0
-            ))
+            let bank_score = Self::compute_score(table.bank.as_slice());
+            if bank_score == 21_u32 {
+                table.state = TableState::Lost;
+                self.tables.insert(user.clone(), table);
+                Ok(format!(
+                    "Initiated new game for user {user} with block hash {blockhash} and lost immediately",
+                    user = user,
+                    blockhash = blockhash.0
+                ))
+            } else {
+                self.tables.insert(user.clone(), table);
+                Ok(format!(
+                    "Initiated new game for user {user} with block hash {blockhash}",
+                    user = user,
+                    blockhash = blockhash.0
+                ))
+            }
         }
     }
 
