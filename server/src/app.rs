@@ -167,7 +167,9 @@ async fn send(
     action: BlackJackAction,
 ) -> Result<impl IntoResponse, AppError> {
     let identity = Identity(format!("{}.{}", account, ctx.blackjack_cn));
-    let blobs = vec![action.as_blob(ctx.blackjack_cn.clone())];
+    // get random
+    let random = rand::random::<u64>();
+    let blobs = vec![action.with_id(random).as_blob(ctx.blackjack_cn.clone())];
     let tx_hash = ctx
         .client
         .send_tx_blob(&BlobTransaction::new(identity, blobs))

@@ -4465,6 +4465,7 @@ dependencies = [
  "opentelemetry-prometheus",
  "opentelemetry_sdk",
  "prometheus",
+ "rand 0.9.0",
  "reqwest",
  "risc0-binfmt",
  "risc0-circuit-keccak",

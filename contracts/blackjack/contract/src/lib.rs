@@ -24,8 +24,7 @@ impl sdk::HyleContract for BlackJack {
     /// Entry point of the contract's logic
     fn execute(&mut self, contract_input: &sdk::ContractInput) -> RunResult {
         // Parse contract inputs
-        let (action, ctx) =
-            sdk::utils::parse_raw_contract_input::<BlackJackAction>(contract_input)?;
+        let (action, ctx) = sdk::utils::parse_raw_contract_input::<UniqueAction>(contract_input)?;
 
         let user = &contract_input.identity;
 
@@ -34,7 +33,7 @@ impl sdk::HyleContract for BlackJack {
         };
 
         // Execute the given action
-        let res = match action {
+        let res = match action.action {
             BlackJackAction::Init => self.new_game(user, &tx_ctx.block_hash)?,
             BlackJackAction::Hit => self.hit(user, &tx_ctx.block_hash)?,
             BlackJackAction::Stand => self.stand(user)?,
@@ -77,6 +76,12 @@ pub struct BlackJack {
     pub tables: BTreeMap<Identity, Table>,
 }
 
+#[derive(Serialize, Deserialize, BorshSerialize, BorshDeserialize, Debug, Clone, PartialEq)]
+pub struct UniqueAction {
+    pub id: u64, // random, to have a different blob hash, unused in contract
+    pub action: BlackJackAction,
+}
+
 /// Enum representing possible calls to the contract functions.
 #[derive(Serialize, Deserialize, BorshSerialize, BorshDeserialize, Debug, Clone, PartialEq)]
 pub enum BlackJackAction {
@@ -87,6 +92,12 @@ pub enum BlackJackAction {
 }
 
 impl BlackJackAction {
+    pub fn with_id(self, id: u64) -> UniqueAction {
+        UniqueAction { id, action: self }
+    }
+}
+
+impl UniqueAction {
     pub fn as_blob(&self, contract_name: sdk::ContractName) -> sdk::Blob {
         sdk::Blob {
             contract_name,
