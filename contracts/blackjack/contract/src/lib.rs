@@ -140,6 +140,7 @@ impl BlackJack {
             let bank_score = Self::compute_score(table.bank.as_slice());
             if bank_score == 21_u32 {
                 table.state = TableState::Lost;
+                table.bet = 0;
                 self.tables.insert(user.clone(), table);
                 Ok(format!(
                     "Initiated new game for user {user} with block hash {blockhash} and loose immediately",
@@ -225,6 +226,7 @@ impl BlackJack {
             ))
         } else if user_score > 21_u32 {
             table.state = TableState::Lost;
+            table.bet = 0;
             Ok(format!(
                 "Hit for user {user} with block hash {blockhash}, BURST, you loose",
                 user = user,
@@ -234,6 +236,7 @@ impl BlackJack {
             let bank_score = Self::compute_score(table.bank.as_slice());
             if bank_score == 21_u32 {
                 table.state = TableState::Lost;
+                table.bet = 0;
                 Ok(format!(
                     "Hit for user {user} with block hash {blockhash} Bank made 21, you loose",
                     user = user,
@@ -257,7 +260,32 @@ impl BlackJack {
         }
     }
     pub fn stand(&mut self, user: &Identity) -> Result<String, String> {
-        Ok(format!("Stand for user {user}", user = user,))
+        let Some(table) = self.tables.get_mut(user) else {
+            return Err("Table not setup. Start a new game first".to_string());
+        };
+
+        if !matches!(table.state, TableState::Ongoing) {
+            return Err("Cannot hit on finished game!".to_string());
+        }
+
+        let user_score = Self::compute_score(&table.user);
+        let bank_score = Self::compute_score(&table.bank);
+
+        if user_score == bank_score {
+            // Recupere mise
+            table.state = TableState::Won;
+            Ok(format!(
+                "Stand for user {user}, get back money",
+                user = user,
+            ))
+        } else if user_score > bank_score {
+            table.state = TableState::Won;
+            Ok(format!("Stand for user {user}, you win", user = user,))
+        } else {
+            table.state = TableState::Lost;
+            table.bet = 0;
+            Ok(format!("Stand for user {user}, you loose", user = user,))
+        }
     }
     pub fn double_down(&mut self, user: &Identity) -> Result<String, String> {
         Ok(format!("DoubleDown for user {user}", user = user,))
