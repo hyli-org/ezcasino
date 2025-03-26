@@ -119,6 +119,8 @@ impl BlackJack {
 
         let mut table = Table::default();
 
+        table.remaining_cards = cards;
+
         table.user.push(card_1);
         table.bank.push(card_2);
         table.user.push(card_3);
