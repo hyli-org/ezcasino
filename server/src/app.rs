@@ -1,7 +1,8 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use crate::utils::AppError;
 use anyhow::Result;
+use axum::http::StatusCode;
 use axum::{
     extract::{Json, State},
     http::Method,
@@ -9,14 +10,16 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use client_sdk::rest_client::{IndexerApiHttpClient, NodeApiHttpClient};
+use client_sdk::rest_client::NodeApiHttpClient;
+use contract::{BlackJackAction, Table};
 use hyle::{
+    bus::{BusClientReceiver, BusMessage, SharedMessageBus},
     model::CommonRunContext,
     module_handle_messages,
     utils::modules::{module_bus_client, Module},
 };
 
-use sdk::ContractName;
+use sdk::{BlobTransaction, ContractName, Identity, TxHash};
 use serde::Deserialize;
 use tokio::sync::Mutex;
 use tower_http::cors::{Any, CorsLayer};
@@ -28,12 +31,20 @@ pub struct AppModule {
 pub struct AppModuleCtx {
     pub common: Arc<CommonRunContext>,
     pub node_client: Arc<NodeApiHttpClient>,
-    pub indexer_client: Arc<IndexerApiHttpClient>,
+    pub blackjack_cn: ContractName,
 }
+
+#[derive(Debug, Clone)]
+pub enum AppEvent {
+    SequencedTx(TxHash, Table),
+    FailedTx(TxHash, String),
+}
+impl BusMessage for AppEvent {}
 
 module_bus_client! {
 #[derive(Debug)]
 pub struct AppModuleBusClient {
+    receiver(AppEvent),
 }
 }
 
@@ -42,9 +53,11 @@ impl Module for AppModule {
 
     async fn build(ctx: Self::Context) -> Result<Self> {
         let state = RouterCtx {
-            app: Arc::new(Mutex::new(
-                build_app_context(ctx.indexer_client.clone(), ctx.node_client.clone()).await,
-            )),
+            blackjack_cn: ctx.blackjack_cn.clone(),
+            app: Arc::new(Mutex::new(HyleOofCtx {
+                bus: ctx.common.bus.new_handle(),
+            })),
+            client: ctx.node_client.clone(),
         };
 
         // Créer un middleware CORS
@@ -55,7 +68,9 @@ impl Module for AppModule {
 
         let api = Router::new()
             .route("/_health", get(health))
-            .route("/api/faucet", post(faucet))
+            .route("/api/init", post(init))
+            .route("/api/hit", post(hit))
+            .route("/api/stand", post(stand))
             .with_state(state)
             .layer(cors); // Appliquer le middleware CORS
 
@@ -81,21 +96,12 @@ impl Module for AppModule {
 #[derive(Clone)]
 struct RouterCtx {
     pub app: Arc<Mutex<HyleOofCtx>>,
+    pub client: Arc<NodeApiHttpClient>,
+    pub blackjack_cn: ContractName,
 }
 
 pub struct HyleOofCtx {
-    pub client: Arc<NodeApiHttpClient>,
-    pub hydentity_cn: ContractName,
-}
-
-async fn build_app_context(
-    indexer: Arc<IndexerApiHttpClient>,
-    node: Arc<NodeApiHttpClient>,
-) -> HyleOofCtx {
-    HyleOofCtx {
-        client: node.clone(),
-        hydentity_cn: "hydentity".into(),
-    }
+    pub bus: SharedMessageBus,
 }
 
 async fn health() -> impl IntoResponse {
@@ -103,18 +109,67 @@ async fn health() -> impl IntoResponse {
 }
 
 // --------------------------------------------------------
-//      Faucet
+//     Init
 // --------------------------------------------------------
 
 #[derive(Deserialize)]
-struct FaucetRequest {
+struct BlackJackActionRequest {
     account: String,
-    token: ContractName,
 }
 
-async fn faucet(
+async fn init(
     State(ctx): State<RouterCtx>,
-    Json(payload): Json<FaucetRequest>,
+    Json(payload): Json<BlackJackActionRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    Ok(Json("hey"))
+    send(ctx, payload.account.into(), BlackJackAction::Init).await
+}
+
+async fn hit(
+    State(ctx): State<RouterCtx>,
+    Json(payload): Json<BlackJackActionRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    send(ctx, payload.account.into(), BlackJackAction::Hit).await
+}
+
+async fn stand(
+    State(ctx): State<RouterCtx>,
+    Json(payload): Json<BlackJackActionRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    send(ctx, payload.account.into(), BlackJackAction::Stand).await
+}
+
+async fn send(
+    ctx: RouterCtx,
+    identity: Identity,
+    action: BlackJackAction,
+) -> Result<impl IntoResponse, AppError> {
+    let blobs = vec![action.as_blob(ctx.blackjack_cn.clone())];
+    let tx_hash = ctx
+        .client
+        .send_tx_blob(&BlobTransaction::new(identity, blobs))
+        .await?;
+
+    let mut bus = {
+        let app = ctx.app.lock().await;
+        AppModuleBusClient::new_from_bus(app.bus.new_handle()).await
+    };
+
+    tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            let a = bus.recv().await?;
+            match a {
+                AppEvent::SequencedTx(sequenced_tx_hash, table) => {
+                    if sequenced_tx_hash == tx_hash {
+                        return Ok(Json(table));
+                    }
+                }
+                AppEvent::FailedTx(sequenced_tx_hash, error) => {
+                    if sequenced_tx_hash == tx_hash {
+                        return Err(AppError(StatusCode::BAD_REQUEST, anyhow::anyhow!(error)));
+                    }
+                }
+            }
+        }
+    })
+    .await?
 }

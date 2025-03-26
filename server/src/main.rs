@@ -5,17 +5,10 @@ use clap::Parser;
 use client_sdk::rest_client::{IndexerApiHttpClient, NodeApiHttpClient};
 use hyle::{
     bus::{metrics::BusMetrics, SharedMessageBus},
-    indexer::{
-        contract_state_indexer::{ContractStateIndexer, ContractStateIndexerCtx},
-        da_listener::{DAListener, DAListenerCtx},
-    },
+    indexer::da_listener::{DAListener, DAListenerCtx},
     model::{api::NodeInfo, CommonRunContext},
     rest::{RestApi, RestApiRunContext},
-    utils::{
-        conf,
-        logger::{setup_tracing, TracingMode},
-        modules::ModulesHandler,
-    },
+    utils::{conf, logger::setup_tracing, modules::ModulesHandler},
 };
 use prometheus::Registry;
 use prover::{ProverModule, ProverModuleCtx};
@@ -35,6 +28,9 @@ mod utils;
 pub struct Args {
     #[arg(long, default_value = "config.toml")]
     pub config_file: Option<String>,
+
+    #[arg(long, default_value = "blackjack")]
+    pub contract_name: String,
 
     #[clap(long, action)]
     pub pg: bool,
@@ -60,7 +56,13 @@ async fn main() -> Result<()> {
     let indexer_client =
         Arc::new(IndexerApiHttpClient::new(indexer_url).context("build indexer client")?);
 
-    match init::init_node(node_client.clone(), indexer_client.clone()).await {
+    match init::init_node(
+        node_client.clone(),
+        indexer_client.clone(),
+        args.contract_name.clone(),
+    )
+    .await
+    {
         Ok(_) => {}
         Err(e) => {
             error!("Error initializing node: {:?}", e);
@@ -84,12 +86,10 @@ async fn main() -> Result<()> {
     let app_ctx = Arc::new(AppModuleCtx {
         common: ctx.clone(),
         node_client,
-        indexer_client,
+        blackjack_cn: args.contract_name.into(),
     });
-    let height = app_ctx.node_client.get_block_height().await?;
     let prover_ctx = Arc::new(ProverModuleCtx {
         app: app_ctx.clone(),
-        start_height: height,
     });
 
     handler.build_module::<AppModule>(app_ctx.clone()).await?;

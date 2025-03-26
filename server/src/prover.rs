@@ -1,16 +1,18 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
-use crate::app::AppModuleCtx;
-use anyhow::Result;
+use crate::app::{AppEvent, AppModuleCtx};
+use anyhow::{anyhow, Result};
 use client_sdk::helpers::risc0::Risc0Prover;
+use contract::BlackJack;
 use hyle::{
+    bus::BusClientSender,
     log_error, module_handle_messages,
     node_state::module::NodeStateEvent,
     utils::modules::{module_bus_client, Module},
 };
 use sdk::{
-    BlobTransaction, Block, BlockHeight, ContractInput, ContractName, Hashed, HyleOutput,
-    ProofTransaction, TransactionData, TxHash,
+    BlobTransaction, Block, ContractInput, Hashed, HyleContract, ProofTransaction, TransactionData,
+    TxHash, HYLE_TESTNET_CHAIN_ID,
 };
 use tracing::{error, info};
 
@@ -18,17 +20,18 @@ pub struct ProverModule {
     bus: ProverModuleBusClient,
     ctx: Arc<ProverModuleCtx>,
     unsettled_txs: Vec<BlobTransaction>,
+    contract: BlackJack,
 }
 
 module_bus_client! {
 #[derive(Debug)]
 pub struct ProverModuleBusClient {
+    sender(AppEvent),
     receiver(NodeStateEvent),
 }
 }
 pub struct ProverModuleCtx {
     pub app: Arc<AppModuleCtx>,
-    pub start_height: BlockHeight,
 }
 
 impl Module for ProverModule {
@@ -37,8 +40,12 @@ impl Module for ProverModule {
     async fn build(ctx: Self::Context) -> Result<Self> {
         let bus = ProverModuleBusClient::new_from_bus(ctx.app.common.bus.new_handle()).await;
 
+        // TODO: fetch state from chain
+        let contract = BlackJack::default();
+
         Ok(ProverModule {
             bus,
+            contract,
             ctx,
             unsettled_txs: vec![],
         })
@@ -64,35 +71,39 @@ impl ProverModule {
 
         Ok(())
     }
-    async fn handle_processed_block(&mut self, block: Block) -> Result<()> {
-        let mut should_trigger = self.unsettled_txs.is_empty();
 
+    async fn handle_processed_block(&mut self, block: Block) -> Result<()> {
         for (_, tx) in block.txs {
             if let TransactionData::Blob(tx) = tx.transaction_data {
-                self.handle_blob(tx);
+                let tx_ctx = sdk::TxContext {
+                    block_height: block.block_height,
+                    block_hash: block.hash.clone(),
+                    timestamp: block.block_timestamp as u128,
+                    lane_id: block.lane_ids.get(&tx.hashed()).unwrap().clone(),
+                    chain_id: HYLE_TESTNET_CHAIN_ID,
+                };
+
+                self.handle_blob(tx, tx_ctx);
             }
         }
 
         for s_tx in block.successful_txs {
-            should_trigger = self.settle_tx(s_tx)? == 0 || should_trigger;
+            self.settle_tx(s_tx)?;
         }
 
         for timedout in block.timed_out_txs {
-            should_trigger = self.settle_tx(timedout)? == 0 || should_trigger;
+            self.settle_tx(timedout)?;
         }
 
         for failed in block.failed_txs {
-            should_trigger = self.settle_tx(failed)? == 0 || should_trigger;
-        }
-
-        if should_trigger && block.block_height > self.ctx.start_height {
-            self.trigger_prove_first();
+            self.settle_tx(failed)?;
         }
 
         Ok(())
     }
 
-    fn handle_blob(&mut self, tx: BlobTransaction) {
+    fn handle_blob(&mut self, tx: BlobTransaction, tx_ctx: sdk::TxContext) {
+        self.prove_blackjack_tx(tx.clone(), tx_ctx);
         self.unsettled_txs.push(tx);
     }
 
@@ -106,104 +117,68 @@ impl ProverModule {
         }
     }
 
-    fn trigger_prove_first(&self) {
-        if let Some(tx) = self.unsettled_txs.first().cloned() {
-            info!("Triggering prove for tx: {}", tx.hashed());
-            let ctx = self.ctx.clone();
-            tokio::task::spawn(async move {
-                match prove_blob_tx(&ctx.app, tx).await {
-                    Ok(_) => {}
-                    Err(e) => {
-                        info!("Error proving tx: {:?}", e);
-                    }
-                }
-            });
-        }
-    }
-}
+    fn prove_blackjack_tx(&mut self, tx: BlobTransaction, tx_ctx: sdk::TxContext) {
+        if let Some((index, blob)) = tx
+            .blobs
+            .iter()
+            .enumerate()
+            .find(|(_, b)| b.contract_name == self.ctx.app.blackjack_cn)
+        {
+            let blobs = tx.blobs.clone();
+            let tx_hash = tx.hashed();
 
-fn get_prover(cn: &ContractName) -> Option<Risc0Prover> {
-    match cn.0.as_str() {
-        //"hyllar" => Some(Risc0Prover::new(hyllar::client::metadata::HYLLAR_ELF)),
-        _ => None,
-    }
-}
+            let prover = Risc0Prover::new(contract::client::metadata::ELF);
 
-fn execute(cn: &ContractName, input: &ContractInput) -> Option<(Vec<u8>, HyleOutput)> {
-    match cn.0.as_str() {
-        //"hyllar" | "hyllar2" => {
-        //    let (s, o) = sdk::guest::execute::<Hyllar>(input);
-        //    Some((s.to_bytes(), o))
-        //}
-        _ => None,
-    }
-}
-
-async fn get_state(ctx: &Arc<AppModuleCtx>, cn: &ContractName) -> Result<Vec<u8>> {
-    match cn.0.as_str() {
-        //"hyllar" | "hyllar2" => Ok(ctx
-        //    .indexer_client
-        //    .fetch_current_state::<Hyllar>(cn)
-        //    .await?
-        //    .to_bytes()),
-        _ => Err(anyhow::anyhow!("contract not found")),
-    }
-}
-
-async fn prove_blob_tx(ctx: &Arc<AppModuleCtx>, tx: BlobTransaction) -> Result<()> {
-    let blobs = tx.blobs.clone();
-    let tx_hash = tx.hashed();
-    let mut states = HashMap::<ContractName, Vec<u8>>::new();
-
-    for (index, blob) in tx.blobs.iter().enumerate() {
-        if let Some(prover) = get_prover(&blob.contract_name) {
             info!("Proving tx: {}. Blob for {}", tx_hash, blob.contract_name);
-            if !states.contains_key(&blob.contract_name) {
-                states.insert(
-                    blob.contract_name.clone(),
-                    get_state(ctx, &blob.contract_name).await?,
-                );
-            }
+
+            let Ok(state) = self.contract.as_bytes() else {
+                error!("Failed to serialize state on tx: {}", tx_hash);
+                return;
+            };
 
             let inputs = ContractInput {
-                state: states.get(&blob.contract_name).unwrap().clone(),
+                state,
                 identity: tx.identity.clone(),
                 tx_hash: tx_hash.clone(),
                 private_input: vec![],
                 blobs: blobs.clone(),
                 index: sdk::BlobIndex(index),
-                tx_ctx: None,
+                tx_ctx: Some(tx_ctx),
             };
 
-            let success = {
-                let (next_state, hyle_outputs) =
-                    execute(&blob.contract_name, &inputs).expect("contract not found");
+            if let Err(e) = self.contract.execute(&inputs).map_err(|e| anyhow!(e)) {
+                error!("error while executing contract: {e}");
+                self.bus
+                    .send(AppEvent::FailedTx(tx_hash.clone(), e.to_string()))
+                    .unwrap();
+            }
 
-                states.insert(blob.contract_name.clone(), next_state);
+            if let Some(table) = self.contract.tables.get(&tx.identity) {
+                self.bus
+                    .send(AppEvent::SequencedTx(tx_hash.clone(), table.clone()))
+                    .unwrap();
+            }
 
-                hyle_outputs.success
-            };
-
-            match prover.prove(inputs).await {
-                Ok(proof) => {
-                    info!("Proof generated for tx: {}", tx_hash);
-                    let tx = ProofTransaction {
-                        contract_name: blob.contract_name.clone(),
-                        proof,
-                    };
-                    let _ = log_error!(
-                        ctx.node_client.send_tx_proof(&tx).await,
-                        "failed to send proof to node"
-                    );
-                    if !success {
-                        return Ok(()); // Will fail-fast on first "failed" proof
+            let node_client = self.ctx.app.node_client.clone();
+            let blob = blob.clone();
+            tokio::task::spawn(async move {
+                match prover.prove(inputs).await {
+                    Ok(proof) => {
+                        info!("Proof generated for tx: {}", tx_hash);
+                        let tx = ProofTransaction {
+                            contract_name: blob.contract_name.clone(),
+                            proof,
+                        };
+                        let _ = log_error!(
+                            node_client.send_tx_proof(&tx).await,
+                            "failed to send proof to node"
+                        );
                     }
-                }
-                Err(e) => {
-                    error!("Error proving tx: {:?}", e);
-                }
-            };
+                    Err(e) => {
+                        error!("Error proving tx: {:?}", e);
+                    }
+                };
+            });
         }
     }
-    Ok(())
 }

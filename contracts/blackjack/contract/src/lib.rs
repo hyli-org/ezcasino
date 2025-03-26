@@ -17,6 +17,9 @@ use serde::{Deserialize, Serialize};
 
 use sdk::{BlockHash, Identity, RunResult};
 
+#[cfg(feature = "client")]
+pub mod client;
+
 impl sdk::HyleContract for BlackJack {
     /// Entry point of the contract's logic
     fn execute(&mut self, contract_input: &sdk::ContractInput) -> RunResult {
@@ -81,6 +84,15 @@ pub enum BlackJackAction {
     Hit,
     Stand,
     DoubleDown,
+}
+
+impl BlackJackAction {
+    pub fn as_blob(&self, contract_name: sdk::ContractName) -> sdk::Blob {
+        sdk::Blob {
+            contract_name,
+            data: sdk::BlobData(borsh::to_vec(self).expect("Failed to encode BlackJackAction")),
+        }
+    }
 }
 
 impl BlackJack {
