@@ -26,11 +26,15 @@ struct Cli {
 
     #[arg(long, default_value = "blackjack")]
     pub contract_name: String,
+
+    #[arg(long, default_value = "bob.blackjack")]
+    pub id: String,
 }
 
 #[derive(Subcommand)]
 enum Commands {
     Register {},
+    Init,
 }
 
 #[tokio::main]
@@ -65,6 +69,29 @@ async fn main() {
                 .await
                 .unwrap();
             println!("✅ Register contract tx sent. Tx hash: {}", res);
+        }
+        Commands::Init => {
+            // Fetch the initial state from the node
+            let mut initial_state: BlackJack = client
+                .get_contract(&contract_name.clone().into())
+                .await
+                .unwrap()
+                .state
+                .into();
+            // ----
+            // Build the blob transaction
+            // ----
+
+            let action = BlackJackAction::Init;
+            let blobs = vec![sdk::Blob {
+                contract_name: contract_name.clone().into(),
+                data: sdk::BlobData(borsh::to_vec(&action).expect("failed to encode BlobData")),
+            }];
+            let blob_tx = BlobTransaction::new(cli.id.clone(), blobs.clone());
+
+            // Send the blob transaction
+            let blob_tx_hash = client.send_tx_blob(&blob_tx).await.unwrap();
+            println!("✅ Blob tx sent. Tx hash: {}", blob_tx_hash);
         }
     }
 }

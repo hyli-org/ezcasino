@@ -2,14 +2,17 @@
 
 extern crate alloc;
 
+use core::hash::Hasher;
+
+use alloc::vec::Vec;
 use alloc::{
     collections::btree_map::BTreeMap,
     format,
     string::{String, ToString},
-    vec::Vec,
 };
-
 use borsh::{io::Error, BorshDeserialize, BorshSerialize};
+use rand::Rng;
+use rand_seeder::SipHasher;
 use serde::{Deserialize, Serialize};
 
 use sdk::{BlockHash, Identity, RunResult};
@@ -30,7 +33,7 @@ impl sdk::HyleContract for BlackJack {
         // Execute the given action
         let res = match action {
             BlackJackAction::Init => self.new_game(user, &tx_ctx.block_hash)?,
-            BlackJackAction::Hit => self.hit(user)?,
+            BlackJackAction::Hit => self.hit(user, &tx_ctx.block_hash)?,
             BlackJackAction::Stand => self.stand(user)?,
             BlackJackAction::DoubleDown => self.double_down(user)?,
         };
@@ -44,13 +47,14 @@ impl sdk::HyleContract for BlackJack {
     }
 }
 
-pub const CARDS: [u32; 13] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10];
-pub const NB_CARDPACKS: u32 = 6 * 4;
+pub const CARDS: [u32; 13] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+pub const NB_CARDPACKS: usize = 6 * 4;
+pub const TOTAL_CARDS: usize = NB_CARDPACKS * CARDS.len();
 
 /// The state of the contract, that is totally serialized on-chain
-#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, Clone)]
+#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Table {
-    pub withdraw: Vec<u32>,
+    pub remaining_cards: Vec<u32>,
     pub bank: Vec<u32>,
     pub user: Vec<u32>,
 }
@@ -77,14 +81,91 @@ impl BlackJack {
 
 impl BlackJack {
     pub fn new_game(&mut self, user: &Identity, blockhash: &BlockHash) -> Result<String, String> {
+        let mut hasher = SipHasher::new();
+        hasher.write(blockhash.0.as_bytes());
+        let mut rnd = hasher.into_rng();
+
+        let mut cards: Vec<u32> = Vec::new();
+
+        for _i in 1..NB_CARDPACKS {
+            cards.extend(CARDS);
+        }
+
+        let card_1: usize = rnd.random_range(0..TOTAL_CARDS);
+        let card_2: usize = rnd.random_range(0..(TOTAL_CARDS - 1));
+        let card_3: usize = rnd.random_range(0..(TOTAL_CARDS - 2));
+        let card_4: usize = rnd.random_range(0..(TOTAL_CARDS - 3));
+
+        let card_1 = cards.remove(card_1);
+        let card_2 = cards.remove(card_2);
+        let card_3 = cards.remove(card_3);
+        let card_4 = cards.remove(card_4);
+
+        let mut table = Table::default();
+
+        table.user.push(card_1);
+        table.bank.push(card_2);
+        table.user.push(card_3);
+        table.bank.push(card_4);
+
+        let user_score = Self::compute_score(table.user.as_slice());
+
+        if user_score == 21_u32 {
+            Ok(format!(
+                "Initiated new game for user {user} with block hash {blockhash}, BLACKJACK!!!!",
+                user = user,
+                blockhash = blockhash.0
+            ))
+        } else {
+            Ok(format!(
+                "Initiated new game for user {user} with block hash {blockhash}",
+                user = user,
+                blockhash = blockhash.0
+            ))
+        }
+    }
+
+    fn compute_score(cards: &[u32]) -> u32 {
+        let mut possible_scores: Vec<u32> = Vec::new();
+        possible_scores.push(0);
+
+        for card in cards.iter() {
+            if *card == 1_u32 {
+                possible_scores = possible_scores
+                    .iter()
+                    .flat_map(|score| [score + 1, score + 11])
+                    .collect();
+            } else {
+                possible_scores = possible_scores
+                    .iter()
+                    .map(|p| {
+                        if *card == 11 || *card == 12 || *card == 13 {
+                            p + 10
+                        } else {
+                            p + *card
+                        }
+                    })
+                    .collect();
+            }
+        }
+
+        possible_scores.sort();
+
+        for score in possible_scores.iter().rev() {
+            if *score <= 21 {
+                return *score;
+            }
+        }
+
+        *possible_scores.first().unwrap()
+    }
+
+    pub fn hit(&mut self, user: &Identity, blockhash: &BlockHash) -> Result<String, String> {
         Ok(format!(
-            "Initiated new game for user {user} with block hash {blockhash}",
+            "Hit for user {user} with block hash {blockhash}",
             user = user,
             blockhash = blockhash.0
         ))
-    }
-    pub fn hit(&mut self, user: &Identity) -> Result<String, String> {
-        Ok(format!("Hit for user {user}", user = user,))
     }
     pub fn stand(&mut self, user: &Identity) -> Result<String, String> {
         Ok(format!("Stand for user {user}", user = user,))
@@ -100,4 +181,12 @@ impl From<sdk::StateCommitment> for BlackJack {
             .map_err(|_| "Could not decode hyllar state".to_string())
             .unwrap()
     }
+}
+
+#[test]
+fn test_compute_scoress() {
+    assert_eq!(BlackJack::compute_score(&[1, 2, 3]), 16);
+    assert_eq!(BlackJack::compute_score(&[1, 2, 1, 3]), 17);
+    assert_eq!(BlackJack::compute_score(&[1, 2, 3, 4, 10]), 20);
+    assert_eq!(BlackJack::compute_score(&[1, 2, 8, 3, 4, 10]), 28);
 }

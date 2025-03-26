@@ -900,6 +900,8 @@ version = "0.1.0"
 dependencies = [
  "borsh",
  "hyle-contract-sdk",
+ "rand 0.9.0",
+ "rand_seeder",
  "serde",
 ]
 
@@ -1915,6 +1917,7 @@ dependencies = [
  "hyle-client-sdk",
  "hyle-contract-sdk",
  "methods",
+ "rand 0.9.0",
  "tokio",
  "tracing-subscriber 0.3.19",
 ]
@@ -3602,6 +3605,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "99d9a13982dcf210057a8a78572b2217b667c3beacbf3a0d8b454f6f82837d38"
 dependencies = [
  "getrandom 0.3.2",
+]
+
+[[package]]
+name = "rand_seeder"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "502927fdfc3c9645d53e0c95bb2d53783b5a15bfeaeeb96f7703c21fbb76841e"
+dependencies = [
+ "rand_core 0.9.3",
 ]
 
 [[package]]
