@@ -142,7 +142,7 @@ impl BlackJack {
                 table.state = TableState::Lost;
                 self.tables.insert(user.clone(), table);
                 Ok(format!(
-                    "Initiated new game for user {user} with block hash {blockhash} and lost immediately",
+                    "Initiated new game for user {user} with block hash {blockhash} and loose immediately",
                     user = user,
                     blockhash = blockhash.0
                 ))
@@ -219,14 +219,14 @@ impl BlackJack {
         if user_score == 21_u32 {
             table.state = TableState::Won;
             Ok(format!(
-                "Initiated new game for user {user} with block hash {blockhash}, BLACKJACK!!!!",
+                "Hit for user {user} with block hash {blockhash}, BLACKJACK!!!!",
                 user = user,
                 blockhash = blockhash.0
             ))
         } else if user_score > 21_u32 {
             table.state = TableState::Lost;
             Ok(format!(
-                "Initiated new game for user {user} with block hash {blockhash}, BURST",
+                "Hit for user {user} with block hash {blockhash}, BURST, you loose",
                 user = user,
                 blockhash = blockhash.0
             ))
@@ -235,21 +235,21 @@ impl BlackJack {
             if bank_score == 21_u32 {
                 table.state = TableState::Lost;
                 Ok(format!(
-                    "Initiated new game for user {user} with block hash {blockhash} and lost immediately",
+                    "Hit for user {user} with block hash {blockhash} Bank made 21, you loose",
                     user = user,
                     blockhash = blockhash.0
                 ))
             } else if bank_score > 21_u32 {
                 table.state = TableState::Won;
                 Ok(format!(
-                    "Initiated new game for user {user} with block hash {blockhash}, BLACKJACK!!!!",
+                    "Hit for user {user} with block hash {blockhash}, Bank burst, you win!",
                     user = user,
                     blockhash = blockhash.0
                 ))
             } else {
                 // Still Ongoing
                 Ok(format!(
-                    "Initiated new game for user {user} with block hash {blockhash}",
+                    "Hit for user {user} with block hash {blockhash}, still ongoing",
                     user = user,
                     blockhash = blockhash.0
                 ))
