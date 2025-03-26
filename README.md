@@ -1,0 +1,2 @@
+# EZ Casino hackathon project
+
