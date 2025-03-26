@@ -105,7 +105,8 @@ impl BlackJack {
     pub fn new_game(&mut self, user: &Identity, blockhash: &BlockHash) -> Result<String, String> {
         if let Some(table) = self.tables.get(user) {
             if matches!(table.state, TableState::Ongoing) {
-                return Err("Finish the ongoing first!".to_string());
+                //return Err("Finish the ongoing first!".to_string());
+                return Ok(format!("Game already started for user {user}", user = user,));
             }
         }
 

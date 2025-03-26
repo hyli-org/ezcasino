@@ -151,21 +151,22 @@ async fn hit(
     State(ctx): State<RouterCtx>,
     Json(payload): Json<BlackJackActionRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    send(ctx, payload.account.into(), BlackJackAction::Hit).await
+    send(ctx, payload.account, BlackJackAction::Hit).await
 }
 
 async fn stand(
     State(ctx): State<RouterCtx>,
     Json(payload): Json<BlackJackActionRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    send(ctx, payload.account.into(), BlackJackAction::Stand).await
+    send(ctx, payload.account, BlackJackAction::Stand).await
 }
 
 async fn send(
     ctx: RouterCtx,
-    identity: Identity,
+    account: String,
     action: BlackJackAction,
 ) -> Result<impl IntoResponse, AppError> {
+    let identity = Identity(format!("{}.{}", account, ctx.blackjack_cn));
     let blobs = vec![action.as_blob(ctx.blackjack_cn.clone())];
     let tx_hash = ctx
         .client
