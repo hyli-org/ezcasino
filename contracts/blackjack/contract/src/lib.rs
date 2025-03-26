@@ -12,7 +12,7 @@ use alloc::{
 };
 use borsh::{io::Error, BorshDeserialize, BorshSerialize};
 use rand::Rng;
-use rand_seeder::SipHasher;
+use rand_seeder::{SipHasher, SipRng};
 use serde::{Deserialize, Serialize};
 
 use sdk::{BlockHash, Identity, RunResult};
@@ -48,8 +48,8 @@ impl sdk::HyleContract for BlackJack {
 }
 
 pub const CARDS: [u32; 13] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
-pub const NB_CARDPACKS: usize = 6 * 4;
-pub const TOTAL_CARDS: usize = NB_CARDPACKS * CARDS.len();
+// pub const NB_CARDPACKS: usize = 6 * 4;
+// pub const TOTAL_CARDS: usize = NB_CARDPACKS * CARDS.len();
 
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, Clone, Default)]
 pub enum TableState {
@@ -62,7 +62,7 @@ pub enum TableState {
 /// The state of the contract, that is totally serialized on-chain
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Table {
-    pub remaining_cards: Vec<u32>,
+    // pub remaining_cards: Vec<u32>,
     pub bank: Vec<u32>,
     pub user: Vec<u32>,
     pub bet: u32,
@@ -101,25 +101,12 @@ impl BlackJack {
         hasher.write(blockhash.0.as_bytes());
         let mut rnd = hasher.into_rng();
 
-        let mut cards: Vec<u32> = Vec::new();
-
-        for _i in 1..NB_CARDPACKS {
-            cards.extend(CARDS);
-        }
-
-        let card_1: usize = rnd.random_range(0..TOTAL_CARDS - 1);
-        let card_2: usize = rnd.random_range(0..(TOTAL_CARDS - 2));
-        let card_3: usize = rnd.random_range(0..(TOTAL_CARDS - 3));
-        let card_4: usize = rnd.random_range(0..(TOTAL_CARDS - 4));
-
-        let card_1 = cards.remove(card_1);
-        let card_2 = cards.remove(card_2);
-        let card_3 = cards.remove(card_3);
-        let card_4 = cards.remove(card_4);
+        let card_1: u32 = *CARDS.get(rnd.random_range(0..(CARDS.len() - 1))).unwrap();
+        let card_2: u32 = *CARDS.get(rnd.random_range(0..(CARDS.len() - 1))).unwrap();
+        let card_3: u32 = *CARDS.get(rnd.random_range(0..(CARDS.len() - 1))).unwrap();
+        let card_4: u32 = *CARDS.get(rnd.random_range(0..(CARDS.len() - 1))).unwrap();
 
         let mut table = Table::default();
-
-        table.remaining_cards = cards;
 
         table.user.push(card_1);
         table.bank.push(card_2);
@@ -193,6 +180,10 @@ impl BlackJack {
         *possible_scores.first().unwrap()
     }
 
+    fn pick_random_card(rnd: &mut SipRng) -> u32 {
+        *CARDS.get(rnd.random_range(0..(CARDS.len() - 1))).unwrap()
+    }
+
     pub fn hit(&mut self, user: &Identity, blockhash: &BlockHash) -> Result<String, String> {
         let Some(table) = self.tables.get_mut(user) else {
             return Err("Table not setup. Start a new game first".to_string());
@@ -206,17 +197,12 @@ impl BlackJack {
         hasher.write(blockhash.0.as_bytes());
         let mut rnd = hasher.into_rng();
 
-        let card_id_user = rnd.random_range(0..(table.remaining_cards.len() - 1));
-        let card_user = table.remaining_cards.remove(card_id_user);
-        table.user.push(card_user);
+        table.user.push(Self::pick_random_card(&mut rnd));
 
         let bank_score = Self::compute_score(&table.bank);
 
         if bank_score <= 16 {
-            let card_id_bank = rnd.random_range(0..(table.remaining_cards.len() - 1));
-            let card_bank = table.remaining_cards.remove(card_id_bank);
-
-            table.bank.push(card_bank);
+            table.bank.push(Self::pick_random_card(&mut rnd));
         }
 
         let user_score = Self::compute_score(table.user.as_slice());
