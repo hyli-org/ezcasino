@@ -36,7 +36,7 @@ pub struct AppModuleCtx {
 
 #[derive(Debug, Clone)]
 pub enum AppEvent {
-    SequencedTx(TxHash, ApiTable),
+    SequencedTx(TxHash, ApiTable, u32),
     FailedTx(TxHash, String),
 }
 impl BusMessage for AppEvent {}
@@ -125,6 +125,7 @@ pub struct ApiTable {
     pub user_count: u32,
     pub bet: u32,
     pub state: TableState,
+    pub balance: u32,
 }
 
 impl From<Table> for ApiTable {
@@ -136,6 +137,7 @@ impl From<Table> for ApiTable {
             user: table.user,
             bet: table.bet,
             state: table.state,
+            balance: 0, // Will be set in the send function
         }
     }
 }
@@ -172,7 +174,7 @@ async fn send(
     let blobs = vec![action.with_id(random).as_blob(ctx.blackjack_cn.clone())];
     let tx_hash = ctx
         .client
-        .send_tx_blob(&BlobTransaction::new(identity, blobs))
+        .send_tx_blob(&BlobTransaction::new(identity.clone(), blobs))
         .await?;
 
     let mut bus = {
@@ -184,8 +186,9 @@ async fn send(
         loop {
             let a = bus.recv().await?;
             match a {
-                AppEvent::SequencedTx(sequenced_tx_hash, table) => {
+                AppEvent::SequencedTx(sequenced_tx_hash, mut table, balance) => {
                     if sequenced_tx_hash == tx_hash {
+                        table.balance = balance;
                         return Ok(Json(table));
                     }
                 }

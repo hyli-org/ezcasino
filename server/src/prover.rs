@@ -158,8 +158,9 @@ impl ProverModule {
             }
 
             if let Some(table) = self.contract.tables.get(&tx.identity) {
+                let balance = self.contract.balances.get(&tx.identity).copied().unwrap_or(0);
                 self.bus
-                    .send(AppEvent::SequencedTx(tx_hash.clone(), table.clone().into()))
+                    .send(AppEvent::SequencedTx(tx_hash.clone(), table.clone().into(), balance))
                     .unwrap();
             }
 

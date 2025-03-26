@@ -15,7 +15,6 @@ const Game: React.FC = () => {
   const [dealerHand, setDealerHand] = useState<CardType[]>([]);
   const [gameOver, setGameOver] = useState(false);
   const [message, setMessage] = useState('');
-  const [playerMoney, setPlayerMoney] = useState(1000);
   const [currentBet, setCurrentBet] = useState(10);
   const [windowPosition, setWindowPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -54,12 +53,10 @@ const Game: React.FC = () => {
     // Gérer les messages et effets en fonction de l'état
     if (newGameState.state === 'Won') {
       setMessage('You win!');
-      setPlayerMoney(prev => prev + currentBet);
       setShowWinEffect(true);
       setTimeout(() => setShowWinEffect(false), 4000);
     } else if (newGameState.state === 'Lost') {
       setMessage('Dealer wins!');
-      setPlayerMoney(prev => prev - currentBet);
       setShowLoseEffect(true);
       setTimeout(() => setShowLoseEffect(false), 4000);
     }
@@ -212,7 +209,7 @@ const Game: React.FC = () => {
               <div className="counters">
                 <div className="counter">
                   <span className="counter-label">Your Money</span>
-                  <div className="led-display">${playerMoney}</div>
+                  <div className="led-display">${gameState?.balance || 0}</div>
                 </div>
                 <div className="counter">
                   <span className="counter-label">Bet</span>

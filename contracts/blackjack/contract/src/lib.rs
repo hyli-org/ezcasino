@@ -74,6 +74,7 @@ pub struct Table {
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, Clone, Default)]
 pub struct BlackJack {
     pub tables: BTreeMap<Identity, Table>,
+    pub balances: BTreeMap<Identity, u32>,
 }
 
 #[derive(Serialize, Deserialize, BorshSerialize, BorshDeserialize, Debug, Clone, PartialEq)]
@@ -116,9 +117,14 @@ impl BlackJack {
     pub fn new_game(&mut self, user: &Identity, blockhash: &BlockHash) -> Result<String, String> {
         if let Some(table) = self.tables.get(user) {
             if matches!(table.state, TableState::Ongoing) {
-                //return Err("Finish the ongoing first!".to_string());
                 return Ok(format!("Game already started for user {user}", user = user,));
             }
+        }
+
+        // Check if user has enough balance for a bet
+        let balance = self.balances.get(user).copied().unwrap_or(1000);
+        if balance < 10 {
+            return Err("Insufficient balance. Minimum bet is 10".to_string());
         }
 
         let mut hasher = SipHasher::new();
@@ -130,7 +136,17 @@ impl BlackJack {
         let card_3: u32 = *CARDS.get(rnd.random_range(0..(CARDS.len() - 1))).unwrap();
         let card_4: u32 = *CARDS.get(rnd.random_range(0..(CARDS.len() - 1))).unwrap();
 
-        let mut table = Table::default();
+        let mut table = Table {
+            bet: 10, // minimum bet
+            ..Default::default()
+        };
+
+        // Deduct bet from balance
+        if let Some(balance) = self.balances.get_mut(user) {
+            *balance -= table.bet;
+        } else {
+            self.balances.insert(user.clone(), balance - table.bet);
+        }
 
         table.user.push(card_1);
         table.bank.push(card_2);
@@ -141,6 +157,10 @@ impl BlackJack {
 
         if user_score == 21_u32 {
             table.state = TableState::Won;
+            // Add winnings (2x bet for blackjack)
+            if let Some(balance) = self.balances.get_mut(user) {
+                *balance += table.bet * 2;
+            }
             self.tables.insert(user.clone(), table);
             Ok(format!(
                 "Initiated new game for user {user} with block hash {blockhash}, BLACKJACK!!!!",
@@ -151,7 +171,6 @@ impl BlackJack {
             let bank_score = Self::compute_score(table.bank.as_slice());
             if bank_score == 21_u32 {
                 table.state = TableState::Lost;
-                table.bet = 0;
                 self.tables.insert(user.clone(), table);
                 Ok(format!(
                     "Initiated new game for user {user} with block hash {blockhash} and loose immediately",
@@ -233,6 +252,10 @@ impl BlackJack {
 
         if user_score == 21_u32 {
             table.state = TableState::Won;
+            // Add winnings (2x bet for blackjack)
+            if let Some(balance) = self.balances.get_mut(user) {
+                *balance += table.bet * 2;
+            }
             Ok(format!(
                 "Hit for user {user} with block hash {blockhash}, BLACKJACK!!!!",
                 user = user,
@@ -240,7 +263,6 @@ impl BlackJack {
             ))
         } else if user_score > 21_u32 {
             table.state = TableState::Lost;
-            table.bet = 0;
             Ok(format!(
                 "Hit for user {user} with block hash {blockhash}, BURST, you loose",
                 user = user,
@@ -250,7 +272,6 @@ impl BlackJack {
             let bank_score = Self::compute_score(table.bank.as_slice());
             if bank_score == 21_u32 {
                 table.state = TableState::Lost;
-                table.bet = 0;
                 Ok(format!(
                     "Hit for user {user} with block hash {blockhash} Bank made 21, you loose",
                     user = user,
@@ -258,6 +279,10 @@ impl BlackJack {
                 ))
             } else if bank_score > 21_u32 {
                 table.state = TableState::Won;
+                // Add winnings (2x bet)
+                if let Some(balance) = self.balances.get_mut(user) {
+                    *balance += table.bet * 2;
+                }
                 Ok(format!(
                     "Hit for user {user} with block hash {blockhash}, Bank burst, you win!",
                     user = user,
@@ -286,23 +311,55 @@ impl BlackJack {
         let bank_score = Self::compute_score(&table.bank);
 
         if user_score == bank_score {
-            // Recupere mise
+            // Push bet back (tie)
             table.state = TableState::Won;
+            if let Some(balance) = self.balances.get_mut(user) {
+                *balance += table.bet;
+            }
             Ok(format!(
                 "Stand for user {user}, get back money",
                 user = user,
             ))
         } else if user_score > bank_score {
             table.state = TableState::Won;
+            // Add winnings (2x bet)
+            if let Some(balance) = self.balances.get_mut(user) {
+                *balance += table.bet * 2;
+            }
             Ok(format!("Stand for user {user}, you win", user = user,))
         } else {
             table.state = TableState::Lost;
-            table.bet = 0;
             Ok(format!("Stand for user {user}, you loose", user = user,))
         }
     }
     pub fn double_down(&mut self, user: &Identity) -> Result<String, String> {
-        Ok(format!("DoubleDown for user {user}", user = user,))
+        let Some(table) = self.tables.get_mut(user) else {
+            return Err("Table not setup. Start a new game first".to_string());
+        };
+
+        if !matches!(table.state, TableState::Ongoing) {
+            return Err("Cannot double down on finished game!".to_string());
+        }
+
+        // Check if user has enough balance for double down
+        let balance = self.balances.get(user).copied().unwrap_or(0);
+        if balance < table.bet {
+            return Err("Insufficient balance for double down".to_string());
+        }
+
+        // Double the bet
+        table.bet *= 2;
+
+        // Deduct additional bet from balance
+        if let Some(balance) = self.balances.get_mut(user) {
+            *balance -= table.bet / 2;
+        }
+
+        Ok(format!(
+            "DoubleDown for user {user}, bet doubled to {}",
+            table.bet,
+            user = user
+        ))
     }
 }
 

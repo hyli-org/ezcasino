@@ -5,6 +5,7 @@ export interface GameState {
   user_count: number;
   bet: number;
   state: 'Ongoing' | 'Lost' | 'Won';
+  balance: number;
 }
 
 export interface InitGameRequest {
