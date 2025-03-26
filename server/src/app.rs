@@ -11,7 +11,7 @@ use axum::{
     Router,
 };
 use client_sdk::rest_client::NodeApiHttpClient;
-use contract::{BlackJackAction, Table};
+use contract::{BlackJack, BlackJackAction, Table, TableState};
 use hyle::{
     bus::{BusClientReceiver, BusMessage, SharedMessageBus},
     model::CommonRunContext,
@@ -20,7 +20,7 @@ use hyle::{
 };
 
 use sdk::{BlobTransaction, ContractName, Identity, TxHash};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 use tower_http::cors::{Any, CorsLayer};
 
@@ -36,7 +36,7 @@ pub struct AppModuleCtx {
 
 #[derive(Debug, Clone)]
 pub enum AppEvent {
-    SequencedTx(TxHash, Table),
+    SequencedTx(TxHash, ApiTable),
     FailedTx(TxHash, String),
 }
 impl BusMessage for AppEvent {}
@@ -115,6 +115,29 @@ async fn health() -> impl IntoResponse {
 #[derive(Deserialize)]
 struct BlackJackActionRequest {
     account: String,
+}
+
+#[derive(Serialize, Debug, Clone)]
+pub struct ApiTable {
+    pub bank: Vec<u32>,
+    pub bank_count: u32,
+    pub user: Vec<u32>,
+    pub user_count: u32,
+    pub bet: u32,
+    pub state: TableState,
+}
+
+impl From<Table> for ApiTable {
+    fn from(table: Table) -> Self {
+        ApiTable {
+            bank_count: BlackJack::compute_score(&table.bank),
+            bank: table.bank,
+            user_count: BlackJack::compute_score(&table.user),
+            user: table.user,
+            bet: table.bet,
+            state: table.state,
+        }
+    }
 }
 
 async fn init(

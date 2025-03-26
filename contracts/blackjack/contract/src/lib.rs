@@ -157,7 +157,7 @@ impl BlackJack {
         }
     }
 
-    fn compute_score(cards: &[u32]) -> u32 {
+    pub fn compute_score(cards: &[u32]) -> u32 {
         let mut possible_scores: Vec<u32> = Vec::new();
         possible_scores.push(0);
 

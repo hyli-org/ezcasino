@@ -155,7 +155,7 @@ impl ProverModule {
 
             if let Some(table) = self.contract.tables.get(&tx.identity) {
                 self.bus
-                    .send(AppEvent::SequencedTx(tx_hash.clone(), table.clone()))
+                    .send(AppEvent::SequencedTx(tx_hash.clone(), table.clone().into()))
                     .unwrap();
             }
 
