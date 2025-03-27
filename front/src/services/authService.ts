@@ -60,7 +60,6 @@ class AuthService {
   }
 
   signMessage(message: string): string {
-    console.log('Message bytes:', Array.from(new TextEncoder().encode(message)));
     if (!this.sessionKey) {
       throw new Error('No session key available');
     }
@@ -68,8 +67,15 @@ class AuthService {
     const hash = SHA256(message);
     const keyPair = this.ec.keyFromPrivate(this.sessionKey);
     const signature = keyPair.sign(hash.toString());
-    const derSignature = signature.toDER('hex');
-    return derSignature;
+    
+    // Normaliser s en utilisant min(s, n-s)
+    const n = this.ec.curve.n;
+    const s = signature.s;
+    if (s.gt(n.shrn(1))) {
+      signature.s = n.sub(s);
+    }
+    
+    return signature.toDER('hex');
   }
 
   clearSession() {
