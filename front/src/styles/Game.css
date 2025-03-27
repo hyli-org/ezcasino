@@ -269,4 +269,160 @@
 
 @keyframes blink {
   50% { opacity: 0; }
+}
+
+.taskbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 28px;
+  background-color: #c0c0c0;
+  border-top: 1px solid #dfdfdf;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  z-index: 9998;
+}
+
+.taskbar-divider {
+  width: 1px;
+  height: 20px;
+  background-color: #808080;
+  margin: 0 4px;
+}
+
+.taskbar-button {
+  height: 22px;
+  min-width: 150px;
+  padding: 1px 4px;
+  display: flex;
+  align-items: center;
+  background-color: #c0c0c0;
+  border-top: 1px solid #dfdfdf;
+  border-left: 1px solid #dfdfdf;
+  border-right: 1px solid #808080;
+  border-bottom: 1px solid #808080;
+  margin-right: 4px;
+  font-family: 'MS Sans Serif', sans-serif;
+  font-size: 11px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.taskbar-button.active {
+  border-top: 1px solid #808080;
+  border-left: 1px solid #808080;
+  border-right: 1px solid #dfdfdf;
+  border-bottom: 1px solid #dfdfdf;
+  background-color: #dfdfdf;
+}
+
+.taskbar-button img {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+}
+
+.start-button {
+  height: 22px;
+  padding: 1px;
+  display: flex;
+  align-items: center;
+  background-color: #c0c0c0;
+  border-top: 1px solid #dfdfdf;
+  border-left: 1px solid #dfdfdf;
+  border-right: 1px solid #808080;
+  border-bottom: 1px solid #808080;
+  margin-right: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.start-button:active {
+  border-top: 1px solid #808080;
+  border-left: 1px solid #808080;
+  border-right: 1px solid #dfdfdf;
+  border-bottom: 1px solid #dfdfdf;
+}
+
+.start-button img {
+  height: 16px;
+  margin: 0 2px;
+}
+
+.start-button span {
+  font-family: 'MS Sans Serif', sans-serif;
+  font-size: 11px;
+  font-weight: bold;
+  margin-right: 4px;
+}
+
+.taskbar-time {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-top: 1px solid #808080;
+  border-left: 1px solid #808080;
+  border-right: 1px solid #dfdfdf;
+  border-bottom: 1px solid #dfdfdf;
+  font-family: 'MS Sans Serif', sans-serif;
+  font-size: 11px;
+}
+
+.start-menu {
+  position: fixed;
+  bottom: 28px;
+  left: 0;
+  background-color: #c0c0c0;
+  border-top: 1px solid #dfdfdf;
+  border-left: 1px solid #dfdfdf;
+  border-right: 2px solid #000;
+  border-bottom: 2px solid #000;
+  padding: 2px;
+  display: flex;
+  min-width: 180px;
+  min-height: 200px;
+  z-index: 9999;
+}
+
+.start-menu-left {
+  width: 20px;
+  background: linear-gradient(to bottom, #808080, #c0c0c0);
+  writing-mode: vertical-lr;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  padding: 6px 0;
+  font-family: 'MS Sans Serif', sans-serif;
+  font-size: 11px;
+  font-weight: bold;
+  color: #c0c0c0;
+  text-shadow: 1px 1px #000;
+}
+
+.start-menu-items {
+  flex: 1;
+  padding: 2px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.start-menu-item {
+  display: flex;
+  align-items: center;
+  padding: 4px 6px;
+  font-family: 'MS Sans Serif', sans-serif;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.start-menu-item:hover {
+  background-color: #000080;
+  color: white;
+}
+
+.start-menu-item img {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
 } 

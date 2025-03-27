@@ -31,6 +31,7 @@ const Game: React.FC = () => {
   const [showGameMenu, setShowGameMenu] = useState(false);
   const [showClaimButton, setShowClaimButton] = useState(false);
   const [showBSOD, setShowBSOD] = useState(false);
+  const [showStartMenu, setShowStartMenu] = useState(false);
   const isInitializedRef = useRef(false);
 
   const convertToCard = (value: number): CardType => {
@@ -289,6 +290,30 @@ const Game: React.FC = () => {
     setError(null);
   };
 
+  const handleStartClick = () => {
+    setShowStartMenu(!showStartMenu);
+  };
+
+  const handleStartMenuItemClick = (action: string) => {
+    switch (action) {
+      case 'new-game':
+        startNewGame();
+        break;
+      case 'shutdown':
+        window.close();
+        break;
+    }
+    setShowStartMenu(false);
+  };
+
+  // Formater l'heure au format Windows 95
+  const getFormattedTime = () => {
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
   return (
     <>
       <VisualEffects isWin={showWinEffect} isLose={showLoseEffect} />
@@ -317,150 +342,183 @@ const Game: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div
-          className="win95-window"
-          style={{
-            transform: `translate(${windowPosition.x}px, ${windowPosition.y}px)`,
-            cursor: isDragging ? 'grabbing' : 'default',
-            transition: isDragging ? 'none' : 'transform 0.1s ease-out'
-          }}
-          onMouseDown={handleMouseDown}
-        >
-          <div className="win95-title-bar">
-            <span>Blackjack</span>
-            <div className="window-controls">
-              <button className="minimize">-</button>
-              <button className="maximize">□</button>
-              <button className="close">×</button>
+        <>
+          <div
+            className="win95-window"
+            style={{
+              transform: `translate(${windowPosition.x}px, ${windowPosition.y}px)`,
+              cursor: isDragging ? 'grabbing' : 'default',
+              transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+            }}
+            onMouseDown={handleMouseDown}
+          >
+            <div className="win95-title-bar">
+              <span>eZKasino</span>
+              <div className="window-controls">
+                <button className="minimize">-</button>
+                <button className="maximize">□</button>
+                <button className="close">×</button>
+              </div>
             </div>
-          </div>
 
-          <div className="menu-bar">
-            <div 
-              className="menu-item" 
-              onClick={() => setShowGameMenu(!showGameMenu)}
-              style={{ position: 'relative' }}
-            >
-              Game
-              {showGameMenu && (
-                <div className="menu-dropdown">
-                  <div className="menu-option" onClick={handleNewSessionKey}>
-                    New session key
+            <div className="menu-bar">
+              <div 
+                className="menu-item" 
+                onClick={() => setShowGameMenu(!showGameMenu)}
+                style={{ position: 'relative' }}
+              >
+                Game
+                {showGameMenu && (
+                  <div className="menu-dropdown">
+                    <div className="menu-option" onClick={handleNewSessionKey}>
+                      New session key
+                    </div>
+                  </div>
+                )}
+              </div>
+              <span className="menu-item">Options</span>
+              <span className="menu-item">Help</span>
+            </div>
+
+            <div className="game-container">
+              {error && (
+                <div className="error">
+                  <div className="error-title-bar">
+                    <div className="error-title-text">Error</div>
+                    <div className="error-close-button" onClick={handleErrorClose}>×</div>
+                  </div>
+                  <div className="error-content">
+                    {error}
+                    {showClaimButton && (
+                      <>
+                        <div className="error-message">Please send funds to your session key, then claim them</div>
+                        <button
+                          className="win95-button claim-button"
+                          onClick={handleClaim}
+                          disabled={isLoading}
+                        >
+                          CLAIM
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
-            </div>
-            <span className="menu-item">Options</span>
-            <span className="menu-item">Help</span>
-          </div>
-
-          <div className="game-container">
-            {error && (
-              <div className="error">
-                <div className="error-title-bar">
-                  <div className="error-title-text">Error</div>
-                  <div className="error-close-button" onClick={handleErrorClose}>×</div>
-                </div>
-                <div className="error-content">
-                  {error}
-                  {showClaimButton && (
-                    <>
-                      <div className="error-message">Please send funds to your session key, then claim them</div>
-                      <button
-                        className="win95-button claim-button"
-                        onClick={handleClaim}
-                        disabled={isLoading}
-                      >
-                        CLAIM
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-            <div className="session-key-container">
-              <span className="counter-label">Session Key</span>
-              <div 
-                className="led-display session-key" 
-                onClick={copySessionKey}
-                style={{ cursor: 'pointer' }}
-              >
-                {truncateSessionKey(authService.getSessionKey())}
-                {copyMessage && <span className="copy-message">{copyMessage}</span>}
-              </div>
-            </div>
-            <div className="counters">
-              <div className="counter">
-                <span className="counter-label">Your Money</span>
-                <div className="led-display">${gameState?.balance || 0}</div>
-              </div>
-              <div className="counter">
-                <span className="counter-label">Bet</span>
-                <div className="led-display">${currentBet}</div>
-              </div>
-            </div>
-
-            <div className="play-area">
-              <div className="dealer-score">Dealer: {dealerHand.length > 2 || gameState?.state !== 'Ongoing' ? gameState?.bank_count || 0 : '??'}</div>
-              <div className="hand">
-                {dealerHand.map((card, index) => (
-                  <Card
-                    key={index}
-                    suit={card.suit}
-                    value={card.value}
-                    hidden={index === 1 && dealerHand.length <= 2}
-                  />
-                ))}
-              </div>
-
-              <div className="player-score">Player: {gameState?.user_count || 0}</div>
-              <div className="hand">
-                {playerHand.map((card, index) => (
-                  <Card
-                    key={index}
-                    suit={card.suit}
-                    value={card.value}
-                  />
-                ))}
-              </div>
-              {message && <div className="message">{message}</div>}
-              {!gameOver && (
-                <div className="controls">
-                  <button
-                    className="win95-button"
-                    onClick={hit}
-                    disabled={isLoading}
-                  >
-                    HIT
-                  </button>
-                  <button
-                    className="win95-button"
-                    onClick={stand}
-                    disabled={isLoading}
-                  >
-                    STAND
-                  </button>
-                  <button
-                    className="win95-button"
-                    onClick={doubleDown}
-                    disabled={isLoading}
-                  >
-                    DOUBLE
-                  </button>
-                </div>
-              )}
-              {gameOver && (
-                <button
-                  className="win95-button"
-                  onClick={startNewGame}
-                  disabled={isLoading}
+              <div className="session-key-container">
+                <span className="counter-label">Session Key</span>
+                <div 
+                  className="led-display session-key" 
+                  onClick={copySessionKey}
+                  style={{ cursor: 'pointer' }}
                 >
-                  DEAL
-                </button>
-              )}
+                  {truncateSessionKey(authService.getSessionKey())}
+                  {copyMessage && <span className="copy-message">{copyMessage}</span>}
+                </div>
+              </div>
+              <div className="counters">
+                <div className="counter">
+                  <span className="counter-label">Your Money</span>
+                  <div className="led-display">${gameState?.balance || 0}</div>
+                </div>
+                <div className="counter">
+                  <span className="counter-label">Bet</span>
+                  <div className="led-display">${currentBet}</div>
+                </div>
+              </div>
+
+              <div className="play-area">
+                <div className="dealer-score">Dealer: {dealerHand.length > 2 || gameState?.state !== 'Ongoing' ? gameState?.bank_count || 0 : '??'}</div>
+                <div className="hand">
+                  {dealerHand.map((card, index) => (
+                    <Card
+                      key={index}
+                      suit={card.suit}
+                      value={card.value}
+                      hidden={index === 1 && dealerHand.length <= 2}
+                    />
+                  ))}
+                </div>
+
+                <div className="player-score">Player: {gameState?.user_count || 0}</div>
+                <div className="hand">
+                  {playerHand.map((card, index) => (
+                    <Card
+                      key={index}
+                      suit={card.suit}
+                      value={card.value}
+                    />
+                  ))}
+                </div>
+                {message && <div className="message">{message}</div>}
+                {!gameOver && (
+                  <div className="controls">
+                    <button
+                      className="win95-button"
+                      onClick={hit}
+                      disabled={isLoading}
+                    >
+                      HIT
+                    </button>
+                    <button
+                      className="win95-button"
+                      onClick={stand}
+                      disabled={isLoading}
+                    >
+                      STAND
+                    </button>
+                    <button
+                      className="win95-button"
+                      onClick={doubleDown}
+                      disabled={isLoading}
+                    >
+                      DOUBLE
+                    </button>
+                  </div>
+                )}
+                {gameOver && (
+                  <button
+                    className="win95-button"
+                    onClick={startNewGame}
+                    disabled={isLoading}
+                  >
+                    DEAL
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+          <div className="taskbar">
+            <div className="start-button" onClick={handleStartClick}>
+              <img src="/windows-logo.png" alt="Windows" />
+              <span>Start</span>
+            </div>
+            <div className="taskbar-divider" />
+            <div className="taskbar-button active">
+              <img src="/cards-icon.png" alt="Blackjack" />
+              eZKasino
+            </div>
+            <div className="taskbar-time">
+              {getFormattedTime()}
+            </div>
+          </div>
+          {showStartMenu && (
+            <div className="start-menu">
+              <div className="start-menu-left">
+                Windows 95
+              </div>
+              <div className="start-menu-items">
+                <div className="start-menu-item" onClick={() => handleStartMenuItemClick('new-game')}>
+                  <img src="/cards-icon.png" alt="New Game" />
+                  eZKasino
+                </div>
+                <div className="start-menu-item" onClick={() => handleStartMenuItemClick('shutdown')}>
+                  <img src="/shutdown-icon.png" alt="Shut Down" />
+                  Shut Down...
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </>
   );
