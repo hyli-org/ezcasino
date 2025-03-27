@@ -11,7 +11,6 @@ use axum::{
 };
 use client_sdk::rest_client::{IndexerApiHttpClient, NodeApiHttpClient};
 use contract::{BlackJack, BlackJackAction, Table, TableState};
-use hmac::{Hmac, Mac};
 use hyle::{
     bus::{BusClientReceiver, BusMessage, SharedMessageBus},
     model::CommonRunContext,
@@ -19,14 +18,12 @@ use hyle::{
     utils::modules::{module_bus_client, Module},
 };
 use hyle_hyllar::{erc20::ERC20, Hyllar, HyllarAction};
-use sha2::{Digest, Sha256};
 
-use hex;
 use sdk::{
     Blob, BlobData, BlobIndex, BlobTransaction, ContractAction, ContractName, Identity, TxHash,
 };
 use secp256k1::hashes::{sha256, Hash};
-use secp256k1::{ecdsa::Signature, ffi::secp256k1_context_create, Message, PublicKey, Secp256k1};
+use secp256k1::{ecdsa::Signature, Message, PublicKey, Secp256k1};
 use serde::Serialize;
 use tokio::sync::Mutex;
 use tower_http::cors::{Any, CorsLayer};
@@ -282,10 +279,10 @@ async fn send(
     // Verify the signature
     let secp = Secp256k1::new();
     secp.verify_ecdsa(&message, &signature, &public_key)
-        .map_err(|_| {
+        .map_err(|e| {
             AppError(
                 StatusCode::UNAUTHORIZED,
-                anyhow::anyhow!("Invalid signature"),
+                anyhow::anyhow!("Invalid ecdsa signature: {e:#?}"),
             )
         })?;
 

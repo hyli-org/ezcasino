@@ -1,5 +1,5 @@
 import { ec } from 'elliptic';
-import { enc, lib, SHA256 } from 'crypto-js';
+import { SHA256 } from 'crypto-js';
 
 const SESSION_KEY_STORAGE_KEY = 'blackjack_session_key';
 const PUBLIC_KEY_STORAGE_KEY = 'blackjack_public_key';
@@ -60,17 +60,16 @@ class AuthService {
   }
 
   signMessage(message: string): string {
+    console.log('Message bytes:', Array.from(new TextEncoder().encode(message)));
     if (!this.sessionKey) {
       throw new Error('No session key available');
     }
 
-    // Crée un hash SHA256 du message
     const hash = SHA256(message);
-    // Signe le hash avec ECDSA
     const keyPair = this.ec.keyFromPrivate(this.sessionKey);
     const signature = keyPair.sign(hash.toString());
-    // Retourne la signature au format hexadécimal
-    return signature.toDER('hex');
+    const derSignature = signature.toDER('hex');
+    return derSignature;
   }
 
   clearSession() {

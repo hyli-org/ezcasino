@@ -11,7 +11,7 @@ pub struct AppError(pub StatusCode, pub anyhow::Error);
 // Tell axum how to convert `AppError` into a response.
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        tracing::error!("{}", self.1);
+        tracing::error!("{:#}", self.1);
         let body = json!({
             "error": self.1.to_string(),
             "status": self.0.as_u16()

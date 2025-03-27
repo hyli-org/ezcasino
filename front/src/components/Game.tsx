@@ -21,7 +21,6 @@ const Game: React.FC = () => {
   const [windowPosition, setWindowPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [initialPosition, setInitialPosition] = useState({ x: 0, y: 0 });
   const [showWinEffect, setShowWinEffect] = useState(false);
   const [showLoseEffect, setShowLoseEffect] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
