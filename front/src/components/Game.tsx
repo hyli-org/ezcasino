@@ -3,6 +3,8 @@ import Card from './Card';
 import VisualEffects from './VisualEffects';
 import { gameService } from '../services/gameService';
 import { GameState } from '../types/game';
+import { authService } from '../services/authService';
+import '../styles/Game.css';
 
 type Suit = '♠' | '♣' | '♥' | '♦';
 type CardType = {
@@ -25,6 +27,8 @@ const Game: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
+  const [showGameMenu, setShowGameMenu] = useState(false);
 
   const convertToCard = (value: number): CardType => {
     const suits: Suit[] = ['♠', '♣', '♥', '♦'];
@@ -66,7 +70,11 @@ const Game: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const gameState = await gameService.initGame('bob');
+      // Ne générer une nouvelle sessionKey que si nous n'en avons pas déjà une
+      if (!authService.getSessionKey()) {
+        authService.generateSessionKey();
+      }
+      const gameState = await gameService.initGame();
       updateGameState(gameState);
       setMessage('');
     } catch (err) {
@@ -81,7 +89,7 @@ const Game: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const gameState = await gameService.hit('bob');
+      const gameState = await gameService.hit();
       updateGameState(gameState);
     } catch (err) {
       setError('Failed to hit. Please try again.');
@@ -95,7 +103,7 @@ const Game: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const gameState = await gameService.stand('bob');
+      const gameState = await gameService.stand();
       updateGameState(gameState);
     } catch (err) {
       setError('Failed to stand. Please try again.');
@@ -139,8 +147,30 @@ const Game: React.FC = () => {
     };
   }, []);
 
+  // Initialiser la partie au chargement
   useEffect(() => {
-    startNewGame();
+    const initGame = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        // Si nous avons déjà une sessionKey, l'utiliser directement
+        const existingSessionKey = authService.getSessionKey();
+        if (existingSessionKey) {
+          const gameState = await gameService.initGame();
+          updateGameState(gameState);
+        } else {
+          // Sinon, démarrer une nouvelle partie
+          await startNewGame();
+        }
+      } catch (err) {
+        setError('Failed to initialize game. Please try again.');
+        console.error('Error initializing game:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initGame();
   }, []);
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -174,6 +204,31 @@ const Game: React.FC = () => {
     setIsDragging(false);
   };
 
+  const truncateSessionKey = (key: string | null): string => {
+    if (!key) return 'No active session';
+    if (key.length <= 20) return key;
+    return `${key.slice(0, 10)}[...]${key.slice(-10)}`;
+  };
+
+  const copySessionKey = async () => {
+    const sessionKey = authService.getSessionKey();
+    if (!sessionKey) return;
+    
+    try {
+      await navigator.clipboard.writeText(sessionKey);
+      setCopyMessage('Copied!');
+      setTimeout(() => setCopyMessage(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const handleNewSessionKey = () => {
+    authService.clearSession();
+    startNewGame();
+    setShowGameMenu(false);
+  };
+
   return (
     <>
       <VisualEffects isWin={showWinEffect} isLose={showLoseEffect} />
@@ -196,7 +251,20 @@ const Game: React.FC = () => {
         </div>
 
         <div className="menu-bar">
-          <span className="menu-item">Game</span>
+          <div 
+            className="menu-item" 
+            onClick={() => setShowGameMenu(!showGameMenu)}
+            style={{ position: 'relative' }}
+          >
+            Game
+            {showGameMenu && (
+              <div className="menu-dropdown">
+                <div className="menu-option" onClick={handleNewSessionKey}>
+                  New session key
+                </div>
+              </div>
+            )}
+          </div>
           <span className="menu-item">Options</span>
           <span className="menu-item">Help</span>
         </div>
@@ -206,6 +274,17 @@ const Game: React.FC = () => {
             <div className="error">{error}</div>
           ) : (
             <>
+              <div className="session-key-container">
+                <span className="counter-label">Session Key</span>
+                <div 
+                  className="led-display session-key" 
+                  onClick={copySessionKey}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {truncateSessionKey(authService.getSessionKey())}
+                  {copyMessage && <span className="copy-message">{copyMessage}</span>}
+                </div>
+              </div>
               <div className="counters">
                 <div className="counter">
                   <span className="counter-label">Your Money</span>

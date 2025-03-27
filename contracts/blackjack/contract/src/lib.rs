@@ -15,10 +15,18 @@ use rand::Rng;
 use rand_seeder::{SipHasher, SipRng};
 use serde::{Deserialize, Serialize};
 
-use sdk::{BlockHash, Identity, RunResult};
+use sdk::{BlockHash, ContractName, Identity, RunResult};
 
 #[cfg(feature = "client")]
 pub mod client;
+
+#[derive(Debug, borsh::BorshSerialize, borsh::BorshDeserialize)]
+pub struct HmacSha256Blob {
+    pub identity: Identity,
+    pub data: Vec<u8>,
+    pub key: Vec<u8>,
+    pub hmac: Vec<u8>,
+}
 
 impl sdk::HyleContract for BlackJack {
     /// Entry point of the contract's logic
@@ -31,6 +39,36 @@ impl sdk::HyleContract for BlackJack {
         let Some(tx_ctx) = contract_input.tx_ctx.as_ref() else {
             return Err("Missing tx context necessary for this contract".to_string());
         };
+
+        // Verify HmacSha256Blob
+        let hmac_blob = contract_input
+            .blobs
+            .iter()
+            .find(|b| b.contract_name == ContractName("hmac_sha256".to_string()))
+            .ok_or_else(|| "Missing HmacSha256Blob".to_string())?;
+
+        let hmac_data: HmacSha256Blob = borsh::from_slice(&hmac_blob.data.0)
+            .map_err(|_| "Failed to decode HmacSha256Blob".to_string())?;
+
+        // Verify that the key matches the user's key
+        let user_key = user.0.split('.').next()
+            .ok_or_else(|| "Invalid user identity format".to_string())?;
+        
+        if hmac_data.key != user_key.as_bytes() {
+            return Err("HmacSha256Blob key does not match the user's key".to_string());
+        }
+
+        // Verify that the data matches the action
+        let expected_data = match action.action {
+            BlackJackAction::Init => "init",
+            BlackJackAction::Hit => "hit",
+            BlackJackAction::Stand => "stand",
+            BlackJackAction::DoubleDown => "double_down",
+        };
+
+        if hmac_data.data != expected_data.as_bytes() {
+            return Err("HmacSha256Blob data does not match the action".to_string());
+        }
 
         // Execute the given action
         let res = match action.action {

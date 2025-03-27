@@ -2,10 +2,9 @@ use std::{sync::Arc, time::Duration};
 
 use crate::utils::AppError;
 use anyhow::Result;
-use axum::http::StatusCode;
 use axum::{
     extract::{Json, State},
-    http::Method,
+    http::{HeaderMap, Method, StatusCode},
     response::IntoResponse,
     routing::{get, post},
     Router,
@@ -18,11 +17,14 @@ use hyle::{
     module_handle_messages,
     utils::modules::{module_bus_client, Module},
 };
+use hmac::{Hmac, Mac};
+use sha2::Sha256;
 
-use sdk::{BlobTransaction, ContractName, Identity, TxHash};
-use serde::{Deserialize, Serialize};
+use sdk::{Blob, BlobData, BlobIndex, BlobTransaction, ContractAction, ContractName, Identity, TxHash};
+use serde::Serialize;
 use tokio::sync::Mutex;
 use tower_http::cors::{Any, CorsLayer};
+use hex;
 
 pub struct AppModule {
     bus: AppModuleBusClient,
@@ -109,13 +111,40 @@ async fn health() -> impl IntoResponse {
 }
 
 // --------------------------------------------------------
-//     Init
+//     Headers
 // --------------------------------------------------------
 
-#[derive(Deserialize)]
-struct BlackJackActionRequest {
-    account: String,
+const SESSION_KEY_HEADER: &str = "x-session-key";
+const SIGNATURE_HEADER: &str = "x-request-signature";
+
+#[derive(Debug)]
+struct AuthHeaders {
+    session_key: String,
+    signature: String,
 }
+
+impl AuthHeaders {
+    fn from_headers(headers: &HeaderMap) -> Result<Self, AppError> {
+        let session_key = headers
+            .get(SESSION_KEY_HEADER)
+            .and_then(|v| v.to_str().ok())
+            .ok_or_else(|| AppError(StatusCode::UNAUTHORIZED, anyhow::anyhow!("Missing session key")))?;
+
+        let signature = headers
+            .get(SIGNATURE_HEADER)
+            .and_then(|v| v.to_str().ok())
+            .ok_or_else(|| AppError(StatusCode::UNAUTHORIZED, anyhow::anyhow!("Missing signature")))?;
+
+        Ok(AuthHeaders {
+            session_key: session_key.to_string(),
+            signature: signature.to_string(),
+        })
+    }
+}
+
+// --------------------------------------------------------
+//     Types
+// --------------------------------------------------------
 
 #[derive(Serialize, Debug, Clone)]
 pub struct ApiTable {
@@ -142,36 +171,82 @@ impl From<Table> for ApiTable {
     }
 }
 
+// --------------------------------------------------------
+//     Routes
+// --------------------------------------------------------
+
 async fn init(
     State(ctx): State<RouterCtx>,
-    Json(payload): Json<BlackJackActionRequest>,
+    headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
-    send(ctx, payload.account.into(), BlackJackAction::Init).await
+    let auth = AuthHeaders::from_headers(&headers)?;
+    send(ctx, BlackJackAction::Init, auth).await
 }
 
 async fn hit(
     State(ctx): State<RouterCtx>,
-    Json(payload): Json<BlackJackActionRequest>,
+    headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
-    send(ctx, payload.account, BlackJackAction::Hit).await
+    let auth = AuthHeaders::from_headers(&headers)?;
+    send(ctx, BlackJackAction::Hit, auth).await
 }
 
 async fn stand(
     State(ctx): State<RouterCtx>,
-    Json(payload): Json<BlackJackActionRequest>,
+    headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
-    send(ctx, payload.account, BlackJackAction::Stand).await
+    let auth = AuthHeaders::from_headers(&headers)?;
+    send(ctx,  BlackJackAction::Stand, auth).await
 }
 
 async fn send(
     ctx: RouterCtx,
-    account: String,
     action: BlackJackAction,
+    auth: AuthHeaders,
 ) -> Result<impl IntoResponse, AppError> {
+    let account = auth.session_key.clone();
+    
+    // Get the endpoint name based on the action
+    let endpoint = match action {
+        BlackJackAction::Init => "init",
+        BlackJackAction::Hit => "hit",
+        BlackJackAction::Stand => "stand",
+        BlackJackAction::DoubleDown => "double_down",
+    };
+
+    // Verify signature using HMAC-SHA256
+    type HmacSha256 = Hmac<Sha256>;
+    let mut mac = HmacSha256::new_from_slice(auth.session_key.as_bytes())
+        .map_err(|_| AppError(StatusCode::UNAUTHORIZED, anyhow::anyhow!("Invalid session key")))?;
+    mac.update(endpoint.as_bytes());
+    let signature = mac.finalize().into_bytes();
+
+    if signature.as_slice() != hex::decode(&auth.signature)
+        .map_err(|_| AppError(StatusCode::UNAUTHORIZED, anyhow::anyhow!("Invalid signature format")))?
+    {
+        return Err(AppError(
+            StatusCode::UNAUTHORIZED,
+            anyhow::anyhow!("Invalid signature"),
+        ));
+    }
+
     let identity = Identity(format!("{}.{}", account, ctx.blackjack_cn));
     // get random
     let random = rand::random::<u64>();
-    let blobs = vec![action.with_id(random).as_blob(ctx.blackjack_cn.clone())];
+    
+    // Create the HmacSha256 blob
+    let hmac_blob = HmacSha256Blob {
+        identity: identity.clone(),
+        data: endpoint.as_bytes().to_vec(),
+        key: auth.session_key.as_bytes().to_vec(),
+        hmac: signature.to_vec(),
+    };
+
+    let blobs = vec![
+        action.with_id(random).as_blob(ctx.blackjack_cn.clone()),
+        hmac_blob.as_blob(),
+    ];
+
     let tx_hash = ctx
         .client
         .send_tx_blob(&BlobTransaction::new(identity.clone(), blobs))
@@ -201,4 +276,33 @@ async fn send(
         }
     })
     .await?
+}
+
+#[derive(Debug, borsh::BorshSerialize, borsh::BorshDeserialize)]
+pub struct HmacSha256Blob {
+    pub identity: Identity,
+    pub data: Vec<u8>,
+    pub key: Vec<u8>,
+    pub hmac: Vec<u8>,
+}
+
+impl HmacSha256Blob {
+    pub fn as_blob(&self) -> Blob {
+        <Self as ContractAction>::as_blob(self, "hmac_sha256".into(), None, None)
+    }
+}
+
+impl ContractAction for HmacSha256Blob {
+    fn as_blob(
+        &self,
+        contract_name: ContractName,
+        _caller: Option<BlobIndex>,
+        _callees: Option<Vec<BlobIndex>>,
+    ) -> Blob {
+        #[allow(clippy::expect_used)]
+        Blob {
+            contract_name,
+            data: BlobData(borsh::to_vec(self).expect("failed to encode HmacSha256Blob")),
+        }
+    }
 }

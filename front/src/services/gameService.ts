@@ -1,53 +1,47 @@
-import { GameState, InitGameRequest } from '../types/game';
+import { authService } from './authService';
+import { GameState } from '../types/game';
 
 const API_BASE_URL = 'http://localhost:3000/api';
 
-export const gameService = {
-  initGame: async (account: string): Promise<GameState> => {
-    const response = await fetch(`${API_BASE_URL}/init`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ account } as InitGameRequest),
+class GameService {
+  private async makeRequest(endpoint: string, method: string = 'GET') {
+    const sessionKey = authService.getSessionKey();
+    if (!sessionKey) {
+      throw new Error('No active session');
+    }
+
+    const action = endpoint.split('/').pop() || '';
+    const signature = authService.signMessage(action);
+
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'X-Session-Key': sessionKey,
+      'X-Request-Signature': signature
+    };
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method,
+      headers,
     });
 
     if (!response.ok) {
-      throw new Error('Failed to initialize game');
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     return response.json();
-  },
+  }
 
-  hit: async (account: string): Promise<GameState> => {
-    const response = await fetch(`${API_BASE_URL}/hit`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ account } as InitGameRequest),
-    });
+  async initGame(): Promise<GameState> {
+    return this.makeRequest('/init', 'POST', {});
+  }
 
-    if (!response.ok) {
-      throw new Error('Failed to hit');
-    }
+  async hit(): Promise<GameState> {
+    return this.makeRequest('/hit', 'POST', {});
+  }
 
-    return response.json();
-  },
+  async stand(): Promise<GameState> {
+    return this.makeRequest('/stand', 'POST', {});
+  }
+}
 
-  stand: async (account: string): Promise<GameState> => {
-    const response = await fetch(`${API_BASE_URL}/stand`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ account } as InitGameRequest),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to stand');
-    }
-
-    return response.json();
-  },
-}; 
+export const gameService = new GameService(); 
