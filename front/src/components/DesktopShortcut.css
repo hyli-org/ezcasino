@@ -1,0 +1,35 @@
+.desktop-shortcut {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 80px;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+}
+
+.desktop-shortcut:hover {
+  background-color: rgba(0, 0, 128, 0.1);
+  border-color: #000080;
+}
+
+.desktop-shortcut:active {
+  background-color: rgba(0, 0, 128, 0.2);
+}
+
+.shortcut-icon {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 4px;
+}
+
+.shortcut-label {
+  font-family: "MS Sans Serif", Arial, sans-serif;
+  font-size: 12px;
+  color: #000;
+  text-align: center;
+  word-wrap: break-word;
+  max-width: 100%;
+} 

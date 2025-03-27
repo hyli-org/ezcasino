@@ -20,6 +20,16 @@
 
 body {
   font-family: "MS Sans Serif", "Segoe UI", sans-serif;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  transition: background 1s ease;
+}
+
+body.day-theme {
   background: linear-gradient(
     180deg,
     var(--win95-sky) 0%,
@@ -27,12 +37,39 @@ body {
     #228B22 60%,
     #228B22 100%
   );
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  overflow: hidden;
+}
+
+body.night-theme {
+  background: linear-gradient(
+    180deg,
+    #000033 0%,
+    #000033 60%,
+    #003300 60%,
+    #003300 100%
+  );
+}
+
+body.night-theme .sun {
+  opacity: 0;
+}
+
+body.night-theme .flower1,
+body.night-theme .flower2,
+body.night-theme .flower3,
+body.night-theme .flower4,
+body.night-theme .flower5,
+body.night-theme .flower6,
+body.night-theme .flower7,
+body.night-theme .flower8,
+body.night-theme .flower9,
+body.night-theme .flower10 {
+  opacity: 0.3;
+}
+
+body.night-theme .cow1,
+body.night-theme .cow2,
+body.night-theme .cow3 {
+  opacity: 0.7;
 }
 
 /* Soleil */

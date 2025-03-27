@@ -4,6 +4,7 @@ import VisualEffects from './VisualEffects';
 import { gameService } from '../services/gameService';
 import { GameState } from '../types/game';
 import { authService } from '../services/authService';
+import DesktopShortcut from './DesktopShortcut';
 import '../styles/Game.css';
 
 type Suit = '♠' | '♣' | '♥' | '♦';
@@ -12,7 +13,11 @@ type CardType = {
   value: string;
 };
 
-const Game: React.FC = () => {
+interface GameProps {
+  onBackgroundChange: (theme: 'day' | 'night') => void;
+}
+
+const Game: React.FC<GameProps> = ({ onBackgroundChange }) => {
   const [playerHand, setPlayerHand] = useState<CardType[]>([]);
   const [dealerHand, setDealerHand] = useState<CardType[]>([]);
   const [gameOver, setGameOver] = useState(false);
@@ -31,6 +36,8 @@ const Game: React.FC = () => {
   const [showClaimButton, setShowClaimButton] = useState(false);
   const [showBSOD, setShowBSOD] = useState(false);
   const [showStartMenu, setShowStartMenu] = useState(false);
+  const [backgroundTheme, setBackgroundTheme] = useState<'day' | 'night'>('day');
+  const [contractName, setContractName] = useState<string>('');
   const isInitializedRef = useRef(false);
 
   const convertToCard = (value: number): CardType => {
@@ -200,6 +207,11 @@ const Game: React.FC = () => {
         setIsLoading(true);
         setError(null);
         setShowClaimButton(false);
+        
+        // Récupérer la configuration
+        const config = await gameService.getConfig();
+        setContractName(config.contract_name);
+        
         // Si nous avons déjà une sessionKey, l'utiliser directement
         const existingSessionKey = authService.getSessionKey();
         isInitializedRef.current = true;
@@ -259,8 +271,8 @@ const Game: React.FC = () => {
 
   const truncateSessionKey = (key: string | null): string => {
     if (!key) return 'No active session';
-    if (key.length <= 20) return key;
-    return `${key.slice(0, 10)}[...]${key.slice(-10)}`;
+    if (key.length <= 20) return `${key}.${contractName}`;
+    return `${key.slice(0, 10)}[...]${key.slice(-10)}.${contractName}`;
   };
 
   const copySessionKey = async () => {
@@ -268,7 +280,7 @@ const Game: React.FC = () => {
     if (!sessionKey) return;
     
     try {
-      await navigator.clipboard.writeText(sessionKey);
+      await navigator.clipboard.writeText(`${sessionKey}.${contractName}`);
       setCopyMessage('Copied!');
       setTimeout(() => setCopyMessage(null), 2000);
     } catch (err) {
@@ -315,6 +327,12 @@ const Game: React.FC = () => {
     return `${hours}:${minutes}`;
   };
 
+  const toggleBackground = () => {
+    const newTheme = backgroundTheme === 'day' ? 'night' : 'day';
+    setBackgroundTheme(newTheme);
+    onBackgroundChange(newTheme);
+  };
+
   return (
     <>
       <VisualEffects isWin={showWinEffect} isLose={showLoseEffect} />
@@ -348,6 +366,11 @@ const Game: React.FC = () => {
         </div>
       ) : (
         <>
+          <DesktopShortcut
+            icon="/background-icon.svg"
+            label="Switch Background"
+            onClick={toggleBackground}
+          />
           <div
             className="win95-window"
             style={{

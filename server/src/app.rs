@@ -79,6 +79,7 @@ impl Module for AppModule {
             .route("/api/hit", post(hit))
             .route("/api/stand", post(stand))
             .route("/api/double_down", post(double_down))
+            .route("/api/config", get(get_config))
             .with_state(state)
             .layer(cors); // Appliquer le middleware CORS
 
@@ -188,6 +189,11 @@ impl From<Table> for ApiTable {
     }
 }
 
+#[derive(Serialize)]
+struct ConfigResponse {
+    contract_name: String,
+}
+
 // --------------------------------------------------------
 //     Routes
 // --------------------------------------------------------
@@ -230,6 +236,12 @@ async fn double_down(
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
     send(ctx, BlackJackAction::DoubleDown, auth).await
+}
+
+async fn get_config(State(ctx): State<RouterCtx>) -> impl IntoResponse {
+    Json(ConfigResponse {
+        contract_name: ctx.blackjack_cn.0,
+    })
 }
 
 async fn send(

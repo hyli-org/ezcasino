@@ -51,6 +51,10 @@ class GameService {
   async claim(): Promise<GameState> {
     return this.makeRequest('/claim', 'POST');
   }
+
+  async getConfig(): Promise<{ contract_name: string }> {
+    return this.makeRequest('/config', 'GET');
+  }
 }
 
 export const gameService = new GameService(); 

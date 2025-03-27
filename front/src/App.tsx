@@ -1,7 +1,14 @@
+import React, { useState, useEffect } from 'react';
 import Game from './components/Game';
 import './App.css'
 
 function App() {
+  const [backgroundTheme, setBackgroundTheme] = useState<'day' | 'night'>('day');
+
+  useEffect(() => {
+    document.body.className = `${backgroundTheme}-theme`;
+  }, [backgroundTheme]);
+
   return (
     <>
       <div className="sun"></div>
@@ -37,7 +44,7 @@ function App() {
         <div className="ear right"></div>
       </div>
       <div className="App">
-        <Game />
+        <Game onBackgroundChange={setBackgroundTheme} />
       </div>
     </>
   );
