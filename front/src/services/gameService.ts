@@ -32,15 +32,19 @@ class GameService {
   }
 
   async initGame(): Promise<GameState> {
-    return this.makeRequest('/init', 'POST', {});
+    return this.makeRequest('/init', 'POST');
   }
 
   async hit(): Promise<GameState> {
-    return this.makeRequest('/hit', 'POST', {});
+    return this.makeRequest('/hit', 'POST');
   }
 
   async stand(): Promise<GameState> {
-    return this.makeRequest('/stand', 'POST', {});
+    return this.makeRequest('/stand', 'POST');
+  }
+
+  async doubleDown(): Promise<GameState> {
+    return this.makeRequest('/double_down', 'POST');
   }
 }
 

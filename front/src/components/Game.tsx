@@ -113,6 +113,20 @@ const Game: React.FC = () => {
     }
   };
 
+  const doubleDown = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const gameState = await gameService.doubleDown();
+      updateGameState(gameState);
+    } catch (err) {
+      setError('Failed to double down. Please try again.');
+      console.error('Error doubling down:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove);
@@ -297,14 +311,14 @@ const Game: React.FC = () => {
               </div>
 
               <div className="play-area">
-                <div className="dealer-score">Dealer: {dealerHand.length > 2 ? gameState?.bank_count || 0 : '??'}</div>
+                <div className="dealer-score">Dealer: {dealerHand.length > 2 || gameState?.state !== 'Ongoing' ? gameState?.bank_count || 0 : '??'}</div>
                 <div className="hand">
                   {dealerHand.map((card, index) => (
                     <Card
                       key={index}
                       suit={card.suit}
                       value={card.value}
-                      hidden={index === 1 && dealerHand.length <= 2}
+                      hidden={index === 1 && dealerHand.length <= 2 && gameState?.state === 'Ongoing'}
                     />
                   ))}
                 </div>
@@ -335,6 +349,13 @@ const Game: React.FC = () => {
                       disabled={isLoading}
                     >
                       STAND
+                    </button>
+                    <button
+                      className="win95-button"
+                      onClick={doubleDown}
+                      disabled={isLoading || !gameState || gameState.balance < currentBet}
+                    >
+                      DOUBLE
                     </button>
                   </div>
                 )}

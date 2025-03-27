@@ -595,7 +595,6 @@ body::before {
 
 .play-area {
   background-color: #008000;
-  padding: 20px;
   margin: 4px;
   min-height: 300px;
   border: inset 2px var(--win95-shadow);

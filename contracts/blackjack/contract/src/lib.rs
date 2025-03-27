@@ -280,12 +280,6 @@ impl BlackJack {
 
         table.user.push(Self::pick_random_card(&mut rnd));
 
-        let bank_score = Self::compute_score(&table.bank);
-
-        if bank_score <= 16 {
-            table.bank.push(Self::pick_random_card(&mut rnd));
-        }
-
         let user_score = Self::compute_score(table.user.as_slice());
 
         if user_score == 21_u32 {
@@ -307,33 +301,12 @@ impl BlackJack {
                 blockhash = blockhash.0
             ))
         } else {
-            let bank_score = Self::compute_score(table.bank.as_slice());
-            if bank_score == 21_u32 {
-                table.state = TableState::Lost;
-                Ok(format!(
-                    "Hit for user {user} with block hash {blockhash} Bank made 21, you loose",
-                    user = user,
-                    blockhash = blockhash.0
-                ))
-            } else if bank_score > 21_u32 {
-                table.state = TableState::Won;
-                // Add winnings (2x bet)
-                if let Some(balance) = self.balances.get_mut(user) {
-                    *balance += table.bet * 2;
-                }
-                Ok(format!(
-                    "Hit for user {user} with block hash {blockhash}, Bank burst, you win!",
-                    user = user,
-                    blockhash = blockhash.0
-                ))
-            } else {
-                // Still Ongoing
-                Ok(format!(
-                    "Hit for user {user} with block hash {blockhash}, still ongoing",
-                    user = user,
-                    blockhash = blockhash.0
-                ))
-            }
+            // Still Ongoing
+            Ok(format!(
+                "Hit for user {user} with block hash {blockhash}, still ongoing",
+                user = user,
+                blockhash = blockhash.0
+            ))
         }
     }
     pub fn stand(&mut self, user: &Identity) -> Result<String, String> {
@@ -346,9 +319,29 @@ impl BlackJack {
         }
 
         let user_score = Self::compute_score(&table.user);
+        
+        // Bank's turn - keep drawing cards until score > 16
+        let mut hasher = SipHasher::new();
+        hasher.write(user.0.as_bytes());
+        let mut rnd = hasher.into_rng();
+        
+        while Self::compute_score(&table.bank) <= 16 {
+            table.bank.push(Self::pick_random_card(&mut rnd));
+        }
+
         let bank_score = Self::compute_score(&table.bank);
 
-        if user_score == bank_score {
+        if bank_score > 21_u32 {
+            table.state = TableState::Won;
+            // Add winnings (2x bet)
+            if let Some(balance) = self.balances.get_mut(user) {
+                *balance += table.bet * 2;
+            }
+            Ok(format!(
+                "Stand for user {user}, Bank burst, you win!",
+                user = user,
+            ))
+        } else if user_score == bank_score {
             // Push bet back (tie)
             table.state = TableState::Won;
             if let Some(balance) = self.balances.get_mut(user) {
@@ -393,11 +386,77 @@ impl BlackJack {
             *balance -= table.bet / 2;
         }
 
-        Ok(format!(
-            "DoubleDown for user {user}, bet doubled to {}",
-            table.bet,
-            user = user
-        ))
+        // Draw one more card for the player
+        let mut hasher = SipHasher::new();
+        hasher.write(user.0.as_bytes());
+        let mut rnd = hasher.into_rng();
+        table.user.push(Self::pick_random_card(&mut rnd));
+
+        let user_score = Self::compute_score(table.user.as_slice());
+
+        if user_score > 21_u32 {
+            table.state = TableState::Lost;
+            Ok(format!(
+                "DoubleDown for user {user}, bet doubled to {}, BURST, you loose",
+                table.bet,
+                user = user
+            ))
+        } else {
+            // Bank's turn - keep drawing cards until score > 16
+            while Self::compute_score(&table.bank) <= 16 {
+                table.bank.push(Self::pick_random_card(&mut rnd));
+            }
+
+            let bank_score = Self::compute_score(table.bank.as_slice());
+            if bank_score == 21_u32 {
+                table.state = TableState::Lost;
+                Ok(format!(
+                    "DoubleDown for user {user}, bet doubled to {}, Bank made 21, you loose",
+                    table.bet,
+                    user = user
+                ))
+            } else if bank_score > 21_u32 {
+                table.state = TableState::Won;
+                // Add winnings (2x bet)
+                if let Some(balance) = self.balances.get_mut(user) {
+                    *balance += table.bet * 2;
+                }
+                Ok(format!(
+                    "DoubleDown for user {user}, bet doubled to {}, Bank burst, you win!",
+                    table.bet,
+                    user = user
+                ))
+            } else if user_score > bank_score {
+                table.state = TableState::Won;
+                // Add winnings (2x bet)
+                if let Some(balance) = self.balances.get_mut(user) {
+                    *balance += table.bet * 2;
+                }
+                Ok(format!(
+                    "DoubleDown for user {user}, bet doubled to {}, you win!",
+                    table.bet,
+                    user = user
+                ))
+            } else if user_score == bank_score {
+                // Push bet back (tie)
+                table.state = TableState::Won;
+                if let Some(balance) = self.balances.get_mut(user) {
+                    *balance += table.bet;
+                }
+                Ok(format!(
+                    "DoubleDown for user {user}, bet doubled to {}, tie, get back money",
+                    table.bet,
+                    user = user
+                ))
+            } else {
+                table.state = TableState::Lost;
+                Ok(format!(
+                    "DoubleDown for user {user}, bet doubled to {}, you loose",
+                    table.bet,
+                    user = user
+                ))
+            }
+        }
     }
 }
 

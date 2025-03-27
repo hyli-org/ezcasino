@@ -73,6 +73,7 @@ impl Module for AppModule {
             .route("/api/init", post(init))
             .route("/api/hit", post(hit))
             .route("/api/stand", post(stand))
+            .route("/api/double_down", post(double_down))
             .with_state(state)
             .layer(cors); // Appliquer le middleware CORS
 
@@ -197,6 +198,14 @@ async fn stand(
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
     send(ctx,  BlackJackAction::Stand, auth).await
+}
+
+async fn double_down(
+    State(ctx): State<RouterCtx>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
+    let auth = AuthHeaders::from_headers(&headers)?;
+    send(ctx, BlackJackAction::DoubleDown, auth).await
 }
 
 async fn send(
