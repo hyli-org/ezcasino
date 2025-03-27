@@ -14,6 +14,7 @@ use borsh::{io::Error, BorshDeserialize, BorshSerialize};
 use rand::Rng;
 use rand_seeder::{SipHasher, SipRng};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 use hyle_hyllar::HyllarAction;
 use sdk::{BlockHash, ContractName, Identity, RunResult};
@@ -22,11 +23,11 @@ use sdk::{BlockHash, ContractName, Identity, RunResult};
 pub mod client;
 
 #[derive(Debug, borsh::BorshSerialize, borsh::BorshDeserialize)]
-pub struct HmacSha256Blob {
+pub struct Secp256k1Blob {
     pub identity: Identity,
-    pub data: Vec<u8>,
-    pub key: Vec<u8>,
-    pub hmac: Vec<u8>,
+    pub data: [u8; 32],
+    pub public_key: [u8; 33],
+    pub signature: [u8; 64],
 }
 
 impl sdk::HyleContract for BlackJack {
@@ -41,25 +42,19 @@ impl sdk::HyleContract for BlackJack {
             return Err("Missing tx context necessary for this contract".to_string());
         };
 
-        // Verify HmacSha256Blob
-        let hmac_blob = contract_input
+        // Verify Secp256k1Blob
+        let secp_blob = contract_input
             .blobs
             .iter()
-            .find(|b| b.contract_name == ContractName("hmac_sha256".to_string()))
-            .ok_or_else(|| "Missing HmacSha256Blob".to_string())?;
+            .find(|b| b.contract_name == ContractName("secp256k1".to_string()))
+            .ok_or_else(|| "Missing Secp256k1Blob".to_string())?;
 
-        let hmac_data: HmacSha256Blob = borsh::from_slice(&hmac_blob.data.0)
-            .map_err(|_| "Failed to decode HmacSha256Blob".to_string())?;
+        let secp_data: Secp256k1Blob = borsh::from_slice(&secp_blob.data.0)
+            .map_err(|_| "Failed to decode Secp256k1Blob".to_string())?;
 
-        // Verify that the key matches the user's key
-        let user_key = user
-            .0
-            .split('.')
-            .next()
-            .ok_or_else(|| "Invalid user identity format".to_string())?;
-
-        if hmac_data.key != user_key.as_bytes() {
-            return Err("HmacSha256Blob key does not match the user's key".to_string());
+        // Verify that the identity matches the user
+        if secp_data.identity != *user {
+            return Err("Secp256k1Blob identity does not match the user".to_string());
         }
 
         // Verify that the data matches the action
@@ -71,8 +66,12 @@ impl sdk::HyleContract for BlackJack {
             BlackJackAction::Claim => "claim",
         };
 
-        if hmac_data.data != expected_data.as_bytes() {
-            return Err("HmacSha256Blob data does not match the action".to_string());
+        // Create message hash using SHA256 like in the server
+        let mut hasher = Sha256::new();
+        hasher.update(expected_data.as_bytes());
+        let message_hash: [u8; 32] = hasher.finalize().into();
+        if secp_data.data != message_hash {
+            return Err("Secp256k1Blob data does not match the action".to_string());
         }
 
         // Execute the given action

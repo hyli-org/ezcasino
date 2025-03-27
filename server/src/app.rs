@@ -9,7 +9,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use client_sdk::rest_client::{NodeApiHttpClient, IndexerApiHttpClient};
+use client_sdk::rest_client::{IndexerApiHttpClient, NodeApiHttpClient};
 use contract::{BlackJack, BlackJackAction, Table, TableState};
 use hmac::{Hmac, Mac};
 use hyle::{
@@ -18,13 +18,15 @@ use hyle::{
     module_handle_messages,
     utils::modules::{module_bus_client, Module},
 };
-use sha2::Sha256;
 use hyle_hyllar::{erc20::ERC20, Hyllar, HyllarAction};
+use sha2::{Digest, Sha256};
 
 use hex;
 use sdk::{
     Blob, BlobData, BlobIndex, BlobTransaction, ContractAction, ContractName, Identity, TxHash,
 };
+use secp256k1::hashes::{sha256, Hash};
+use secp256k1::{ecdsa::Signature, ffi::secp256k1_context_create, Message, PublicKey, Secp256k1};
 use serde::Serialize;
 use tokio::sync::Mutex;
 use tower_http::cors::{Any, CorsLayer};
@@ -238,10 +240,6 @@ async fn send(
     action: BlackJackAction,
     auth: AuthHeaders,
 ) -> Result<impl IntoResponse, AppError> {
-    let account = auth.session_key.clone();
-    let is_claim = matches!(action, BlackJackAction::Claim);
-
-    // Get the endpoint name based on the action
     let endpoint = match action {
         BlackJackAction::Init => "init",
         BlackJackAction::Hit => "hit",
@@ -250,53 +248,77 @@ async fn send(
         BlackJackAction::Claim => "claim",
     };
 
-    // Verify signature using HMAC-SHA256
-    type HmacSha256 = Hmac<Sha256>;
-    let mut mac = HmacSha256::new_from_slice(auth.session_key.as_bytes()).map_err(|_| {
+    // Verify signature using ECDSA
+    let public_key = PublicKey::from_slice(&hex::decode(&auth.session_key).map_err(|_| {
         AppError(
             StatusCode::UNAUTHORIZED,
-            anyhow::anyhow!("Invalid session key"),
+            anyhow::anyhow!("Invalid public key format"),
+        )
+    })?)
+    .map_err(|_| {
+        AppError(
+            StatusCode::UNAUTHORIZED,
+            anyhow::anyhow!("Invalid public key"),
         )
     })?;
-    mac.update(endpoint.as_bytes());
-    let signature = mac.finalize().into_bytes();
 
-    if signature.as_slice()
-        != hex::decode(&auth.signature).map_err(|_| {
-            AppError(
-                StatusCode::UNAUTHORIZED,
-                anyhow::anyhow!("Invalid signature format"),
-            )
-        })?
-    {
-        return Err(AppError(
+    let signature = Signature::from_der(&hex::decode(&auth.signature).map_err(|_| {
+        AppError(
+            StatusCode::UNAUTHORIZED,
+            anyhow::anyhow!("Invalid signature format"),
+        )
+    })?)
+    .map_err(|_| {
+        AppError(
             StatusCode::UNAUTHORIZED,
             anyhow::anyhow!("Invalid signature"),
-        ));
-    }
+        )
+    })?;
+
+    // Create message hash
+    let message_hash = sha256::Hash::hash(endpoint.as_bytes());
+    let message = Message::from_digest(message_hash.to_byte_array());
+
+    // Verify the signature
+    let secp = Secp256k1::new();
+    secp.verify_ecdsa(&message, &signature, &public_key)
+        .map_err(|_| {
+            AppError(
+                StatusCode::UNAUTHORIZED,
+                anyhow::anyhow!("Invalid signature"),
+            )
+        })?;
+
+    let account = auth.session_key.clone();
+    let is_claim = matches!(action, BlackJackAction::Claim);
 
     let identity = Identity(format!("{}.{}", account, ctx.blackjack_cn));
     // get random
     let random = rand::random::<u64>();
 
-    // Create the HmacSha256 blob
-    let hmac_blob = HmacSha256Blob {
+    // Create the EcdsaBlob
+    let ecdsa_blob = Secp256k1Blob {
         identity: identity.clone(),
-        data: endpoint.as_bytes().to_vec(),
-        key: auth.session_key.as_bytes().to_vec(),
-        hmac: signature.to_vec(),
+        data: message_hash.to_byte_array(),
+        public_key: public_key.serialize(),
+        signature: signature.serialize_compact(),
     };
 
     let mut blobs = vec![
         action.with_id(random).as_blob(ctx.blackjack_cn.clone()),
-        hmac_blob.as_blob(),
+        ecdsa_blob.as_blob(),
     ];
 
     // Add Hyllar transfer blob for claim action
     if is_claim {
-        let hyllar: Hyllar = ctx.indexer_client.fetch_current_state(&"hyllar".into()).await?;
-        let balance = hyllar.balance_of(&identity.0).map_err(|e| AppError(StatusCode::BAD_REQUEST, anyhow::anyhow!(e)))?;
-        
+        let hyllar: Hyllar = ctx
+            .indexer_client
+            .fetch_current_state(&"hyllar".into())
+            .await?;
+        let balance = hyllar
+            .balance_of(&identity.0)
+            .map_err(|e| AppError(StatusCode::BAD_REQUEST, anyhow::anyhow!(e)))?;
+
         // Check if balance is sufficient for minimum bet
         if balance < 10 {
             return Err(AppError(
@@ -344,20 +366,20 @@ async fn send(
 }
 
 #[derive(Debug, borsh::BorshSerialize, borsh::BorshDeserialize)]
-pub struct HmacSha256Blob {
+pub struct Secp256k1Blob {
     pub identity: Identity,
-    pub data: Vec<u8>,
-    pub key: Vec<u8>,
-    pub hmac: Vec<u8>,
+    pub data: [u8; 32],
+    pub public_key: [u8; 33],
+    pub signature: [u8; 64],
 }
 
-impl HmacSha256Blob {
+impl Secp256k1Blob {
     pub fn as_blob(&self) -> Blob {
-        <Self as ContractAction>::as_blob(self, "hmac_sha256".into(), None, None)
+        <Self as ContractAction>::as_blob(self, "secp256k1".into(), None, None)
     }
 }
 
-impl ContractAction for HmacSha256Blob {
+impl ContractAction for Secp256k1Blob {
     fn as_blob(
         &self,
         contract_name: ContractName,
@@ -367,7 +389,7 @@ impl ContractAction for HmacSha256Blob {
         #[allow(clippy::expect_used)]
         Blob {
             contract_name,
-            data: BlobData(borsh::to_vec(self).expect("failed to encode HmacSha256Blob")),
+            data: BlobData(borsh::to_vec(self).expect("failed to encode EcdsaBlob")),
         }
     }
 }

@@ -362,6 +362,7 @@ dependencies = [
  "rand 0.9.0",
  "rand_seeder",
  "serde",
+ "sha2",
 ]
 
 [[package]]
@@ -601,7 +602,7 @@ checksum = "6fe2267d4ed49bc07b63801559be28c718ea06c4738b7a03c94df7386d2cde46"
 [[package]]
 name = "hyle-contract-sdk"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
+source = "git+https://github.com/hyle-org/hyle?tag=secp256k1.0.2.0#62f88b9a255e9d9e15c10f7ce38f982ab6a4acfe"
 dependencies = [
  "borsh",
  "hyle-model",
@@ -612,7 +613,7 @@ dependencies = [
 [[package]]
 name = "hyle-hyllar"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
+source = "git+https://github.com/hyle-org/hyle?tag=secp256k1.0.2.0#62f88b9a255e9d9e15c10f7ce38f982ab6a4acfe"
 dependencies = [
  "anyhow",
  "borsh",
@@ -625,7 +626,7 @@ dependencies = [
 [[package]]
 name = "hyle-model"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
+source = "git+https://github.com/hyle-org/hyle?tag=secp256k1.0.2.0#62f88b9a255e9d9e15c10f7ce38f982ab6a4acfe"
 dependencies = [
  "borsh",
  "hex",

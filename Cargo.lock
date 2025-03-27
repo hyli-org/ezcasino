@@ -342,6 +342,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "arrayvec"
+version = "0.7.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
+
+[[package]]
 name = "assertables"
 version = "9.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -511,6 +517,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b1f45e9417d87227c7a56d22e471c6206462cba514c7590c09aff4cf6d1ddcad"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "bitcoin-io"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b47c4ab7a93edb0c7198c5535ed9b52b63095f4e9b45279c6736cec4b856baf"
+
+[[package]]
+name = "bitcoin_hashes"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb18c03d0db0247e147a21a6faafd5a7eb851c743db062de72018b6b7e8e4d16"
+dependencies = [
+ "bitcoin-io",
+ "hex-conservative",
 ]
 
 [[package]]
@@ -904,6 +926,7 @@ dependencies = [
  "rand 0.9.0",
  "rand_seeder",
  "serde",
+ "sha2",
 ]
 
 [[package]]
@@ -1876,6 +1899,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
+name = "hex-conservative"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5313b072ce3c597065a808dbf612c4c8e8590bdbf8b579508bf7a762c5eae6cd"
+dependencies = [
+ "arrayvec",
+]
+
+[[package]]
 name = "hex-literal"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1972,7 +2004,7 @@ checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 [[package]]
 name = "hyle"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
+source = "git+https://github.com/hyle-org/hyle?tag=secp256k1.0.2.0#62f88b9a255e9d9e15c10f7ce38f982ab6a4acfe"
 dependencies = [
  "anyhow",
  "anymap",
@@ -1988,7 +2020,6 @@ dependencies = [
  "fjall",
  "futures",
  "hex",
- "hmac",
  "hyle-client-sdk",
  "hyle-contract-sdk",
  "hyle-contracts",
@@ -2008,9 +2039,9 @@ dependencies = [
  "quote",
  "rand 0.8.5",
  "reqwest",
+ "secp256k1",
  "serde",
  "serde_json",
- "sha2",
  "sha3",
  "sqlx",
  "strum_macros",
@@ -2031,7 +2062,7 @@ dependencies = [
 [[package]]
 name = "hyle-bonsai-runner"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
+source = "git+https://github.com/hyle-org/hyle?tag=secp256k1.0.2.0#62f88b9a255e9d9e15c10f7ce38f982ab6a4acfe"
 dependencies = [
  "anyhow",
  "bincode",
@@ -2047,7 +2078,7 @@ dependencies = [
 [[package]]
 name = "hyle-client-sdk"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
+source = "git+https://github.com/hyle-org/hyle?tag=secp256k1.0.2.0#62f88b9a255e9d9e15c10f7ce38f982ab6a4acfe"
 dependencies = [
  "anyhow",
  "axum",
@@ -2071,7 +2102,7 @@ dependencies = [
 [[package]]
 name = "hyle-contract-sdk"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
+source = "git+https://github.com/hyle-org/hyle?tag=secp256k1.0.2.0#62f88b9a255e9d9e15c10f7ce38f982ab6a4acfe"
 dependencies = [
  "borsh",
  "hyle-model",
@@ -2082,7 +2113,7 @@ dependencies = [
 [[package]]
 name = "hyle-contracts"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
+source = "git+https://github.com/hyle-org/hyle?tag=secp256k1.0.2.0#62f88b9a255e9d9e15c10f7ce38f982ab6a4acfe"
 dependencies = [
  "hyle-contract-sdk",
 ]
@@ -2090,7 +2121,7 @@ dependencies = [
 [[package]]
 name = "hyle-hydentity"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
+source = "git+https://github.com/hyle-org/hyle?tag=secp256k1.0.2.0#62f88b9a255e9d9e15c10f7ce38f982ab6a4acfe"
 dependencies = [
  "anyhow",
  "borsh",
@@ -2105,7 +2136,7 @@ dependencies = [
 [[package]]
 name = "hyle-hyllar"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
+source = "git+https://github.com/hyle-org/hyle?tag=secp256k1.0.2.0#62f88b9a255e9d9e15c10f7ce38f982ab6a4acfe"
 dependencies = [
  "anyhow",
  "borsh",
@@ -2119,7 +2150,7 @@ dependencies = [
 [[package]]
 name = "hyle-model"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
+source = "git+https://github.com/hyle-org/hyle?tag=secp256k1.0.2.0#62f88b9a255e9d9e15c10f7ce38f982ab6a4acfe"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -2141,7 +2172,7 @@ dependencies = [
 [[package]]
 name = "hyle-risc0-recursion"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
+source = "git+https://github.com/hyle-org/hyle?tag=secp256k1.0.2.0#62f88b9a255e9d9e15c10f7ce38f982ab6a4acfe"
 dependencies = [
  "hyle-contract-sdk",
  "serde",
@@ -2150,7 +2181,7 @@ dependencies = [
 [[package]]
 name = "hyle-staking"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
+source = "git+https://github.com/hyle-org/hyle?tag=secp256k1.0.2.0#62f88b9a255e9d9e15c10f7ce38f982ab6a4acfe"
 dependencies = [
  "anyhow",
  "borsh",
@@ -2164,7 +2195,7 @@ dependencies = [
 [[package]]
 name = "hyle-verifiers"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
+source = "git+https://github.com/hyle-org/hyle?tag=secp256k1.0.2.0#62f88b9a255e9d9e15c10f7ce38f982ab6a4acfe"
 dependencies = [
  "anyhow",
  "borsh",
@@ -4297,6 +4328,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
+name = "secp256k1"
+version = "0.30.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b50c5943d326858130af85e049f2661ba3c78b26589b8ab98e65e80ae44a1252"
+dependencies = [
+ "bitcoin_hashes",
+ "rand 0.8.5",
+ "secp256k1-sys",
+]
+
+[[package]]
+name = "secp256k1-sys"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4387882333d3aa8cb20530a17c69a3752e97837832f34f6dccc760e715001d9"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "security-framework"
 version = "2.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4481,6 +4532,7 @@ dependencies = [
  "risc0-sys",
  "risc0-zkp",
  "risc0-zkvm",
+ "secp256k1",
  "serde",
  "serde_json",
  "sha2",

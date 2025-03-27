@@ -1,26 +1,46 @@
-import HmacSHA256 from 'crypto-js/hmac-sha256';
-import { enc, lib } from 'crypto-js';
+import { ec } from 'elliptic';
+import { enc, lib, SHA256 } from 'crypto-js';
 
 const SESSION_KEY_STORAGE_KEY = 'blackjack_session_key';
+const PUBLIC_KEY_STORAGE_KEY = 'blackjack_public_key';
 
 class AuthService {
   private sessionKey: string | null = null;
+  private publicKey: string | null = null;
+  private ec: ec;
 
   constructor() {
-    // Récupérer la sessionKey du localStorage au démarrage
+    this.ec = new ec('secp256k1');
+    // Récupérer la sessionKey et la publicKey du localStorage au démarrage
     this.sessionKey = localStorage.getItem(SESSION_KEY_STORAGE_KEY);
+    this.publicKey = localStorage.getItem(PUBLIC_KEY_STORAGE_KEY);
   }
 
   generateSessionKey(): string {
-    // Génère une clé aléatoire de 32 bytes
-    this.sessionKey = lib.WordArray.random(32).toString(enc.Hex);
+    // Génère une paire de clés ECDSA
+    const keyPair = this.ec.genKeyPair();
+    // Stocke la clé privée
+    const privateKey = keyPair.getPrivate('hex');
+    if (!privateKey) {
+      throw new Error('Failed to generate private key');
+    }
+    this.sessionKey = privateKey;
+
+    // Stocke la clé publique
+    const publicKey = keyPair.getPublic('hex');
+    if (!publicKey) {
+      throw new Error('Failed to generate public key');
+    }
+    this.publicKey = publicKey;
+
     // Sauvegarder dans le localStorage
     localStorage.setItem(SESSION_KEY_STORAGE_KEY, this.sessionKey);
-    return this.sessionKey;
+    localStorage.setItem(PUBLIC_KEY_STORAGE_KEY, this.publicKey);
+    return this.publicKey;
   }
 
   getSessionKey(): string | null {
-    return this.sessionKey;
+    return this.publicKey; // On retourne la clé publique pour l'authentification
   }
 
   signRequest(payload: any): string {
@@ -28,9 +48,15 @@ class AuthService {
       throw new Error('No session key available');
     }
 
-    // Convertit le payload en string et le signe avec la clé de session
+    // Convertit le payload en string
     const payloadString = JSON.stringify(payload);
-    return HmacSHA256(payloadString, this.sessionKey).toString(enc.Hex);
+    // Crée un hash SHA256 du payload
+    const hash = SHA256(payloadString);
+    // Signe le hash avec ECDSA
+    const keyPair = this.ec.keyFromPrivate(this.sessionKey);
+    const signature = keyPair.sign(hash.toString());
+    // Retourne la signature au format hexadécimal
+    return signature.toDER('hex');
   }
 
   signMessage(message: string): string {
@@ -38,12 +64,20 @@ class AuthService {
       throw new Error('No session key available');
     }
 
-    return HmacSHA256(message, this.sessionKey).toString(enc.Hex);
+    // Crée un hash SHA256 du message
+    const hash = SHA256(message);
+    // Signe le hash avec ECDSA
+    const keyPair = this.ec.keyFromPrivate(this.sessionKey);
+    const signature = keyPair.sign(hash.toString());
+    // Retourne la signature au format hexadécimal
+    return signature.toDER('hex');
   }
 
   clearSession() {
     this.sessionKey = null;
+    this.publicKey = null;
     localStorage.removeItem(SESSION_KEY_STORAGE_KEY);
+    localStorage.removeItem(PUBLIC_KEY_STORAGE_KEY);
   }
 }
 
