@@ -176,11 +176,11 @@ body::before {
   height: 72px;
   background: white;
   border-radius: 60px;
-  z-index: -1;
+  z-index: 2;
+  cursor: pointer;
 }
 
-.cow1::before {
-  content: '';
+.cow1-head {
   position: absolute;
   left: -30px;
   top: -24px;
@@ -188,6 +188,12 @@ body::before {
   height: 48px;
   background: white;
   border-radius: 30px;
+  transform-origin: bottom center;
+  transition: transform 0.3s ease;
+}
+
+.cow1.eating .cow1-head {
+  transform: rotate(-45deg);
 }
 
 .cow1::after {
@@ -199,6 +205,44 @@ body::before {
   bottom: -24px;
   left: 18px;
   box-shadow: 60px 0 0 black;
+}
+
+/* Yeux de la première vache */
+.cow1 .eye {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: black;
+  border-radius: 50%;
+  top: 16px;
+}
+
+.cow1 .eye.left {
+  left: 18px;
+}
+
+.cow1 .eye.right {
+  left: 42px;
+}
+
+/* Oreilles de la première vache */
+.cow1 .ear {
+  position: absolute;
+  width: 15px;
+  height: 22px;
+  background: black;
+  border-radius: 8px;
+  top: -5px;
+}
+
+.cow1 .ear.left {
+  left: 5px;
+  transform: rotate(-30deg);
+}
+
+.cow1 .ear.right {
+  left: 35px;
+  transform: rotate(30deg);
 }
 
 /* Taches de la première vache */
@@ -232,44 +276,6 @@ body::before {
   bottom: 6px;
 }
 
-/* Yeux de la première vache */
-.cow1 .eye {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  background: black;
-  border-radius: 50%;
-  top: -20px;
-}
-
-.cow1 .eye.left {
-  left: -15px;
-}
-
-.cow1 .eye.right {
-  left: 15px;
-}
-
-/* Oreilles de la première vache */
-.cow1 .ear {
-  position: absolute;
-  width: 20px;
-  height: 30px;
-  background: black;
-  border-radius: 10px;
-  top: -25px;
-}
-
-.cow1 .ear.left {
-  left: -25px;
-  transform: rotate(-30deg);
-}
-
-.cow1 .ear.right {
-  left: 25px;
-  transform: rotate(30deg);
-}
-
 /* Deuxième vache */
 .cow2 {
   position: fixed;
@@ -279,12 +285,12 @@ body::before {
   height: 60px;
   background: white;
   border-radius: 48px;
-  z-index: -1;
+  z-index: 2;
   transform: scaleX(-1);
+  cursor: pointer;
 }
 
-.cow2::before {
-  content: '';
+.cow2-head {
   position: absolute;
   left: -24px;
   top: -18px;
@@ -292,6 +298,12 @@ body::before {
   height: 36px;
   background: white;
   border-radius: 24px;
+  transform-origin: bottom center;
+  transition: transform 0.3s ease;
+}
+
+.cow2.eating .cow2-head {
+  transform: rotate(-45deg);
 }
 
 .cow2::after {
@@ -303,6 +315,44 @@ body::before {
   bottom: -18px;
   left: 15px;
   box-shadow: 48px 0 0 black;
+}
+
+/* Yeux de la deuxième vache */
+.cow2 .eye {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: black;
+  border-radius: 50%;
+  top: 12px;
+}
+
+.cow2 .eye.left {
+  left: 15px;
+}
+
+.cow2 .eye.right {
+  left: 33px;
+}
+
+/* Oreilles de la deuxième vache */
+.cow2 .ear {
+  position: absolute;
+  width: 12px;
+  height: 18px;
+  background: black;
+  border-radius: 6px;
+  top: -4px;
+}
+
+.cow2 .ear.left {
+  left: 4px;
+  transform: rotate(-30deg);
+}
+
+.cow2 .ear.right {
+  left: 28px;
+  transform: rotate(30deg);
 }
 
 /* Taches de la deuxième vache */
@@ -336,44 +386,6 @@ body::before {
   bottom: 6px;
 }
 
-/* Yeux de la deuxième vache */
-.cow2 .eye {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  background: black;
-  border-radius: 50%;
-  top: -16px;
-}
-
-.cow2 .eye.left {
-  left: -12px;
-}
-
-.cow2 .eye.right {
-  left: 12px;
-}
-
-/* Oreilles de la deuxième vache */
-.cow2 .ear {
-  position: absolute;
-  width: 16px;
-  height: 24px;
-  background: black;
-  border-radius: 8px;
-  top: -20px;
-}
-
-.cow2 .ear.left {
-  left: -20px;
-  transform: rotate(-30deg);
-}
-
-.cow2 .ear.right {
-  left: 20px;
-  transform: rotate(30deg);
-}
-
 /* Troisième vache */
 .cow3 {
   position: fixed;
@@ -383,11 +395,11 @@ body::before {
   height: 66px;
   background: white;
   border-radius: 54px;
-  z-index: -1;
+  z-index: 2;
+  cursor: pointer;
 }
 
-.cow3::before {
-  content: '';
+.cow3-head {
   position: absolute;
   left: -27px;
   top: -21px;
@@ -395,6 +407,12 @@ body::before {
   height: 42px;
   background: white;
   border-radius: 27px;
+  transform-origin: bottom center;
+  transition: transform 0.3s ease;
+}
+
+.cow3.eating .cow3-head {
+  transform: rotate(-45deg);
 }
 
 .cow3::after {
@@ -406,6 +424,44 @@ body::before {
   bottom: -21px;
   left: 15px;
   box-shadow: 54px 0 0 black;
+}
+
+/* Yeux de la troisième vache */
+.cow3 .eye {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  background: black;
+  border-radius: 50%;
+  top: 14px;
+}
+
+.cow3 .eye.left {
+  left: 16px;
+}
+
+.cow3 .eye.right {
+  left: 38px;
+}
+
+/* Oreilles de la troisième vache */
+.cow3 .ear {
+  position: absolute;
+  width: 14px;
+  height: 20px;
+  background: black;
+  border-radius: 7px;
+  top: -4px;
+}
+
+.cow3 .ear.left {
+  left: 6px;
+  transform: rotate(-30deg);
+}
+
+.cow3 .ear.right {
+  left: 32px;
+  transform: rotate(30deg);
 }
 
 /* Taches de la troisième vache */
@@ -437,44 +493,6 @@ body::before {
   border-radius: 18px;
   right: 12px;
   bottom: 3px;
-}
-
-/* Yeux de la troisième vache */
-.cow3 .eye {
-  position: absolute;
-  width: 7px;
-  height: 7px;
-  background: black;
-  border-radius: 50%;
-  top: -18px;
-}
-
-.cow3 .eye.left {
-  left: -14px;
-}
-
-.cow3 .eye.right {
-  left: 14px;
-}
-
-/* Oreilles de la troisième vache */
-.cow3 .ear {
-  position: absolute;
-  width: 18px;
-  height: 27px;
-  background: black;
-  border-radius: 9px;
-  top: -22px;
-}
-
-.cow3 .ear.left {
-  left: -22px;
-  transform: rotate(-30deg);
-}
-
-.cow3 .ear.right {
-  left: 22px;
-  transform: rotate(30deg);
 }
 
 .win95-window {

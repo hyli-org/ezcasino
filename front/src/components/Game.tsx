@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Card from './Card';
 import VisualEffects from './VisualEffects';
+import Cow from '../components/Cow';
 import { gameService } from '../services/gameService';
 import { GameState } from '../types/game';
 import { authService } from '../services/authService';
@@ -15,9 +16,10 @@ type CardType = {
 
 interface GameProps {
   onBackgroundChange: (theme: 'day' | 'night') => void;
+  theme: 'day' | 'night';
 }
 
-const Game: React.FC<GameProps> = ({ onBackgroundChange }) => {
+const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
   const [playerHand, setPlayerHand] = useState<CardType[]>([]);
   const [dealerHand, setDealerHand] = useState<CardType[]>([]);
   const [gameOver, setGameOver] = useState(false);
@@ -36,7 +38,7 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange }) => {
   const [showClaimButton, setShowClaimButton] = useState(false);
   const [showBSOD, setShowBSOD] = useState(false);
   const [showStartMenu, setShowStartMenu] = useState(false);
-  const [backgroundTheme, setBackgroundTheme] = useState<'day' | 'night'>('day');
+  const [showShutdown, setShowShutdown] = useState(false);
   const [contractName, setContractName] = useState<string>('');
   const isInitializedRef = useRef(false);
 
@@ -313,7 +315,13 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange }) => {
         startNewGame();
         break;
       case 'shutdown':
-        window.close();
+        setShowShutdown(true);
+        const shutdownSound = new Audio('/sounds/shutdown.mp3');
+        shutdownSound.play();
+        // Attendre que le son se termine avant de fermer
+        setTimeout(() => {
+          window.close();
+        }, 3000);
         break;
     }
     setShowStartMenu(false);
@@ -328,9 +336,7 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange }) => {
   };
 
   const toggleBackground = () => {
-    const newTheme = backgroundTheme === 'day' ? 'night' : 'day';
-    setBackgroundTheme(newTheme);
-    onBackgroundChange(newTheme);
+    onBackgroundChange(theme === 'day' ? 'night' : 'day');
   };
 
   return (
@@ -364,6 +370,20 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange }) => {
             </div>
           </div>
         </div>
+      ) : showShutdown ? (
+        <div className="shutdown-screen">
+          <div className="shutdown-content">
+            <div className="shutdown-header">
+              Windows 95
+            </div>
+            <div className="shutdown-message">
+              It is now safe to turn off your computer.
+            </div>
+            <div className="shutdown-progress">
+              <div className="shutdown-progress-bar"></div>
+            </div>
+          </div>
+        </div>
       ) : (
         <>
           <DesktopShortcut
@@ -371,6 +391,9 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange }) => {
             label="Switch Background"
             onClick={toggleBackground}
           />
+          <Cow className="cow1" theme={theme} />
+          <Cow className="cow2" theme={theme} />
+          <Cow className="cow3" theme={theme} />
           <div
             className="win95-window"
             style={{
