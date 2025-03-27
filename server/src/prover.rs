@@ -157,12 +157,11 @@ impl ProverModule {
                     .unwrap();
             }
 
-            if let Some(table) = self.contract.tables.get(&tx.identity) {
-                let balance = self.contract.balances.get(&tx.identity).copied().unwrap_or(0);
-                self.bus
-                    .send(AppEvent::SequencedTx(tx_hash.clone(), table.clone().into(), balance))
-                    .unwrap();
-            }
+            let balance = self.contract.balances.get(&tx.identity).copied().unwrap_or(0);
+            let table = self.contract.tables.get(&tx.identity).cloned().unwrap_or_default();
+            self.bus
+                .send(AppEvent::SequencedTx(tx_hash.clone(), table.into(), balance))
+                .unwrap();
 
             let node_client = self.ctx.app.node_client.clone();
             let blob = blob.clone();

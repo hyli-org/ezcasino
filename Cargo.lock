@@ -900,6 +900,7 @@ version = "0.1.0"
 dependencies = [
  "borsh",
  "hyle-contract-sdk",
+ "hyle-hyllar",
  "rand 0.9.0",
  "rand_seeder",
  "serde",
@@ -4462,6 +4463,7 @@ dependencies = [
  "hyle",
  "hyle-client-sdk",
  "hyle-contract-sdk",
+ "hyle-hyllar",
  "opentelemetry",
  "opentelemetry-prometheus",
  "opentelemetry_sdk",

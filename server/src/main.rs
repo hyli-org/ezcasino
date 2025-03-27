@@ -86,6 +86,7 @@ async fn main() -> Result<()> {
     let app_ctx = Arc::new(AppModuleCtx {
         common: ctx.clone(),
         node_client,
+        indexer_client,
         blackjack_cn: args.contract_name.into(),
     });
     let start_height = app_ctx.node_client.get_block_height().await?;

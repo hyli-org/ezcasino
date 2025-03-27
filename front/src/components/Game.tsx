@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Card from './Card';
 import VisualEffects from './VisualEffects';
 import { gameService } from '../services/gameService';
@@ -29,6 +29,8 @@ const Game: React.FC = () => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const [showGameMenu, setShowGameMenu] = useState(false);
+  const [showClaimButton, setShowClaimButton] = useState(false);
+  const isInitializedRef = useRef(false);
 
   const convertToCard = (value: number): CardType => {
     const suits: Suit[] = ['♠', '♣', '♥', '♦'];
@@ -70,6 +72,7 @@ const Game: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
+      setShowClaimButton(false);
       // Ne générer une nouvelle sessionKey que si nous n'en avons pas déjà une
       if (!authService.getSessionKey()) {
         authService.generateSessionKey();
@@ -77,8 +80,12 @@ const Game: React.FC = () => {
       const gameState = await gameService.initGame();
       updateGameState(gameState);
       setMessage('');
-    } catch (err) {
-      setError('Failed to initialize game. Please try again.');
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to initialize game. Please try again.';
+      setError(errorMessage);
+      if (errorMessage.includes('Insufficient balance')) {
+        setShowClaimButton(true);
+      }
       console.error('Error initializing game:', err);
     } finally {
       setIsLoading(false);
@@ -91,8 +98,9 @@ const Game: React.FC = () => {
       setError(null);
       const gameState = await gameService.hit();
       updateGameState(gameState);
-    } catch (err) {
-      setError('Failed to hit. Please try again.');
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to hit. Please try again.';
+      setError(errorMessage);
       console.error('Error hitting:', err);
     } finally {
       setIsLoading(false);
@@ -105,8 +113,9 @@ const Game: React.FC = () => {
       setError(null);
       const gameState = await gameService.stand();
       updateGameState(gameState);
-    } catch (err) {
-      setError('Failed to stand. Please try again.');
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to stand. Please try again.';
+      setError(errorMessage);
       console.error('Error standing:', err);
     } finally {
       setIsLoading(false);
@@ -119,9 +128,31 @@ const Game: React.FC = () => {
       setError(null);
       const gameState = await gameService.doubleDown();
       updateGameState(gameState);
-    } catch (err) {
-      setError('Failed to double down. Please try again.');
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to double down. Please try again.';
+      setError(errorMessage);
       console.error('Error doubling down:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleClaim = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const gameState = await gameService.claim();
+      updateGameState(gameState);
+      setShowClaimButton(false);
+      
+      // Si la balance est suffisante après le claim, démarrer une nouvelle partie
+      if (gameState.balance >= 10) {
+        await startNewGame();
+      }
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to claim. Please try again.';
+      setError(errorMessage);
+      console.error('Error claiming:', err);
     } finally {
       setIsLoading(false);
     }
@@ -164,11 +195,15 @@ const Game: React.FC = () => {
   // Initialiser la partie au chargement
   useEffect(() => {
     const initGame = async () => {
+      if (isInitializedRef.current) return;
+      
       try {
         setIsLoading(true);
         setError(null);
+        setShowClaimButton(false);
         // Si nous avons déjà une sessionKey, l'utiliser directement
         const existingSessionKey = authService.getSessionKey();
+        isInitializedRef.current = true;
         if (existingSessionKey) {
           const gameState = await gameService.initGame();
           updateGameState(gameState);
@@ -176,8 +211,13 @@ const Game: React.FC = () => {
           // Sinon, démarrer une nouvelle partie
           await startNewGame();
         }
-      } catch (err) {
-        setError('Failed to initialize game. Please try again.');
+      } catch (err: any) {
+        if (err.message?.includes('Insufficient balance')) {
+          setError(err.message);
+          setShowClaimButton(true);
+        } else {
+          setError('Failed to initialize game. Please try again.');
+        }
         console.error('Error initializing game:', err);
       } finally {
         setIsLoading(false);
@@ -284,93 +324,104 @@ const Game: React.FC = () => {
         </div>
 
         <div className="game-container">
-          {error ? (
-            <div className="error">{error}</div>
-          ) : (
-            <>
-              <div className="session-key-container">
-                <span className="counter-label">Session Key</span>
-                <div 
-                  className="led-display session-key" 
-                  onClick={copySessionKey}
-                  style={{ cursor: 'pointer' }}
-                >
-                  {truncateSessionKey(authService.getSessionKey())}
-                  {copyMessage && <span className="copy-message">{copyMessage}</span>}
-                </div>
-              </div>
-              <div className="counters">
-                <div className="counter">
-                  <span className="counter-label">Your Money</span>
-                  <div className="led-display">${gameState?.balance || 0}</div>
-                </div>
-                <div className="counter">
-                  <span className="counter-label">Bet</span>
-                  <div className="led-display">${currentBet}</div>
-                </div>
-              </div>
-
-              <div className="play-area">
-                <div className="dealer-score">Dealer: {dealerHand.length > 2 || gameState?.state !== 'Ongoing' ? gameState?.bank_count || 0 : '??'}</div>
-                <div className="hand">
-                  {dealerHand.map((card, index) => (
-                    <Card
-                      key={index}
-                      suit={card.suit}
-                      value={card.value}
-                      hidden={index === 1 && dealerHand.length <= 2 && gameState?.state === 'Ongoing'}
-                    />
-                  ))}
-                </div>
-
-                <div className="player-score">Player: {gameState?.user_count || 0}</div>
-                <div className="hand">
-                  {playerHand.map((card, index) => (
-                    <Card
-                      key={index}
-                      suit={card.suit}
-                      value={card.value}
-                    />
-                  ))}
-                </div>
-                {message && <div className="message">{message}</div>}
-                {!gameOver && (
-                  <div className="controls">
-                    <button
-                      className="win95-button"
-                      onClick={hit}
-                      disabled={isLoading}
-                    >
-                      HIT
-                    </button>
-                    <button
-                      className="win95-button"
-                      onClick={stand}
-                      disabled={isLoading}
-                    >
-                      STAND
-                    </button>
-                    <button
-                      className="win95-button"
-                      onClick={doubleDown}
-                      disabled={isLoading || !gameState || gameState.balance < currentBet}
-                    >
-                      DOUBLE
-                    </button>
-                  </div>
-                )}
-                {gameOver && (
+          {error && (
+            <div className="error">
+              {error}
+              {showClaimButton && (
+                <>
+                  <div className="error-message">Please send funds to your session key, then claim them</div>
                   <button
-                    className="win95-button"
-                    onClick={startNewGame}
+                    className="win95-button claim-button"
+                    onClick={handleClaim}
                     disabled={isLoading}
                   >
-                    DEAL
+                    CLAIM
                   </button>
-                )}
-              </div>
-            </>
+                </>
+              )}
+            </div>
           )}
+          <div className="session-key-container">
+            <span className="counter-label">Session Key</span>
+            <div 
+              className="led-display session-key" 
+              onClick={copySessionKey}
+              style={{ cursor: 'pointer' }}
+            >
+              {truncateSessionKey(authService.getSessionKey())}
+              {copyMessage && <span className="copy-message">{copyMessage}</span>}
+            </div>
+          </div>
+          <div className="counters">
+            <div className="counter">
+              <span className="counter-label">Your Money</span>
+              <div className="led-display">${gameState?.balance || 0}</div>
+            </div>
+            <div className="counter">
+              <span className="counter-label">Bet</span>
+              <div className="led-display">${currentBet}</div>
+            </div>
+          </div>
+
+          <div className="play-area">
+            <div className="dealer-score">Dealer: {dealerHand.length > 2 || gameState?.state !== 'Ongoing' ? gameState?.bank_count || 0 : '??'}</div>
+            <div className="hand">
+              {dealerHand.map((card, index) => (
+                <Card
+                  key={index}
+                  suit={card.suit}
+                  value={card.value}
+                  hidden={index === 1 && dealerHand.length <= 2}
+                />
+              ))}
+            </div>
+
+            <div className="player-score">Player: {gameState?.user_count || 0}</div>
+            <div className="hand">
+              {playerHand.map((card, index) => (
+                <Card
+                  key={index}
+                  suit={card.suit}
+                  value={card.value}
+                />
+              ))}
+            </div>
+            {message && <div className="message">{message}</div>}
+            {!gameOver && (
+              <div className="controls">
+                <button
+                  className="win95-button"
+                  onClick={hit}
+                  disabled={isLoading}
+                >
+                  HIT
+                </button>
+                <button
+                  className="win95-button"
+                  onClick={stand}
+                  disabled={isLoading}
+                >
+                  STAND
+                </button>
+                <button
+                  className="win95-button"
+                  onClick={doubleDown}
+                  disabled={isLoading}
+                >
+                  DOUBLE
+                </button>
+              </div>
+            )}
+            {gameOver && (
+              <button
+                className="win95-button"
+                onClick={startNewGame}
+                disabled={isLoading}
+              >
+                DEAL
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </>

@@ -15,6 +15,7 @@ use rand::Rng;
 use rand_seeder::{SipHasher, SipRng};
 use serde::{Deserialize, Serialize};
 
+use hyle_hyllar::HyllarAction;
 use sdk::{BlockHash, ContractName, Identity, RunResult};
 
 #[cfg(feature = "client")]
@@ -51,9 +52,12 @@ impl sdk::HyleContract for BlackJack {
             .map_err(|_| "Failed to decode HmacSha256Blob".to_string())?;
 
         // Verify that the key matches the user's key
-        let user_key = user.0.split('.').next()
+        let user_key = user
+            .0
+            .split('.')
+            .next()
             .ok_or_else(|| "Invalid user identity format".to_string())?;
-        
+
         if hmac_data.key != user_key.as_bytes() {
             return Err("HmacSha256Blob key does not match the user's key".to_string());
         }
@@ -64,6 +68,7 @@ impl sdk::HyleContract for BlackJack {
             BlackJackAction::Hit => "hit",
             BlackJackAction::Stand => "stand",
             BlackJackAction::DoubleDown => "double_down",
+            BlackJackAction::Claim => "claim",
         };
 
         if hmac_data.data != expected_data.as_bytes() {
@@ -76,6 +81,48 @@ impl sdk::HyleContract for BlackJack {
             BlackJackAction::Hit => self.hit(user, &tx_ctx.block_hash)?,
             BlackJackAction::Stand => self.stand(user)?,
             BlackJackAction::DoubleDown => self.double_down(user)?,
+            BlackJackAction::Claim => {
+                // Find the Hyllar transfer blob
+                let transfer_blob_index = contract_input
+                    .blobs
+                    .iter()
+                    .position(|b| b.contract_name == ContractName("hyllar".to_string()))
+                    .ok_or_else(|| "Missing Hyllar transfer blob".to_string())?;
+
+                let transfer_action = sdk::utils::parse_structured_blob::<HyllarAction>(
+                    &contract_input.blobs,
+                    &sdk::BlobIndex(transfer_blob_index),
+                )
+                .ok_or_else(|| "Failed to decode Hyllar transfer action".to_string())?
+                .data
+                .parameters;
+
+                // Verify the transfer is for this contract and extract amount
+                match transfer_action {
+                    HyllarAction::Transfer { recipient, amount } => {
+                        if recipient != ctx.contract_name.0 {
+                            return Err("Transfer is not for the blackjack contract".to_string());
+                        }
+
+                        // Add to existing balance or create new balance
+                        let new_balance = if let Some(current_balance) = self.balances.get(user) {
+                            current_balance
+                                .checked_add(amount as u32)
+                                .ok_or_else(|| "Balance overflow".to_string())?
+                        } else {
+                            amount as u32
+                        };
+
+                        self.balances.insert(user.clone(), new_balance);
+
+                        Ok(format!(
+                            "Added {} to balance, new balance is {} for user {}",
+                            amount, new_balance, user
+                        ))
+                    }
+                    _ => Err("Invalid Hyllar action type, expected Transfer".to_string()),
+                }
+            }?,
         };
 
         Ok((res, ctx, alloc::vec![]))
@@ -128,6 +175,7 @@ pub enum BlackJackAction {
     Hit,
     Stand,
     DoubleDown,
+    Claim,
 }
 
 impl BlackJackAction {
@@ -160,7 +208,7 @@ impl BlackJack {
         }
 
         // Check if user has enough balance for a bet
-        let balance = self.balances.get(user).copied().unwrap_or(1000);
+        let balance = self.balances.get(user).copied().unwrap_or(0);
         if balance < 10 {
             return Err("Insufficient balance. Minimum bet is 10".to_string());
         }
@@ -319,12 +367,12 @@ impl BlackJack {
         }
 
         let user_score = Self::compute_score(&table.user);
-        
+
         // Bank's turn - keep drawing cards until score > 16
         let mut hasher = SipHasher::new();
         hasher.write(user.0.as_bytes());
         let mut rnd = hasher.into_rng();
-        
+
         while Self::compute_score(&table.bank) <= 16 {
             table.bank.push(Self::pick_random_card(&mut rnd));
         }

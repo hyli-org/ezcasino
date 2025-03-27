@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 sdk = { workspace = true }
+hyle_hyllar = { workspace = true }
 serde = { version = "1.0", default-features = false, features = [
   "derive",
   "alloc",

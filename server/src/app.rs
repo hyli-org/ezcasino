@@ -9,22 +9,25 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use client_sdk::rest_client::NodeApiHttpClient;
+use client_sdk::rest_client::{NodeApiHttpClient, IndexerApiHttpClient};
 use contract::{BlackJack, BlackJackAction, Table, TableState};
+use hmac::{Hmac, Mac};
 use hyle::{
     bus::{BusClientReceiver, BusMessage, SharedMessageBus},
     model::CommonRunContext,
     module_handle_messages,
     utils::modules::{module_bus_client, Module},
 };
-use hmac::{Hmac, Mac};
 use sha2::Sha256;
+use hyle_hyllar::{erc20::ERC20, Hyllar, HyllarAction};
 
-use sdk::{Blob, BlobData, BlobIndex, BlobTransaction, ContractAction, ContractName, Identity, TxHash};
+use hex;
+use sdk::{
+    Blob, BlobData, BlobIndex, BlobTransaction, ContractAction, ContractName, Identity, TxHash,
+};
 use serde::Serialize;
 use tokio::sync::Mutex;
 use tower_http::cors::{Any, CorsLayer};
-use hex;
 
 pub struct AppModule {
     bus: AppModuleBusClient,
@@ -33,6 +36,7 @@ pub struct AppModule {
 pub struct AppModuleCtx {
     pub common: Arc<CommonRunContext>,
     pub node_client: Arc<NodeApiHttpClient>,
+    pub indexer_client: Arc<IndexerApiHttpClient>,
     pub blackjack_cn: ContractName,
 }
 
@@ -60,6 +64,7 @@ impl Module for AppModule {
                 bus: ctx.common.bus.new_handle(),
             })),
             client: ctx.node_client.clone(),
+            indexer_client: ctx.indexer_client.clone(),
         };
 
         // Créer un middleware CORS
@@ -70,6 +75,7 @@ impl Module for AppModule {
 
         let api = Router::new()
             .route("/_health", get(health))
+            .route("/api/claim", post(claim))
             .route("/api/init", post(init))
             .route("/api/hit", post(hit))
             .route("/api/stand", post(stand))
@@ -100,6 +106,7 @@ impl Module for AppModule {
 struct RouterCtx {
     pub app: Arc<Mutex<HyleOofCtx>>,
     pub client: Arc<NodeApiHttpClient>,
+    pub indexer_client: Arc<IndexerApiHttpClient>,
     pub blackjack_cn: ContractName,
 }
 
@@ -129,12 +136,22 @@ impl AuthHeaders {
         let session_key = headers
             .get(SESSION_KEY_HEADER)
             .and_then(|v| v.to_str().ok())
-            .ok_or_else(|| AppError(StatusCode::UNAUTHORIZED, anyhow::anyhow!("Missing session key")))?;
+            .ok_or_else(|| {
+                AppError(
+                    StatusCode::UNAUTHORIZED,
+                    anyhow::anyhow!("Missing session key"),
+                )
+            })?;
 
         let signature = headers
             .get(SIGNATURE_HEADER)
             .and_then(|v| v.to_str().ok())
-            .ok_or_else(|| AppError(StatusCode::UNAUTHORIZED, anyhow::anyhow!("Missing signature")))?;
+            .ok_or_else(|| {
+                AppError(
+                    StatusCode::UNAUTHORIZED,
+                    anyhow::anyhow!("Missing signature"),
+                )
+            })?;
 
         Ok(AuthHeaders {
             session_key: session_key.to_string(),
@@ -176,6 +193,14 @@ impl From<Table> for ApiTable {
 //     Routes
 // --------------------------------------------------------
 
+async fn claim(
+    State(ctx): State<RouterCtx>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
+    let auth = AuthHeaders::from_headers(&headers)?;
+    send(ctx, BlackJackAction::Claim, auth).await
+}
+
 async fn init(
     State(ctx): State<RouterCtx>,
     headers: HeaderMap,
@@ -197,7 +222,7 @@ async fn stand(
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
-    send(ctx,  BlackJackAction::Stand, auth).await
+    send(ctx, BlackJackAction::Stand, auth).await
 }
 
 async fn double_down(
@@ -214,24 +239,35 @@ async fn send(
     auth: AuthHeaders,
 ) -> Result<impl IntoResponse, AppError> {
     let account = auth.session_key.clone();
-    
+    let is_claim = matches!(action, BlackJackAction::Claim);
+
     // Get the endpoint name based on the action
     let endpoint = match action {
         BlackJackAction::Init => "init",
         BlackJackAction::Hit => "hit",
         BlackJackAction::Stand => "stand",
         BlackJackAction::DoubleDown => "double_down",
+        BlackJackAction::Claim => "claim",
     };
 
     // Verify signature using HMAC-SHA256
     type HmacSha256 = Hmac<Sha256>;
-    let mut mac = HmacSha256::new_from_slice(auth.session_key.as_bytes())
-        .map_err(|_| AppError(StatusCode::UNAUTHORIZED, anyhow::anyhow!("Invalid session key")))?;
+    let mut mac = HmacSha256::new_from_slice(auth.session_key.as_bytes()).map_err(|_| {
+        AppError(
+            StatusCode::UNAUTHORIZED,
+            anyhow::anyhow!("Invalid session key"),
+        )
+    })?;
     mac.update(endpoint.as_bytes());
     let signature = mac.finalize().into_bytes();
 
-    if signature.as_slice() != hex::decode(&auth.signature)
-        .map_err(|_| AppError(StatusCode::UNAUTHORIZED, anyhow::anyhow!("Invalid signature format")))?
+    if signature.as_slice()
+        != hex::decode(&auth.signature).map_err(|_| {
+            AppError(
+                StatusCode::UNAUTHORIZED,
+                anyhow::anyhow!("Invalid signature format"),
+            )
+        })?
     {
         return Err(AppError(
             StatusCode::UNAUTHORIZED,
@@ -242,7 +278,7 @@ async fn send(
     let identity = Identity(format!("{}.{}", account, ctx.blackjack_cn));
     // get random
     let random = rand::random::<u64>();
-    
+
     // Create the HmacSha256 blob
     let hmac_blob = HmacSha256Blob {
         identity: identity.clone(),
@@ -251,10 +287,21 @@ async fn send(
         hmac: signature.to_vec(),
     };
 
-    let blobs = vec![
+    let mut blobs = vec![
         action.with_id(random).as_blob(ctx.blackjack_cn.clone()),
         hmac_blob.as_blob(),
     ];
+
+    // Add Hyllar transfer blob for claim action
+    if is_claim {
+        let hyllar: Hyllar = ctx.indexer_client.fetch_current_state(&"hyllar".into()).await?;
+        let balance = hyllar.balance_of(&identity.0).map_err(|e| AppError(StatusCode::BAD_REQUEST, anyhow::anyhow!(e)))?;
+        let transfer_action = HyllarAction::Transfer {
+            recipient: ctx.blackjack_cn.0.clone(),
+            amount: balance,
+        };
+        blobs.insert(1, transfer_action.as_blob("hyllar".into(), None, None));
+    }
 
     let tx_hash = ctx
         .client

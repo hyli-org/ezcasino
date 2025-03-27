@@ -1,7 +1,9 @@
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
+    Json,
 };
+use serde_json::json;
 
 // Make our own error that wraps `anyhow::Error`.
 pub struct AppError(pub StatusCode, pub anyhow::Error);
@@ -10,7 +12,11 @@ pub struct AppError(pub StatusCode, pub anyhow::Error);
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         tracing::error!("{}", self.1);
-        (self.0, format!("{}", self.1)).into_response()
+        let body = json!({
+            "error": self.1.to_string(),
+            "status": self.0.as_u16()
+        });
+        (self.0, Json(body)).into_response()
     }
 }
 
