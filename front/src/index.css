@@ -16,10 +16,10 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: "MS Sans Serif", "Segoe UI", sans-serif;
 }
 
 body {
+  font-family: "MS Sans Serif", "Segoe UI", sans-serif;
   background: linear-gradient(
     180deg,
     var(--win95-sky) 0%,

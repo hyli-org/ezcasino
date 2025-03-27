@@ -86,95 +86,144 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  padding: 3px;
   background-color: #c0c0c0;
-  border-top: 1px solid #dfdfdf;
-  border-left: 1px solid #dfdfdf;
-  border-right: 1px solid #808080;
-  border-bottom: 1px solid #808080;
+  border: 2px solid;
+  border-top-color: #dfdfdf;
+  border-left-color: #dfdfdf;
+  border-right-color: #808080;
+  border-bottom-color: #808080;
   box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.2);
   min-width: 300px;
   z-index: 1000;
+  font-family: "MS Sans Serif", Arial, sans-serif;
+  font-size: 12px;
 }
 
 .error-title-bar {
+  background: #000080;
+  color: white;
+  padding: 3px 2px 3px 3px;
   display: flex;
   align-items: center;
-  background-color: #000080;
-  padding: 2px 3px;
-  margin-bottom: 10px;
+  font-weight: bold;
+  font-size: 11px;
+}
+
+.error-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
 }
 
 .error-title-text {
-  color: white;
-  font-weight: bold;
-  font-size: 12px;
   flex-grow: 1;
-  padding: 0 3px;
+  margin-top: 1px;
 }
 
 .error-close-button {
   background-color: #c0c0c0;
-  border-top: 1px solid #dfdfdf;
-  border-left: 1px solid #dfdfdf;
-  border-right: 1px solid #808080;
-  border-bottom: 1px solid #808080;
-  width: 16px;
-  height: 14px;
-  font-size: 12px;
-  line-height: 14px;
+  border: 1px solid;
+  border-top-color: #dfdfdf;
+  border-left-color: #dfdfdf;
+  border-right-color: #808080;
+  border-bottom-color: #808080;
+  width: 14px;
+  height: 12px;
+  font-size: 10px;
+  line-height: 10px;
   text-align: center;
   cursor: pointer;
   color: black;
+  margin: 1px;
+}
+
+.error-close-button:active {
+  border-top-color: #808080;
+  border-left-color: #808080;
+  border-right-color: #dfdfdf;
+  border-bottom-color: #dfdfdf;
 }
 
 .error-content {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding: 0 10px 10px;
+  align-items: stretch;
+  gap: 12px;
+  padding: 13px 12px;
+  background-color: #c0c0c0;
+}
+
+.error-message-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.error-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
 }
 
 .error-message {
   color: #000;
-  text-align: center;
-  margin-bottom: 0.5rem;
-  font-family: 'MS Sans Serif', sans-serif;
+  margin: 0;
+  font-family: "MS Sans Serif", Arial, sans-serif;
   font-size: 12px;
+  line-height: 14px;
+  padding-top: 8px;
+}
+
+.error-button {
+  align-self: center;
+  min-width: 75px;
+  padding: 4px 25px;
+  background-color: #c0c0c0;
+  border: 1px solid;
+  border-top-color: #dfdfdf;
+  border-left-color: #dfdfdf;
+  border-right-color: #808080;
+  border-bottom-color: #808080;
+  font-family: "MS Sans Serif", Arial, sans-serif;
+  font-size: 12px;
+  color: black;
+  cursor: pointer;
+}
+
+.error-button:active {
+  border-top-color: #808080;
+  border-left-color: #808080;
+  border-right-color: #dfdfdf;
+  border-bottom-color: #dfdfdf;
 }
 
 .claim-button {
-  background-color: #c0c0c0;
-  color: black;
-  padding: 0.5rem 1rem;
-  border-top: 2px solid #dfdfdf;
-  border-left: 2px solid #dfdfdf;
-  border-right: 2px solid #808080;
-  border-bottom: 2px solid #808080;
-  cursor: pointer;
-  font-weight: normal;
   min-width: 75px;
-  font-family: 'MS Sans Serif', sans-serif;
-}
-
-.claim-button:hover {
+  padding: 4px 25px;
   background-color: #c0c0c0;
+  border: 1px solid;
+  border-top-color: #dfdfdf;
+  border-left-color: #dfdfdf;
+  border-right-color: #808080;
+  border-bottom-color: #808080;
+  font-family: "MS Sans Serif", Arial, sans-serif;
+  font-size: 11px;
+  color: black;
+  cursor: pointer;
+  align-self: center;
+  margin-top: 8px;
 }
 
 .claim-button:active {
-  border-top: 2px solid #808080;
-  border-left: 2px solid #808080;
-  border-right: 2px solid #dfdfdf;
-  border-bottom: 2px solid #dfdfdf;
-  padding: calc(0.5rem + 1px) calc(1rem - 1px) calc(0.5rem - 1px) calc(1rem + 1px);
+  border-top-color: #808080;
+  border-left-color: #808080;
+  border-right-color: #dfdfdf;
+  border-bottom-color: #dfdfdf;
 }
 
 .claim-button:disabled {
-  background-color: #c0c0c0;
   color: #808080;
   cursor: not-allowed;
-  border-color: #808080;
 }
 
 .play-area {
@@ -233,37 +282,44 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: #000080;
-  color: white;
-  font-family: 'Courier New', monospace;
-  padding: 50px;
+  background-color: #0000aa;
+  color: #ffffff;
+  font-family: Terminal, "Fixedsys Excelsior", "Lucida Console", monospace;
+  padding: 80px 40px;
   z-index: 9999;
-  white-space: pre-wrap;
   font-size: 16px;
-  line-height: 1.5;
-  animation: fadeIn 0.1s ease-in;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  line-height: 1.2;
+  cursor: none;
+  user-select: none;
 }
 
 .bsod-content {
   max-width: 800px;
   margin: 0 auto;
+  white-space: pre-line;
 }
 
 .bsod-header {
-  margin-bottom: 30px;
+  margin-bottom: 24px;
+  font-weight: bold;
+  background-color: #ffffff;
+  color: #0000aa;
+  padding: 0 4px;
+  display: inline-block;
 }
 
 .bsod-message {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .bsod-footer {
-  margin-top: 30px;
+  margin-top: 32px;
+  position: relative;
+}
+
+.bsod-footer::after {
+  content: '_';
+  position: absolute;
   animation: blink 1s step-start infinite;
 }
 

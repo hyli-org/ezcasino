@@ -48,7 +48,7 @@ const Game: React.FC = () => {
     return { suit, value: cardValue };
   };
 
-  const updateGameState = (newGameState: GameState) => {
+  const updateGameState = (newGameState: GameState, isClaiming: boolean = false) => {
     const playerCards = newGameState.user.map(convertToCard);
     const dealerCards = newGameState.bank.map(convertToCard);
 
@@ -58,15 +58,17 @@ const Game: React.FC = () => {
     setGameOver(newGameState.state !== 'Ongoing');
     setGameState(newGameState);
 
-    // Gérer les messages et effets en fonction de l'état
-    if (newGameState.state === 'Won') {
-      setMessage('You win!');
-      setShowWinEffect(true);
-      setTimeout(() => setShowWinEffect(false), 4000);
-    } else if (newGameState.state === 'Lost') {
-      setMessage('Dealer wins!');
-      setShowLoseEffect(true);
-      setTimeout(() => setShowLoseEffect(false), 4000);
+    // Ne pas déclencher les effets visuels lors d'un claim
+    if (!isClaiming) {
+      if (newGameState.state === 'Won') {
+        setMessage('You win!');
+        setShowWinEffect(true);
+        setTimeout(() => setShowWinEffect(false), 4000);
+      } else if (newGameState.state === 'Lost') {
+        setMessage('Dealer wins!');
+        setShowLoseEffect(true);
+        setTimeout(() => setShowLoseEffect(false), 4000);
+      }
     }
   };
 
@@ -144,9 +146,9 @@ const Game: React.FC = () => {
       setIsLoading(true);
       setError(null);
       const gameState = await gameService.claim();
-      updateGameState(gameState);
+      updateGameState(gameState, true);
       setShowClaimButton(false);
-      setGameOver(true); // Pour afficher le bouton DEAL
+      setGameOver(true);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to claim. Please try again.';
       setError(errorMessage);
@@ -324,20 +326,24 @@ const Game: React.FC = () => {
               Windows
             </div>
             <div className="bsod-message">
-              A fatal exception 0E has occurred at 0028:C0011E36 in VXD VMM(01) +
-              00010E36. The current application will be terminated.
-              
-              * Press any key to terminate the current application
-              * Press CTRL+ALT+DEL to restart your computer. You will
-                lose any unsaved information in all applications.
+              An exception 0E has occurred at 0028:C11B0E47 in VxD VMM(01) + 00010E47.
+              This was called from 0028:C11B0E47 in VxD VWIN32(01) + 00010E47.<br/>
+              <br/>
+              The current application will be terminated.<br/>
+              <br/>
+              *  Press any key to terminate the current application<br/>
+              *  Press CTRL+ALT+DEL again to restart your computer. You will
+                 lose any unsaved information in all applications.
             </div>
             <div className="bsod-message">
-              Error: INSUFFICIENT_HOUSE_EDGE
-              An error has occurred while trying to take your money.
+              Error: INSUFFICIENT_HOUSE_EDGE<br/>
+              <br/>
+              An error has occurred while trying to take your money.<br/>
+              <br/>
               The house always wins, but this time something went wrong.
             </div>
             <div className="bsod-footer">
-              Press any key to continue _
+              Press any key to continue
             </div>
           </div>
         </div>
@@ -388,18 +394,22 @@ const Game: React.FC = () => {
                     <div className="error-close-button" onClick={handleErrorClose}>×</div>
                   </div>
                   <div className="error-content">
-                    {error}
+                    <div className="error-message-container">
+                      <img src="/error-icon.png" alt="Error" className="error-icon" />
+                      <p className="error-message">
+                        {error}
+                        {showClaimButton && (
+                          <>
+                            <br />
+                            Please send funds to your session key, then claim them
+                          </>
+                        )}
+                      </p>
+                    </div>
                     {showClaimButton && (
-                      <>
-                        <div className="error-message">Please send funds to your session key, then claim them</div>
-                        <button
-                          className="win95-button claim-button"
-                          onClick={handleClaim}
-                          disabled={isLoading}
-                        >
-                          CLAIM
-                        </button>
-                      </>
+                      <button className="claim-button" onClick={handleClaim} disabled={isLoading}>
+                        Claim
+                      </button>
                     )}
                   </div>
                 </div>
