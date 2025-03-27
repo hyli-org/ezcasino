@@ -144,11 +144,7 @@ const Game: React.FC = () => {
       const gameState = await gameService.claim();
       updateGameState(gameState);
       setShowClaimButton(false);
-      
-      // Si la balance est suffisante après le claim, démarrer une nouvelle partie
-      if (gameState.balance >= 10) {
-        await startNewGame();
-      }
+      setGameOver(true); // Pour afficher le bouton DEAL
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to claim. Please try again.';
       setError(errorMessage);

@@ -9,10 +9,10 @@ members = [
 
 [workspace.dependencies]
 # don't forget to update methods/guest/Cargo.toml 
-sdk = { git = "https://github.com/hyle-org/hyle", package = "hyle-contract-sdk", tag = "v0.13.0-rc.2" }
-client-sdk = { git = "https://github.com/hyle-org/hyle", default-features = false, package = "hyle-client-sdk", tag = "v0.13.0-rc.2" }
-hyle = { git = "https://github.com/Hyle-org/hyle.git", package = "hyle", tag = "v0.13.0-rc.2" }
-hyle_hyllar = { git = "https://github.com/Hyle-org/hyle.git", package = "hyle-hyllar", tag = "v0.13.0-rc.2" }
+sdk = { git = "https://github.com/hyle-org/hyle", package = "hyle-contract-sdk", tag = "hmac.0.1.0" }
+client-sdk = { git = "https://github.com/hyle-org/hyle", default-features = false, package = "hyle-client-sdk", tag = "hmac.0.1.0" }
+hyle = { git = "https://github.com/Hyle-org/hyle.git", package = "hyle", tag = "hmac.0.1.0" }
+hyle_hyllar = { git = "https://github.com/Hyle-org/hyle.git", package = "hyle-hyllar", tag = "hmac.0.1.0" }
 contract = { path = "contracts/blackjack/contract", package = "contract" }
 
 [workspace.package]

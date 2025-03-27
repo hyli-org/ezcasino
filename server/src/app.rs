@@ -296,6 +296,15 @@ async fn send(
     if is_claim {
         let hyllar: Hyllar = ctx.indexer_client.fetch_current_state(&"hyllar".into()).await?;
         let balance = hyllar.balance_of(&identity.0).map_err(|e| AppError(StatusCode::BAD_REQUEST, anyhow::anyhow!(e)))?;
+        
+        // Check if balance is sufficient for minimum bet
+        if balance < 10 {
+            return Err(AppError(
+                StatusCode::BAD_REQUEST,
+                anyhow::anyhow!("Insufficient balance. Minimum claim is 10"),
+            ));
+        }
+
         let transfer_action = HyllarAction::Transfer {
             recipient: ctx.blackjack_cn.0.clone(),
             amount: balance,

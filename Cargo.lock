@@ -1972,7 +1972,7 @@ checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 [[package]]
 name = "hyle"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=v0.13.0-rc.2#d9c75952b91c2edaa60c402adc904c60c7adac7d"
+source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
 dependencies = [
  "anyhow",
  "anymap",
@@ -1988,6 +1988,7 @@ dependencies = [
  "fjall",
  "futures",
  "hex",
+ "hmac",
  "hyle-client-sdk",
  "hyle-contract-sdk",
  "hyle-contracts",
@@ -2009,6 +2010,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "sha2",
  "sha3",
  "sqlx",
  "strum_macros",
@@ -2029,7 +2031,7 @@ dependencies = [
 [[package]]
 name = "hyle-bonsai-runner"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=v0.13.0-rc.2#d9c75952b91c2edaa60c402adc904c60c7adac7d"
+source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
 dependencies = [
  "anyhow",
  "bincode",
@@ -2045,7 +2047,7 @@ dependencies = [
 [[package]]
 name = "hyle-client-sdk"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=v0.13.0-rc.2#d9c75952b91c2edaa60c402adc904c60c7adac7d"
+source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
 dependencies = [
  "anyhow",
  "axum",
@@ -2069,7 +2071,7 @@ dependencies = [
 [[package]]
 name = "hyle-contract-sdk"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=v0.13.0-rc.2#d9c75952b91c2edaa60c402adc904c60c7adac7d"
+source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
 dependencies = [
  "borsh",
  "hyle-model",
@@ -2080,7 +2082,7 @@ dependencies = [
 [[package]]
 name = "hyle-contracts"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=v0.13.0-rc.2#d9c75952b91c2edaa60c402adc904c60c7adac7d"
+source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
 dependencies = [
  "hyle-contract-sdk",
 ]
@@ -2088,7 +2090,7 @@ dependencies = [
 [[package]]
 name = "hyle-hydentity"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=v0.13.0-rc.2#d9c75952b91c2edaa60c402adc904c60c7adac7d"
+source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
 dependencies = [
  "anyhow",
  "borsh",
@@ -2103,7 +2105,7 @@ dependencies = [
 [[package]]
 name = "hyle-hyllar"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=v0.13.0-rc.2#d9c75952b91c2edaa60c402adc904c60c7adac7d"
+source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
 dependencies = [
  "anyhow",
  "borsh",
@@ -2117,7 +2119,7 @@ dependencies = [
 [[package]]
 name = "hyle-model"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=v0.13.0-rc.2#d9c75952b91c2edaa60c402adc904c60c7adac7d"
+source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -2139,7 +2141,7 @@ dependencies = [
 [[package]]
 name = "hyle-risc0-recursion"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=v0.13.0-rc.2#d9c75952b91c2edaa60c402adc904c60c7adac7d"
+source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
 dependencies = [
  "hyle-contract-sdk",
  "serde",
@@ -2148,7 +2150,7 @@ dependencies = [
 [[package]]
 name = "hyle-staking"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=v0.13.0-rc.2#d9c75952b91c2edaa60c402adc904c60c7adac7d"
+source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
 dependencies = [
  "anyhow",
  "borsh",
@@ -2162,7 +2164,7 @@ dependencies = [
 [[package]]
 name = "hyle-verifiers"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=v0.13.0-rc.2#d9c75952b91c2edaa60c402adc904c60c7adac7d"
+source = "git+https://github.com/hyle-org/hyle?tag=hmac.0.1.0#5e397aaffc2f62fb7894961315ce83197ad8e53b"
 dependencies = [
  "anyhow",
  "borsh",
