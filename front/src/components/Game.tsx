@@ -30,6 +30,7 @@ const Game: React.FC = () => {
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const [showGameMenu, setShowGameMenu] = useState(false);
   const [showClaimButton, setShowClaimButton] = useState(false);
+  const [showBSOD, setShowBSOD] = useState(false);
   const isInitializedRef = useRef(false);
 
   const convertToCard = (value: number): CardType => {
@@ -279,147 +280,188 @@ const Game: React.FC = () => {
     setShowGameMenu(false);
   };
 
+  const handleErrorClose = () => {
+    setShowBSOD(true);
+  };
+
+  const handleBSODClick = () => {
+    setShowBSOD(false);
+    setError(null);
+  };
+
   return (
     <>
       <VisualEffects isWin={showWinEffect} isLose={showLoseEffect} />
-      <div
-        className="win95-window"
-        style={{
-          transform: `translate(${windowPosition.x}px, ${windowPosition.y}px)`,
-          cursor: isDragging ? 'grabbing' : 'default',
-          transition: isDragging ? 'none' : 'transform 0.1s ease-out'
-        }}
-        onMouseDown={handleMouseDown}
-      >
-        <div className="win95-title-bar">
-          <span>Blackjack</span>
-          <div className="window-controls">
-            <button className="minimize">-</button>
-            <button className="maximize">□</button>
-            <button className="close">×</button>
+      {showBSOD ? (
+        <div className="bsod" onClick={handleBSODClick}>
+          <div className="bsod-content">
+            <div className="bsod-header">
+              Windows
+            </div>
+            <div className="bsod-message">
+              A fatal exception 0E has occurred at 0028:C0011E36 in VXD VMM(01) +
+              00010E36. The current application will be terminated.
+              
+              * Press any key to terminate the current application
+              * Press CTRL+ALT+DEL to restart your computer. You will
+                lose any unsaved information in all applications.
+            </div>
+            <div className="bsod-message">
+              Error: INSUFFICIENT_HOUSE_EDGE
+              An error has occurred while trying to take your money.
+              The house always wins, but this time something went wrong.
+            </div>
+            <div className="bsod-footer">
+              Press any key to continue _
+            </div>
           </div>
         </div>
+      ) : (
+        <div
+          className="win95-window"
+          style={{
+            transform: `translate(${windowPosition.x}px, ${windowPosition.y}px)`,
+            cursor: isDragging ? 'grabbing' : 'default',
+            transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+          }}
+          onMouseDown={handleMouseDown}
+        >
+          <div className="win95-title-bar">
+            <span>Blackjack</span>
+            <div className="window-controls">
+              <button className="minimize">-</button>
+              <button className="maximize">□</button>
+              <button className="close">×</button>
+            </div>
+          </div>
 
-        <div className="menu-bar">
-          <div 
-            className="menu-item" 
-            onClick={() => setShowGameMenu(!showGameMenu)}
-            style={{ position: 'relative' }}
-          >
-            Game
-            {showGameMenu && (
-              <div className="menu-dropdown">
-                <div className="menu-option" onClick={handleNewSessionKey}>
-                  New session key
+          <div className="menu-bar">
+            <div 
+              className="menu-item" 
+              onClick={() => setShowGameMenu(!showGameMenu)}
+              style={{ position: 'relative' }}
+            >
+              Game
+              {showGameMenu && (
+                <div className="menu-dropdown">
+                  <div className="menu-option" onClick={handleNewSessionKey}>
+                    New session key
+                  </div>
+                </div>
+              )}
+            </div>
+            <span className="menu-item">Options</span>
+            <span className="menu-item">Help</span>
+          </div>
+
+          <div className="game-container">
+            {error && (
+              <div className="error">
+                <div className="error-title-bar">
+                  <div className="error-title-text">Error</div>
+                  <div className="error-close-button" onClick={handleErrorClose}>×</div>
+                </div>
+                <div className="error-content">
+                  {error}
+                  {showClaimButton && (
+                    <>
+                      <div className="error-message">Please send funds to your session key, then claim them</div>
+                      <button
+                        className="win95-button claim-button"
+                        onClick={handleClaim}
+                        disabled={isLoading}
+                      >
+                        CLAIM
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             )}
-          </div>
-          <span className="menu-item">Options</span>
-          <span className="menu-item">Help</span>
-        </div>
+            <div className="session-key-container">
+              <span className="counter-label">Session Key</span>
+              <div 
+                className="led-display session-key" 
+                onClick={copySessionKey}
+                style={{ cursor: 'pointer' }}
+              >
+                {truncateSessionKey(authService.getSessionKey())}
+                {copyMessage && <span className="copy-message">{copyMessage}</span>}
+              </div>
+            </div>
+            <div className="counters">
+              <div className="counter">
+                <span className="counter-label">Your Money</span>
+                <div className="led-display">${gameState?.balance || 0}</div>
+              </div>
+              <div className="counter">
+                <span className="counter-label">Bet</span>
+                <div className="led-display">${currentBet}</div>
+              </div>
+            </div>
 
-        <div className="game-container">
-          {error && (
-            <div className="error">
-              {error}
-              {showClaimButton && (
-                <>
-                  <div className="error-message">Please send funds to your session key, then claim them</div>
+            <div className="play-area">
+              <div className="dealer-score">Dealer: {dealerHand.length > 2 || gameState?.state !== 'Ongoing' ? gameState?.bank_count || 0 : '??'}</div>
+              <div className="hand">
+                {dealerHand.map((card, index) => (
+                  <Card
+                    key={index}
+                    suit={card.suit}
+                    value={card.value}
+                    hidden={index === 1 && dealerHand.length <= 2}
+                  />
+                ))}
+              </div>
+
+              <div className="player-score">Player: {gameState?.user_count || 0}</div>
+              <div className="hand">
+                {playerHand.map((card, index) => (
+                  <Card
+                    key={index}
+                    suit={card.suit}
+                    value={card.value}
+                  />
+                ))}
+              </div>
+              {message && <div className="message">{message}</div>}
+              {!gameOver && (
+                <div className="controls">
                   <button
-                    className="win95-button claim-button"
-                    onClick={handleClaim}
+                    className="win95-button"
+                    onClick={hit}
                     disabled={isLoading}
                   >
-                    CLAIM
+                    HIT
                   </button>
-                </>
+                  <button
+                    className="win95-button"
+                    onClick={stand}
+                    disabled={isLoading}
+                  >
+                    STAND
+                  </button>
+                  <button
+                    className="win95-button"
+                    onClick={doubleDown}
+                    disabled={isLoading}
+                  >
+                    DOUBLE
+                  </button>
+                </div>
+              )}
+              {gameOver && (
+                <button
+                  className="win95-button"
+                  onClick={startNewGame}
+                  disabled={isLoading}
+                >
+                  DEAL
+                </button>
               )}
             </div>
-          )}
-          <div className="session-key-container">
-            <span className="counter-label">Session Key</span>
-            <div 
-              className="led-display session-key" 
-              onClick={copySessionKey}
-              style={{ cursor: 'pointer' }}
-            >
-              {truncateSessionKey(authService.getSessionKey())}
-              {copyMessage && <span className="copy-message">{copyMessage}</span>}
-            </div>
-          </div>
-          <div className="counters">
-            <div className="counter">
-              <span className="counter-label">Your Money</span>
-              <div className="led-display">${gameState?.balance || 0}</div>
-            </div>
-            <div className="counter">
-              <span className="counter-label">Bet</span>
-              <div className="led-display">${currentBet}</div>
-            </div>
-          </div>
-
-          <div className="play-area">
-            <div className="dealer-score">Dealer: {dealerHand.length > 2 || gameState?.state !== 'Ongoing' ? gameState?.bank_count || 0 : '??'}</div>
-            <div className="hand">
-              {dealerHand.map((card, index) => (
-                <Card
-                  key={index}
-                  suit={card.suit}
-                  value={card.value}
-                  hidden={index === 1 && dealerHand.length <= 2}
-                />
-              ))}
-            </div>
-
-            <div className="player-score">Player: {gameState?.user_count || 0}</div>
-            <div className="hand">
-              {playerHand.map((card, index) => (
-                <Card
-                  key={index}
-                  suit={card.suit}
-                  value={card.value}
-                />
-              ))}
-            </div>
-            {message && <div className="message">{message}</div>}
-            {!gameOver && (
-              <div className="controls">
-                <button
-                  className="win95-button"
-                  onClick={hit}
-                  disabled={isLoading}
-                >
-                  HIT
-                </button>
-                <button
-                  className="win95-button"
-                  onClick={stand}
-                  disabled={isLoading}
-                >
-                  STAND
-                </button>
-                <button
-                  className="win95-button"
-                  onClick={doubleDown}
-                  disabled={isLoading}
-                >
-                  DOUBLE
-                </button>
-              </div>
-            )}
-            {gameOver && (
-              <button
-                className="win95-button"
-                onClick={startNewGame}
-                disabled={isLoading}
-              >
-                DEAL
-              </button>
-            )}
           </div>
         </div>
-      </div>
+      )}
     </>
   );
 };
