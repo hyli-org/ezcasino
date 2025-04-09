@@ -357,7 +357,7 @@ name = "contract"
 version = "0.1.0"
 dependencies = [
  "borsh",
- "hyle-contract-sdk",
+ "hyle-contract-sdk 0.13.0-rc.2 (git+https://github.com/Hyle-org/hyle.git?rev=81c81d79eef60acdf85af69c857a0b8b93a957e1)",
  "hyle-hyllar",
  "rand 0.9.0",
  "rand_seeder",
@@ -562,7 +562,7 @@ name = "guest"
 version = "0.1.0"
 dependencies = [
  "contract",
- "hyle-contract-sdk",
+ "hyle-contract-sdk 0.13.0-rc.2 (git+https://github.com/hyle-org/hyle?tag=secp256k1.0.2.0)",
  "risc0-zkvm",
 ]
 
@@ -605,19 +605,29 @@ version = "0.13.0-rc.2"
 source = "git+https://github.com/hyle-org/hyle?tag=secp256k1.0.2.0#62f88b9a255e9d9e15c10f7ce38f982ab6a4acfe"
 dependencies = [
  "borsh",
- "hyle-model",
+ "hyle-model 0.13.0-rc.2 (git+https://github.com/hyle-org/hyle?tag=secp256k1.0.2.0)",
  "risc0-zkvm",
+ "serde",
+]
+
+[[package]]
+name = "hyle-contract-sdk"
+version = "0.13.0-rc.2"
+source = "git+https://github.com/Hyle-org/hyle.git?rev=81c81d79eef60acdf85af69c857a0b8b93a957e1#81c81d79eef60acdf85af69c857a0b8b93a957e1"
+dependencies = [
+ "borsh",
+ "hyle-model 0.13.0-rc.2 (git+https://github.com/Hyle-org/hyle.git?rev=81c81d79eef60acdf85af69c857a0b8b93a957e1)",
  "serde",
 ]
 
 [[package]]
 name = "hyle-hyllar"
 version = "0.13.0-rc.2"
-source = "git+https://github.com/hyle-org/hyle?tag=secp256k1.0.2.0#62f88b9a255e9d9e15c10f7ce38f982ab6a4acfe"
+source = "git+https://github.com/Hyle-org/hyle.git?rev=81c81d79eef60acdf85af69c857a0b8b93a957e1#81c81d79eef60acdf85af69c857a0b8b93a957e1"
 dependencies = [
  "anyhow",
  "borsh",
- "hyle-contract-sdk",
+ "hyle-contract-sdk 0.13.0-rc.2 (git+https://github.com/Hyle-org/hyle.git?rev=81c81d79eef60acdf85af69c857a0b8b93a957e1)",
  "serde",
  "serde_with",
  "sha2",
@@ -627,6 +637,18 @@ dependencies = [
 name = "hyle-model"
 version = "0.13.0-rc.2"
 source = "git+https://github.com/hyle-org/hyle?tag=secp256k1.0.2.0#62f88b9a255e9d9e15c10f7ce38f982ab6a4acfe"
+dependencies = [
+ "borsh",
+ "hex",
+ "readonly",
+ "serde",
+ "strum",
+]
+
+[[package]]
+name = "hyle-model"
+version = "0.13.0-rc.2"
+source = "git+https://github.com/Hyle-org/hyle.git?rev=81c81d79eef60acdf85af69c857a0b8b93a957e1#81c81d79eef60acdf85af69c857a0b8b93a957e1"
 dependencies = [
  "borsh",
  "hex",

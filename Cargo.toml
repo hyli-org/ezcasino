@@ -12,10 +12,10 @@ members = [
 
 [workspace.dependencies]
 # don't forget to update methods/guest/Cargo.toml 
-sdk = { git = "https://github.com/hyle-org/hyle", package = "hyle-contract-sdk", tag = "secp256k1.0.2.0" }
-client-sdk = { git = "https://github.com/hyle-org/hyle", default-features = false, package = "hyle-client-sdk", tag = "secp256k1.0.2.0" }
-hyle = { git = "https://github.com/Hyle-org/hyle.git", package = "hyle", tag = "secp256k1.0.2.0" }
-hyle_hyllar = { git = "https://github.com/Hyle-org/hyle.git", package = "hyle-hyllar", tag = "secp256k1.0.2.0" }
+sdk = { git = "https://github.com/hyle-org/hyle", package = "hyle-contract-sdk", rev = "81c81d79eef60acdf85af69c857a0b8b93a957e1" }
+client-sdk = { git = "https://github.com/hyle-org/hyle", default-features = false, package = "hyle-client-sdk", rev = "81c81d79eef60acdf85af69c857a0b8b93a957e1" }
+hyle = { git = "https://github.com/Hyle-org/hyle.git", package = "hyle", rev = "81c81d79eef60acdf85af69c857a0b8b93a957e1" }
+hyle_hyllar = { git = "https://github.com/Hyle-org/hyle.git", package = "hyle-hyllar", rev = "81c81d79eef60acdf85af69c857a0b8b93a957e1" }
 blackjack_contract = { path = "contracts/blackjack/contract", package = "contract" }
 session_key_manager_contract = { path = "contracts/session_key_manager/contract", package = "session_key_manager_contract" }
 
