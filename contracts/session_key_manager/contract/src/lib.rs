@@ -41,8 +41,8 @@ impl HyleContract for SessionKeyManager {
                     &execution_ctx.caller,
                     session_key,
                     native_verifier_blob,
-                    contract_input.tx_hash,
-                    contract_input.tx_ctx,
+                    &contract_input.tx_hash,
+                    &contract_input.tx_ctx,
                 )
             }
         };
