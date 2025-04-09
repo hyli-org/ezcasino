@@ -59,21 +59,24 @@ impl SessionKeyManager {
         &mut self,
         caller: Identity,
         session_key: SessionKey,
-    ) -> Result<(), String> {
+    ) -> Result<String, String> {
         if let Some(session_keys) = self.session_keys.get_mut(&caller) {
             session_keys.push(session_key.clone());
         } else {
             self.session_keys
                 .insert(caller.clone(), vec![session_key.clone()]);
         }
-        Ok(())
+        Ok(format!(
+            "Session key {} added successfully for {}",
+            session_key, caller
+        ))
     }
 
     pub fn revoke_session_key(
         &mut self,
         caller: Identity,
         session_key: SessionKey,
-    ) -> Result<(), String> {
+    ) -> Result<String, String> {
         if let Some(session_keys) = self.session_keys.get_mut(&caller) {
             if let Some(index) = session_keys.iter().position(|key| key == &session_key) {
                 session_keys.remove(index);
@@ -86,7 +89,10 @@ impl SessionKeyManager {
         } else {
             return Err(format!("No session keys found for caller {}", caller));
         }
-        Ok(())
+        Ok(format!(
+            "Session key {} removed successfully for {}",
+            session_key, caller
+        ))
     }
 }
 
