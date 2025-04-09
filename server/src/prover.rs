@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use crate::app::{AppEvent, AppModuleCtx};
 use anyhow::{anyhow, Result};
+use blackjack_contract::BlackJack;
 use client_sdk::helpers::risc0::Risc0Prover;
-use contract::BlackJack;
 use hyle::{
     bus::BusClientSender,
     log_error, module_handle_messages,
@@ -131,7 +131,7 @@ impl ProverModule {
             let blobs = tx.blobs.clone();
             let tx_hash = tx.hashed();
 
-            let prover = Risc0Prover::new(contract::client::metadata::ELF);
+            let prover = Risc0Prover::new(blackjack_contract::client::metadata::ELF);
 
             info!("Proving tx: {}. Blob for {}", tx_hash, blob.contract_name);
 
@@ -157,10 +157,24 @@ impl ProverModule {
                     .unwrap();
             }
 
-            let balance = self.contract.balances.get(&tx.identity).copied().unwrap_or(0);
-            let table = self.contract.tables.get(&tx.identity).cloned().unwrap_or_default();
+            let balance = self
+                .contract
+                .balances
+                .get(&tx.identity)
+                .copied()
+                .unwrap_or(0);
+            let table = self
+                .contract
+                .tables
+                .get(&tx.identity)
+                .cloned()
+                .unwrap_or_default();
             self.bus
-                .send(AppEvent::SequencedTx(tx_hash.clone(), table.into(), balance))
+                .send(AppEvent::SequencedTx(
+                    tx_hash.clone(),
+                    table.into(),
+                    balance,
+                ))
                 .unwrap();
 
             let node_client = self.ctx.app.node_client.clone();

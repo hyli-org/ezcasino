@@ -1,0 +1,76 @@
+use std::collections::BTreeMap;
+
+use borsh::{BorshDeserialize, BorshSerialize};
+use sdk::utils::parse_contract_input;
+use sdk::{
+    Blob, BlobData, BlobIndex, ContractAction, ContractInput, ContractName, Identity,
+    StructuredBlobData,
+};
+use sdk::{HyleContract, RunResult};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+
+extern crate alloc;
+
+#[cfg(feature = "client")]
+pub mod client;
+
+impl HyleContract for SessionKeyManager {
+    fn execute(&mut self, contract_input: &ContractInput) -> RunResult {
+        let (action, execution_ctx) =
+            parse_contract_input::<SessionKeyManagerAction>(contract_input)?;
+
+        let output = match action {
+            SessionKeyManagerAction::Add { session_key: _ } => Ok("".to_string()),
+            SessionKeyManagerAction::Revoke { session_key: _ } => Ok("".to_string()),
+        };
+
+        match output {
+            Err(e) => Err(e),
+            Ok(output) => Ok((output, execution_ctx, vec![])),
+        }
+    }
+
+    fn commit(&self) -> sdk::StateCommitment {
+        let mut hasher = Sha256::new();
+        for (identity, session_keys) in self.session_keys.iter() {
+            hasher.update(identity.0.as_bytes());
+            for session_key in session_keys {
+                hasher.update(session_key.as_bytes());
+            }
+        }
+        sdk::StateCommitment(hasher.finalize().to_vec())
+    }
+}
+
+type SessionKey = String; // Placeholder for actual session key type
+
+#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, Clone, Default)]
+pub struct SessionKeyManager {
+    session_keys: BTreeMap<Identity, Vec<SessionKey>>, // <Identity, vec![SessionKey]>
+}
+
+/// Enum representing possible calls to ERC-20 contract functions.
+#[derive(Serialize, Deserialize, BorshSerialize, BorshDeserialize, Debug, Clone, PartialEq)]
+pub enum SessionKeyManagerAction {
+    Add { session_key: SessionKey },
+    Revoke { session_key: SessionKey },
+}
+
+impl ContractAction for SessionKeyManagerAction {
+    fn as_blob(
+        &self,
+        contract_name: ContractName,
+        caller: Option<BlobIndex>,
+        callees: Option<Vec<BlobIndex>>,
+    ) -> Blob {
+        Blob {
+            contract_name,
+            data: BlobData::from(StructuredBlobData {
+                caller,
+                callees,
+                parameters: self.clone(),
+            }),
+        }
+    }
+}

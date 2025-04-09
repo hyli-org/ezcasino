@@ -1,8 +1,8 @@
 use std::{sync::Arc, time::Duration};
 
 use anyhow::{bail, Result};
+use blackjack_contract::BlackJack;
 use client_sdk::rest_client::{IndexerApiHttpClient, NodeApiHttpClient};
-use contract::BlackJack;
 use sdk::{api::APIRegisterContract, info, ContractName, HyleContract, ProgramId};
 use tokio::time::timeout;
 
@@ -22,7 +22,7 @@ async fn init_contract(
 ) -> Result<()> {
     match indexer.get_indexer_contract(&contract_name).await {
         Ok(contract) => {
-            let image_id = hex::encode(contract::client::metadata::PROGRAM_ID);
+            let image_id = hex::encode(blackjack_contract::client::metadata::PROGRAM_ID);
             let program_id = hex::encode(contract.program_id.as_slice());
             if program_id != image_id {
                 bail!(
@@ -33,7 +33,7 @@ async fn init_contract(
         }
         Err(_) => {
             info!("🚀 Registering Blackjack contract");
-            let image_id = hex::encode(contract::client::metadata::PROGRAM_ID);
+            let image_id = hex::encode(blackjack_contract::client::metadata::PROGRAM_ID);
             node.register_contract(&APIRegisterContract {
                 verifier: "risc0-1".into(),
                 program_id: ProgramId(hex::decode(image_id)?),

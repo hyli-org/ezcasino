@@ -274,6 +274,7 @@ impl BlackJack {
     }
 
     pub fn compute_score(cards: &[u32]) -> u32 {
+        #[warn(clippy::vec_init_then_push)]
         let mut possible_scores: Vec<u32> = Vec::new();
         possible_scores.push(0);
 
@@ -329,6 +330,7 @@ impl BlackJack {
 
         let user_score = Self::compute_score(table.user.as_slice());
 
+        #[warn(clippy::comparison_chain)]
         if user_score == 21_u32 {
             table.state = TableState::Won;
             // Add winnings (2x bet for blackjack)

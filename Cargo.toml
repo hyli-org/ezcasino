@@ -4,6 +4,9 @@ members = [
   "contracts/blackjack/host",
   "contracts/blackjack/contract",
   "contracts/blackjack/methods",
+  "contracts/session_key_manager/host",
+  "contracts/session_key_manager/contract",
+  "contracts/session_key_manager/methods",
   "server",
 ]
 
@@ -13,7 +16,8 @@ sdk = { git = "https://github.com/hyle-org/hyle", package = "hyle-contract-sdk",
 client-sdk = { git = "https://github.com/hyle-org/hyle", default-features = false, package = "hyle-client-sdk", tag = "secp256k1.0.2.0" }
 hyle = { git = "https://github.com/Hyle-org/hyle.git", package = "hyle", tag = "secp256k1.0.2.0" }
 hyle_hyllar = { git = "https://github.com/Hyle-org/hyle.git", package = "hyle-hyllar", tag = "secp256k1.0.2.0" }
-contract = { path = "contracts/blackjack/contract", package = "contract" }
+blackjack_contract = { path = "contracts/blackjack/contract", package = "contract" }
+session_key_manager_contract = { path = "contracts/session_key_manager/contract", package = "session_key_manager_contract" }
 
 [workspace.package]
 version = "0.4.1"

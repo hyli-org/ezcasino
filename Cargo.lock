@@ -4535,6 +4535,7 @@ dependencies = [
  "secp256k1",
  "serde",
  "serde_json",
+ "session_key_manager_contract",
  "sha2",
  "thiserror 2.0.12",
  "tokio",
@@ -4544,6 +4545,41 @@ dependencies = [
  "utoipa",
  "utoipa-axum",
  "zip",
+]
+
+[[package]]
+name = "session_key_manager_contract"
+version = "0.1.0"
+dependencies = [
+ "borsh",
+ "hyle-contract-sdk",
+ "hyle-hyllar",
+ "rand 0.9.0",
+ "rand_seeder",
+ "serde",
+ "sha2",
+]
+
+[[package]]
+name = "session_key_manager_host"
+version = "0.1.0"
+dependencies = [
+ "borsh",
+ "clap",
+ "hyle-client-sdk",
+ "hyle-contract-sdk",
+ "rand 0.9.0",
+ "session_key_manager_contract",
+ "session_key_manager_methods",
+ "tokio",
+ "tracing-subscriber 0.3.19",
+]
+
+[[package]]
+name = "session_key_manager_methods"
+version = "0.1.0"
+dependencies = [
+ "risc0-build",
 ]
 
 [[package]]
