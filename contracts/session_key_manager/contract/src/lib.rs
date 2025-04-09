@@ -21,8 +21,12 @@ impl HyleContract for SessionKeyManager {
             parse_contract_input::<SessionKeyManagerAction>(contract_input)?;
 
         let output = match action {
-            SessionKeyManagerAction::Add { session_key: _ } => Ok("".to_string()),
-            SessionKeyManagerAction::Revoke { session_key: _ } => Ok("".to_string()),
+            SessionKeyManagerAction::Add { session_key } => {
+                self.add_session_key(execution_ctx.caller, session_key)
+            }
+            SessionKeyManagerAction::Revoke { session_key } => {
+                self.revoke_session_key(execution_ctx.caller, session_key)
+            }
         };
 
         match output {
@@ -48,6 +52,42 @@ type SessionKey = String; // Placeholder for actual session key type
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, Clone, Default)]
 pub struct SessionKeyManager {
     session_keys: BTreeMap<Identity, Vec<SessionKey>>, // <Identity, vec![SessionKey]>
+}
+
+impl SessionKeyManager {
+    pub fn add_session_key(
+        &mut self,
+        caller: Identity,
+        session_key: SessionKey,
+    ) -> Result<(), String> {
+        if let Some(session_keys) = self.session_keys.get_mut(&caller) {
+            session_keys.push(session_key.clone());
+        } else {
+            self.session_keys
+                .insert(caller.clone(), vec![session_key.clone()]);
+        }
+        Ok(())
+    }
+
+    pub fn revoke_session_key(
+        &mut self,
+        caller: Identity,
+        session_key: SessionKey,
+    ) -> Result<(), String> {
+        if let Some(session_keys) = self.session_keys.get_mut(&caller) {
+            if let Some(index) = session_keys.iter().position(|key| key == &session_key) {
+                session_keys.remove(index);
+            } else {
+                return Err(format!(
+                    "Session key {} not found for caller {}",
+                    session_key, caller
+                ));
+            }
+        } else {
+            return Err(format!("No session keys found for caller {}", caller));
+        }
+        Ok(())
+    }
 }
 
 /// Enum representing possible calls to ERC-20 contract functions.
