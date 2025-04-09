@@ -22,10 +22,10 @@ impl HyleContract for SessionKeyManager {
 
         let output = match action {
             SessionKeyManagerAction::Add { session_key } => {
-                self.add_session_key(execution_ctx.caller, session_key)
+                self.add_session_key(&execution_ctx.caller, session_key)
             }
             SessionKeyManagerAction::Revoke { session_key } => {
-                self.revoke_session_key(execution_ctx.caller, session_key)
+                self.revoke_session_key(&execution_ctx.caller, session_key)
             }
         };
 
@@ -57,10 +57,10 @@ pub struct SessionKeyManager {
 impl SessionKeyManager {
     pub fn add_session_key(
         &mut self,
-        caller: Identity,
+        caller: &Identity,
         session_key: SessionKey,
     ) -> Result<String, String> {
-        if let Some(session_keys) = self.session_keys.get_mut(&caller) {
+        if let Some(session_keys) = self.session_keys.get_mut(caller) {
             session_keys.push(session_key.clone());
         } else {
             self.session_keys
@@ -74,10 +74,10 @@ impl SessionKeyManager {
 
     pub fn revoke_session_key(
         &mut self,
-        caller: Identity,
+        caller: &Identity,
         session_key: SessionKey,
     ) -> Result<String, String> {
-        if let Some(session_keys) = self.session_keys.get_mut(&caller) {
+        if let Some(session_keys) = self.session_keys.get_mut(caller) {
             if let Some(index) = session_keys.iter().position(|key| key == &session_key) {
                 session_keys.remove(index);
             } else {
