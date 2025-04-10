@@ -155,6 +155,10 @@ impl SessionKeyManager {
         let secp_data: Secp256k1Blob = borsh::from_slice(&native_verifier_blob.data.0)
             .map_err(|_| "Failed to decode Secp256k1Blob".to_string())?;
 
+        // Verify that the identity matches the caller
+        if secp_data.identity != *caller {
+            return Err("Secp256k1Blob identity does not match the caller".to_string());
+        }
         let mut hasher = Sha256::new();
         hasher.update(tx_hash.0.as_bytes());
         hasher.update(session_key.nonce.to_le_bytes());
@@ -168,7 +172,9 @@ impl SessionKeyManager {
             return Err("Session key has expired".to_string());
         }
 
-        // user_session_keys.nonce += 1;
+        if let Some(s) = user_session_keys.iter_mut().find(|s| **s == session_key) {
+            s.nonce += 1;
+        }
 
         Ok("Session key used successfully".to_string())
     }
