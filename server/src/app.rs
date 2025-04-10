@@ -202,43 +202,48 @@ struct ConfigResponse {
 
 async fn claim(
     State(ctx): State<RouterCtx>,
+    Path(identity): Path<Identity>,
     Path(amount): Path<u128>,
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
-    send_claim(ctx, amount, auth).await
+    send_claim(ctx, identity, amount, auth).await
 }
 
 async fn init(
     State(ctx): State<RouterCtx>,
+    Path(identity): Path<Identity>,
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
-    send(ctx, BlackJackAction::Init, auth).await
+    send(ctx, identity, BlackJackAction::Init, auth).await
 }
 
 async fn hit(
     State(ctx): State<RouterCtx>,
+    Path(identity): Path<Identity>,
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
-    send(ctx, BlackJackAction::Hit, auth).await
+    send(ctx, identity, BlackJackAction::Hit, auth).await
 }
 
 async fn stand(
     State(ctx): State<RouterCtx>,
+    Path(identity): Path<Identity>,
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
-    send(ctx, BlackJackAction::Stand, auth).await
+    send(ctx, identity, BlackJackAction::Stand, auth).await
 }
 
 async fn double_down(
     State(ctx): State<RouterCtx>,
+    Path(identity): Path<Identity>,
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
-    send(ctx, BlackJackAction::DoubleDown, auth).await
+    send(ctx, identity, BlackJackAction::DoubleDown, auth).await
 }
 
 async fn get_config(State(ctx): State<RouterCtx>) -> impl IntoResponse {
@@ -249,13 +254,11 @@ async fn get_config(State(ctx): State<RouterCtx>) -> impl IntoResponse {
 
 async fn send(
     ctx: RouterCtx,
+    identity: Identity,
     action: BlackJackAction,
     auth: AuthHeaders,
 ) -> Result<impl IntoResponse, AppError> {
     let account = auth.session_key.clone();
-
-    // TODO: add the correct identity value
-    let identity = Identity(format!("{}.{}", account, ctx.blackjack_cn));
 
     let endpoint = match action {
         BlackJackAction::Init => "init",
@@ -340,6 +343,7 @@ async fn send(
 
 async fn send_claim(
     ctx: RouterCtx,
+    identity: Identity,
     amount: u128,
     auth: AuthHeaders,
 ) -> Result<impl IntoResponse, AppError> {
@@ -348,8 +352,13 @@ async fn send_claim(
     // depending on the action, the blobs will be different
     let mut blobs = vec![];
 
-    // TODO: add the correct identity value for user (should not contain .sessionKeyManager)
-    let user = Identity(format!("{}.{}", account, ctx.blackjack_cn));
+    // Removing the .session-key-manager suffix from the identity that will be used by the manager&hyllar
+    let user = Identity(
+        identity
+            .0
+            .rsplit_once('.')
+            .map_or(identity.0.clone(), |(base, _)| base.to_string()),
+    );
 
     let session_key_manager: SessionKeyManager = ctx
         .indexer_client
@@ -455,7 +464,7 @@ async fn send_claim(
 
     let tx_hash = ctx
         .client
-        .send_tx_blob(&BlobTransaction::new(user.clone(), blobs))
+        .send_tx_blob(&BlobTransaction::new(identity.clone(), blobs))
         .await?;
 
     let mut bus = {
