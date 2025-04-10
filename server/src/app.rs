@@ -287,13 +287,13 @@ async fn get_config(State(ctx): State<RouterCtx>) -> impl IntoResponse {
 async fn check_or_create_identity(
     ctx: RouterCtx,
     auth: AuthHeaders,
-    password: String,
+    _password: String,
 ) -> Result<(), AppError> {
     let header_session_key = auth.session_key.clone();
 
     let user = auth.user.clone();
 
-    let (public_key, signature, message_hash) = validate_signed_message(
+    let (_public_key, _signature, _message_hash) = validate_signed_message(
         auth.session_key,
         auth.signature,
         "check_identity".to_string(),
@@ -367,7 +367,7 @@ async fn check_or_create_identity(
         AppModuleBusClient::new_from_bus(app.bus.new_handle()).await
     };
 
-    tokio::time::timeout(Duration::from_secs(5), async {
+    let _ = tokio::time::timeout(Duration::from_secs(5), async {
         loop {
             match bus.recv().await? {
                 AppEvent::FailedTx(sequenced_tx_hash, error) => {

@@ -34,22 +34,20 @@ async fn init_contracts(
                                    state_commitment: StateCommitment| {
         match indexer.get_indexer_contract(contract_name).await {
             Ok(contract) => {
-                let image_id = hex::encode(program_id);
-                let program_id = hex::encode(contract.program_id.as_slice());
-                if program_id != image_id {
+                let onchain_program_id = hex::encode(contract.program_id.as_slice());
+                let program_id = hex::encode(program_id);
+                if onchain_program_id != program_id {
                     bail!(
-                        "Invalid contract image_id. On-chain version is {program_id}, expected {image_id}",
+                        "Invalid image_id for {contract_name}. On-chain version is {onchain_program_id}, expected {program_id}",
                     );
                 }
                 info!("✅ {} contract is up to date", contract_name);
             }
             Err(_) => {
                 info!("🚀 Registering {} contract", contract_name);
-                let image_id =
-                    hex::encode(blackjack::client::tx_executor_handler::metadata::PROGRAM_ID);
                 node.register_contract(&APIRegisterContract {
                     verifier: "risc0-1".into(),
-                    program_id: ProgramId(hex::decode(image_id)?),
+                    program_id: ProgramId(program_id.to_vec()),
                     state_commitment,
                     contract_name: contract_name.clone(),
                 })
