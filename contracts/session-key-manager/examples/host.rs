@@ -1,10 +1,9 @@
 use clap::{Parser, Subcommand};
-use client_sdk::helpers::risc0::Risc0Prover;
+// use client_sdk::helpers::risc0::Risc0Prover;
 use sdk::api::APIRegisterContract;
 use sdk::ZkContract;
-use session_key_manager::client::tx_executor_handler::metadata::{
-    PROGRAM_ID, SESSION_KEY_MANAGER_ELF,
-};
+use session_key_manager::client::tx_executor_handler::metadata::PROGRAM_ID;
+// use session_key_manager::client::tx_executor_handler::metadata::SESSION_KEY_MANAGER_ELF;
 use session_key_manager::SessionKeyManager;
 
 #[derive(Parser)]
@@ -47,7 +46,7 @@ async fn main() {
 
     let contract_name = &cli.contract_name;
 
-    let prover = Risc0Prover::new(SESSION_KEY_MANAGER_ELF);
+    // let prover = Risc0Prover::new(SESSION_KEY_MANAGER_ELF);
 
     match cli.command {
         Commands::Register {} => {
