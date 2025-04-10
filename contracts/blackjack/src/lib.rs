@@ -274,9 +274,7 @@ impl BlackJack {
     }
 
     pub fn compute_score(cards: &[u32]) -> u32 {
-        #[warn(clippy::vec_init_then_push)]
-        let mut possible_scores: Vec<u32> = Vec::new();
-        possible_scores.push(0);
+        let mut possible_scores: Vec<u32> = alloc::vec![0];
 
         for card in cards.iter() {
             if *card == 1_u32 {
@@ -330,32 +328,35 @@ impl BlackJack {
 
         let user_score = Self::compute_score(table.user.as_slice());
 
-        #[warn(clippy::comparison_chain)]
-        if user_score == 21_u32 {
-            table.state = TableState::Won;
-            // Add winnings (2x bet for blackjack)
-            if let Some(balance) = self.balances.get_mut(user) {
-                *balance += table.bet * 2;
+        match user_score {
+            21 => {
+                table.state = TableState::Won;
+                // Add winnings (2x bet for blackjack)
+                if let Some(balance) = self.balances.get_mut(user) {
+                    *balance += table.bet * 2;
+                }
+                Ok(format!(
+                    "Hit for user {user} with block hash {blockhash}, BLACKJACK!!!!",
+                    user = user,
+                    blockhash = blockhash.0
+                ))
             }
-            Ok(format!(
-                "Hit for user {user} with block hash {blockhash}, BLACKJACK!!!!",
-                user = user,
-                blockhash = blockhash.0
-            ))
-        } else if user_score > 21_u32 {
-            table.state = TableState::Lost;
-            Ok(format!(
-                "Hit for user {user} with block hash {blockhash}, BURST, you loose",
-                user = user,
-                blockhash = blockhash.0
-            ))
-        } else {
-            // Still Ongoing
-            Ok(format!(
-                "Hit for user {user} with block hash {blockhash}, still ongoing",
-                user = user,
-                blockhash = blockhash.0
-            ))
+            score if score > 21 => {
+                table.state = TableState::Lost;
+                Ok(format!(
+                    "Hit for user {user} with block hash {blockhash}, BURST, you loose",
+                    user = user,
+                    blockhash = blockhash.0
+                ))
+            }
+            _ => {
+                // Still Ongoing
+                Ok(format!(
+                    "Hit for user {user} with block hash {blockhash}, still ongoing",
+                    user = user,
+                    blockhash = blockhash.0
+                ))
+            }
         }
     }
     pub fn stand(&mut self, user: &Identity) -> Result<String, String> {
