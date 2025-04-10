@@ -13,15 +13,13 @@ use blackjack::{BlackJack, BlackJackAction, Table, TableState};
 use client_sdk::rest_client::{IndexerApiHttpClient, NodeApiHttpClient};
 use hyle::{
     bus::{BusClientReceiver, BusMessage, SharedMessageBus},
-    model::CommonRunContext,
+    model::{verifiers::Secp256k1Blob, CommonRunContext},
     module_handle_messages,
     utils::modules::{module_bus_client, Module},
 };
 use hyle_hyllar::{erc20::ERC20, Hyllar, HyllarAction};
 
-use sdk::{
-    Blob, BlobData, BlobIndex, BlobTransaction, ContractAction, ContractName, Identity, TxHash,
-};
+use sdk::{BlobTransaction, ContractAction, ContractName, Identity, TxHash};
 use secp256k1::hashes::{sha256, Hash};
 use secp256k1::{ecdsa::Signature, Message, PublicKey, Secp256k1};
 use serde::Serialize;
@@ -371,33 +369,4 @@ async fn send(
         }
     })
     .await?
-}
-
-#[derive(Debug, borsh::BorshSerialize, borsh::BorshDeserialize)]
-pub struct Secp256k1Blob {
-    pub identity: Identity,
-    pub data: [u8; 32],
-    pub public_key: [u8; 33],
-    pub signature: [u8; 64],
-}
-
-impl Secp256k1Blob {
-    pub fn as_blob(&self) -> Blob {
-        <Self as ContractAction>::as_blob(self, "secp256k1".into(), None, None)
-    }
-}
-
-impl ContractAction for Secp256k1Blob {
-    fn as_blob(
-        &self,
-        contract_name: ContractName,
-        _caller: Option<BlobIndex>,
-        _callees: Option<Vec<BlobIndex>>,
-    ) -> Blob {
-        #[allow(clippy::expect_used)]
-        Blob {
-            contract_name,
-            data: BlobData(borsh::to_vec(self).expect("failed to encode EcdsaBlob")),
-        }
-    }
 }
