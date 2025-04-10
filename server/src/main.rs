@@ -30,7 +30,10 @@ pub struct Args {
     pub config_file: Option<String>,
 
     #[arg(long, default_value = "blackjack")]
-    pub contract_name: String,
+    pub casino_contract_name: String,
+
+    #[arg(long, default_value = "skm")]
+    pub session_key_manager_contract_name: String,
 
     #[clap(long, action)]
     pub pg: bool,
@@ -59,7 +62,8 @@ async fn main() -> Result<()> {
     match init::init_node(
         node_client.clone(),
         indexer_client.clone(),
-        args.contract_name.clone(),
+        args.casino_contract_name.clone(),
+        args.session_key_manager_contract_name.clone(),
     )
     .await
     {
@@ -87,7 +91,7 @@ async fn main() -> Result<()> {
         common: ctx.clone(),
         node_client,
         indexer_client,
-        blackjack_cn: args.contract_name.into(),
+        blackjack_cn: args.casino_contract_name.into(),
     });
     let start_height = app_ctx.node_client.get_block_height().await?;
     let prover_ctx = Arc::new(ProverModuleCtx {

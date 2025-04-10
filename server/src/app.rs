@@ -355,8 +355,7 @@ async fn send(
 
     tokio::time::timeout(Duration::from_secs(5), async {
         loop {
-            let a = bus.recv().await?;
-            match a {
+            match bus.recv().await? {
                 AppEvent::SequencedTx(sequenced_tx_hash, mut table, balance) => {
                     if sequenced_tx_hash == tx_hash {
                         table.balance = balance;
