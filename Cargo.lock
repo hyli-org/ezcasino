@@ -630,7 +630,9 @@ dependencies = [
 name = "blackjack"
 version = "0.0.0"
 dependencies = [
+ "blackjack",
  "borsh",
+ "clap",
  "hyle-client-sdk",
  "hyle-contract-sdk",
  "hyle-hyllar",
@@ -639,6 +641,8 @@ dependencies = [
  "risc0-zkvm",
  "serde",
  "sha2",
+ "tokio",
+ "tracing-subscriber 0.3.19",
 ]
 
 [[package]]
@@ -4854,6 +4858,7 @@ name = "session-key-manager"
 version = "0.0.0"
 dependencies = [
  "borsh",
+ "clap",
  "hyle-client-sdk",
  "hyle-contract-sdk",
  "hyle-hyllar",
@@ -4861,7 +4866,10 @@ dependencies = [
  "rand_seeder",
  "risc0-zkvm",
  "serde",
+ "session-key-manager",
  "sha2",
+ "tokio",
+ "tracing-subscriber 0.3.19",
 ]
 
 [[package]]
