@@ -66,17 +66,9 @@ async fn main() {
             println!("✅ Register contract tx sent. Tx hash: {}", res);
         }
         Commands::Init => {
-            // Fetch the initial state from the node
-            let mut initial_state: BlackJack = client
-                .get_contract(&contract_name.clone().into())
-                .await
-                .unwrap()
-                .state
-                .into();
             // ----
             // Build the blob transaction
             // ----
-
             let action = BlackJackAction::Init;
             let blobs = vec![sdk::Blob {
                 contract_name: contract_name.clone().into(),
