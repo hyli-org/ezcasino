@@ -74,12 +74,14 @@ impl sdk::ZkContract for BlackJack {
             return Err("Secp256k1Blob data does not match the action".to_string());
         }
 
+        let mut rng = Self::rng(&tx_ctx.block_hash);
+
         // Execute the given action
         let res = match action.action {
-            BlackJackAction::Init => self.new_game(user, &tx_ctx.block_hash)?,
-            BlackJackAction::Hit => self.hit(user, &tx_ctx.block_hash)?,
-            BlackJackAction::Stand => self.stand(user)?,
-            BlackJackAction::DoubleDown => self.double_down(user)?,
+            BlackJackAction::Init => self.new_game(user, &mut rng)?,
+            BlackJackAction::Hit => self.hit(user, &mut rng)?,
+            BlackJackAction::Stand => self.stand(user, &mut rng)?,
+            BlackJackAction::DoubleDown => self.double_down(user, &mut rng)?,
             BlackJackAction::Claim => {
                 // Find the Hyllar transfer blob
                 let transfer_blob_index = calldata
@@ -199,44 +201,40 @@ impl BlackJack {
 }
 
 impl BlackJack {
-    pub fn new_game(&mut self, user: &Identity, blockhash: &BlockHash) -> Result<String, String> {
+    pub fn rng(blockhash: &BlockHash) -> SipRng {
+        let mut hasher = SipHasher::new();
+        hasher.write(blockhash.0.as_bytes());
+        hasher.into_rng()
+    }
+
+    pub fn new_game(&mut self, user: &Identity, rng: &mut SipRng) -> Result<String, String> {
         if let Some(table) = self.tables.get(user) {
             if matches!(table.state, TableState::Ongoing) {
                 return Ok(format!("Game already started for user {user}", user = user,));
             }
         }
 
-        // Check if user has enough balance for a bet
-        let balance = self.balances.get(user).copied().unwrap_or(0);
-        if balance < 10 {
-            return Err("Insufficient balance. Minimum bet is 10".to_string());
-        }
-
-        let mut hasher = SipHasher::new();
-        hasher.write(blockhash.0.as_bytes());
-        let mut rnd = hasher.into_rng();
-
-        let card_1: u32 = *CARDS.get(rnd.random_range(0..(CARDS.len() - 1))).unwrap();
-        let card_2: u32 = *CARDS.get(rnd.random_range(0..(CARDS.len() - 1))).unwrap();
-        let card_3: u32 = *CARDS.get(rnd.random_range(0..(CARDS.len() - 1))).unwrap();
-        let card_4: u32 = *CARDS.get(rnd.random_range(0..(CARDS.len() - 1))).unwrap();
-
         let mut table = Table {
             bet: 10, // minimum bet
             ..Default::default()
         };
 
-        // Deduct bet from balance
-        if let Some(balance) = self.balances.get_mut(user) {
-            *balance -= table.bet;
-        } else {
-            self.balances.insert(user.clone(), balance - table.bet);
+        let balance = self
+            .balances
+            .entry(user.clone())
+            .and_modify(|balance| {
+                *balance -= 10;
+            })
+            .or_insert(40);
+
+        if *balance < 10 {
+            return Err("Insufficient balance. Minimum bet is 10".to_string());
         }
 
-        table.user.push(card_1);
-        table.bank.push(card_2);
-        table.user.push(card_3);
-        table.bank.push(card_4);
+        table.user.push(Self::pick_random_card(rng));
+        table.bank.push(Self::pick_random_card(rng));
+        table.user.push(Self::pick_random_card(rng));
+        table.bank.push(Self::pick_random_card(rng));
 
         let user_score = Self::compute_score(table.user.as_slice());
 
@@ -248,9 +246,8 @@ impl BlackJack {
             }
             self.tables.insert(user.clone(), table);
             Ok(format!(
-                "Initiated new game for user {user} with block hash {blockhash}, BLACKJACK!!!!",
+                "Initiated new game for user {user}, BLACKJACK!!!!",
                 user = user,
-                blockhash = blockhash.0
             ))
         } else {
             let bank_score = Self::compute_score(table.bank.as_slice());
@@ -258,17 +255,12 @@ impl BlackJack {
                 table.state = TableState::Lost;
                 self.tables.insert(user.clone(), table);
                 Ok(format!(
-                    "Initiated new game for user {user} with block hash {blockhash} and loose immediately",
+                    "Initiated new game for user {user}, loose immediately",
                     user = user,
-                    blockhash = blockhash.0
                 ))
             } else {
                 self.tables.insert(user.clone(), table);
-                Ok(format!(
-                    "Initiated new game for user {user} with block hash {blockhash}",
-                    user = user,
-                    blockhash = blockhash.0
-                ))
+                Ok(format!("Initiated new game for user {user}", user = user,))
             }
         }
     }
@@ -311,7 +303,7 @@ impl BlackJack {
         *CARDS.get(rnd.random_range(0..(CARDS.len() - 1))).unwrap()
     }
 
-    pub fn hit(&mut self, user: &Identity, blockhash: &BlockHash) -> Result<String, String> {
+    pub fn hit(&mut self, user: &Identity, rng: &mut SipRng) -> Result<String, String> {
         let Some(table) = self.tables.get_mut(user) else {
             return Err("Table not setup. Start a new game first".to_string());
         };
@@ -320,11 +312,7 @@ impl BlackJack {
             return Err("Cannot hit on finished game!".to_string());
         }
 
-        let mut hasher = SipHasher::new();
-        hasher.write(blockhash.0.as_bytes());
-        let mut rnd = hasher.into_rng();
-
-        table.user.push(Self::pick_random_card(&mut rnd));
+        table.user.push(Self::pick_random_card(rng));
 
         let user_score = Self::compute_score(table.user.as_slice());
 
@@ -335,31 +323,22 @@ impl BlackJack {
                 if let Some(balance) = self.balances.get_mut(user) {
                     *balance += table.bet * 2;
                 }
-                Ok(format!(
-                    "Hit for user {user} with block hash {blockhash}, BLACKJACK!!!!",
-                    user = user,
-                    blockhash = blockhash.0
-                ))
+                Ok(format!("Hit for user {user}, BLACKJACK!!!!", user = user,))
             }
             score if score > 21 => {
                 table.state = TableState::Lost;
                 Ok(format!(
-                    "Hit for user {user} with block hash {blockhash}, BURST, you loose",
+                    "Hit for user {user}, BURST, you loose",
                     user = user,
-                    blockhash = blockhash.0
                 ))
             }
             _ => {
                 // Still Ongoing
-                Ok(format!(
-                    "Hit for user {user} with block hash {blockhash}, still ongoing",
-                    user = user,
-                    blockhash = blockhash.0
-                ))
+                Ok(format!("Hit for user {user}, still ongoing", user = user,))
             }
         }
     }
-    pub fn stand(&mut self, user: &Identity) -> Result<String, String> {
+    pub fn stand(&mut self, user: &Identity, rng: &mut SipRng) -> Result<String, String> {
         let Some(table) = self.tables.get_mut(user) else {
             return Err("Table not setup. Start a new game first".to_string());
         };
@@ -370,13 +349,8 @@ impl BlackJack {
 
         let user_score = Self::compute_score(&table.user);
 
-        // Bank's turn - keep drawing cards until score > 16
-        let mut hasher = SipHasher::new();
-        hasher.write(user.0.as_bytes());
-        let mut rnd = hasher.into_rng();
-
         while Self::compute_score(&table.bank) <= 16 {
-            table.bank.push(Self::pick_random_card(&mut rnd));
+            table.bank.push(Self::pick_random_card(rng));
         }
 
         let bank_score = Self::compute_score(&table.bank);
@@ -413,7 +387,7 @@ impl BlackJack {
             Ok(format!("Stand for user {user}, you loose", user = user,))
         }
     }
-    pub fn double_down(&mut self, user: &Identity) -> Result<String, String> {
+    pub fn double_down(&mut self, user: &Identity, rng: &mut SipRng) -> Result<String, String> {
         let Some(table) = self.tables.get_mut(user) else {
             return Err("Table not setup. Start a new game first".to_string());
         };
@@ -428,19 +402,16 @@ impl BlackJack {
             return Err("Insufficient balance for double down".to_string());
         }
 
+        // Deduct additional bet from balance
+        if let Some(balance) = self.balances.get_mut(user) {
+            *balance -= table.bet;
+        }
+
         // Double the bet
         table.bet *= 2;
 
-        // Deduct additional bet from balance
-        if let Some(balance) = self.balances.get_mut(user) {
-            *balance -= table.bet / 2;
-        }
-
         // Draw one more card for the player
-        let mut hasher = SipHasher::new();
-        hasher.write(user.0.as_bytes());
-        let mut rnd = hasher.into_rng();
-        table.user.push(Self::pick_random_card(&mut rnd));
+        table.user.push(Self::pick_random_card(rng));
 
         let user_score = Self::compute_score(table.user.as_slice());
 
@@ -454,7 +425,7 @@ impl BlackJack {
         } else {
             // Bank's turn - keep drawing cards until score > 16
             while Self::compute_score(&table.bank) <= 16 {
-                table.bank.push(Self::pick_random_card(&mut rnd));
+                table.bank.push(Self::pick_random_card(rng));
             }
 
             let bank_score = Self::compute_score(table.bank.as_slice());
