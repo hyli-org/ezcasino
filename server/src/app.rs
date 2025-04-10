@@ -6,7 +6,7 @@ use std::{
 use crate::utils::AppError;
 use anyhow::Result;
 use axum::{
-    extract::{Json, Path, Query, State},
+    extract::{Json, Path, State},
     http::{HeaderMap, Method, StatusCode},
     response::IntoResponse,
     routing::{get, post},
@@ -28,7 +28,7 @@ use sdk::{
 };
 use secp256k1::hashes::{sha256, Hash};
 use secp256k1::{ecdsa::Signature, Message, PublicKey, Secp256k1};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use session_key_manager::{SessionKey, SessionKeyManager, SessionKeyManagerAction};
 use tokio::sync::Mutex;
 use tower_http::cors::{Any, CorsLayer};
@@ -43,6 +43,7 @@ pub struct AppModuleCtx {
     pub indexer_client: Arc<IndexerApiHttpClient>,
     pub blackjack_cn: ContractName,
     pub session_key_manager_cn: ContractName,
+    pub hydentity_cn: ContractName,
 }
 
 #[derive(Debug, Clone)]
@@ -68,6 +69,7 @@ impl Module for AppModule {
         let state = RouterCtx {
             blackjack_cn: ctx.blackjack_cn.clone(),
             session_key_manager_cn: ctx.session_key_manager_cn.clone(),
+            hydentity_cn: ctx.hydentity_cn.clone(),
             app: Arc::new(Mutex::new(HyleOofCtx {
                 bus: ctx.common.bus.new_handle(),
             })),
@@ -119,6 +121,7 @@ struct RouterCtx {
     pub indexer_client: Arc<IndexerApiHttpClient>,
     pub blackjack_cn: ContractName,
     pub session_key_manager_cn: ContractName,
+    pub hydentity_cn: ContractName,
 }
 
 pub struct HyleOofCtx {
@@ -187,6 +190,11 @@ impl AuthHeaders {
 // --------------------------------------------------------
 //     Types
 // --------------------------------------------------------
+
+#[derive(Serialize, Debug, Clone)]
+pub struct ApiUser {
+    pub user: String,
+}
 
 #[derive(Serialize, Debug, Clone)]
 pub struct ApiTable {
@@ -281,7 +289,7 @@ async fn check_or_create_identity(
     auth: AuthHeaders,
     password: String,
 ) -> Result<(), AppError> {
-    let account = auth.session_key.clone();
+    let header_session_key = auth.session_key.clone();
 
     let user = auth.user.clone();
 
@@ -294,22 +302,21 @@ async fn check_or_create_identity(
 
     let hydentity: Hydentity = ctx
         .indexer_client
-        .fetch_current_state(&"hydentity".into())
+        .fetch_current_state(&ctx.hydentity_cn)
         .await?;
 
     let mut skm: SessionKeyManager = ctx
         .indexer_client
-        .fetch_current_state(&"skm".into())
+        .fetch_current_state(&ctx.session_key_manager_cn)
         .await?;
 
-    let identity = Identity(format!("{}.hydentity", account));
-    // get random
+    let identity = Identity(format!("{}.{}", user, ctx.hydentity_cn));
 
     let mut blobs = vec![];
 
     let user_exists = hydentity.get_identity_info(user.as_str()).is_ok();
     let has_sk = skm
-        .has_session_key(&user.clone().into(), account.clone())
+        .has_session_key(&user.clone().into(), header_session_key.clone())
         .unwrap_or(false);
 
     if user_exists && has_sk {
@@ -321,7 +328,7 @@ async fn check_or_create_identity(
             HydentityAction::RegisterIdentity {
                 account: user.clone(),
             }
-            .as_blob("hydentity".into()),
+            .as_blob(ctx.hydentity_cn),
         )
     } else if user_exists && !has_sk {
         blobs.push(
@@ -329,12 +336,12 @@ async fn check_or_create_identity(
                 account: user.clone(),
                 nonce: 1,
             }
-            .as_blob("hydentity".into()),
+            .as_blob(ctx.hydentity_cn),
         );
         blobs.push(
             SessionKeyManagerAction::Add {
                 session_key: SessionKey {
-                    key: account,
+                    key: header_session_key,
                     expiration_date: TimestampMs(
                         SystemTime::now()
                             .duration_since(UNIX_EPOCH)
@@ -344,7 +351,7 @@ async fn check_or_create_identity(
                     nonce: 1,
                 },
             }
-            .as_blob("skm".into(), None, None),
+            .as_blob(ctx.session_key_manager_cn, None, None),
         );
     }
 

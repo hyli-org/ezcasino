@@ -32,7 +32,7 @@ async fn init_contracts(
     let register_contract = async |contract_name: &ContractName,
                                    program_id: [u8; 32],
                                    state_commitment: StateCommitment| {
-        match indexer.get_indexer_contract(&casino_contract_name).await {
+        match indexer.get_indexer_contract(contract_name).await {
             Ok(contract) => {
                 let image_id = hex::encode(program_id);
                 let program_id = hex::encode(contract.program_id.as_slice());

@@ -119,6 +119,7 @@ impl ProverModule {
         self.prove_blackjack_tx(&tx, &tx_ctx);
         self.prove_session_key_manager(&tx, &tx_ctx);
         self.prove_hyllar(&tx, &tx_ctx);
+        self.prove_hydentity(&tx, &tx_ctx);
         self.unsettled_txs.push(tx);
     }
 
@@ -292,7 +293,7 @@ impl ProverModule {
         }
     }
 
-    fn prove_identity(&mut self, tx: &BlobTransaction, tx_ctx: &sdk::TxContext) {
+    fn prove_hydentity(&mut self, tx: &BlobTransaction, tx_ctx: &sdk::TxContext) {
         if tx_ctx.block_height.0 < self.ctx.start_height.0 {
             return;
         }

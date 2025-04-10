@@ -32,8 +32,11 @@ pub struct Args {
     #[arg(long, default_value = "blackjack")]
     pub casino_contract_name: String,
 
-    #[arg(long, default_value = "skm")]
+    #[arg(long, default_value = "session-key-manager")]
     pub session_key_manager_contract_name: String,
+
+    #[arg(long, default_value = "hydentity")]
+    pub hydentity_contract_name: String,
 
     #[arg(long, default_value = "hyllar")]
     pub hyllar_contract_name: String,
@@ -96,6 +99,7 @@ async fn main() -> Result<()> {
         indexer_client,
         blackjack_cn: args.casino_contract_name.into(),
         session_key_manager_cn: args.session_key_manager_contract_name.into(),
+        hydentity_cn: args.hydentity_contract_name.into(),
     });
     let start_height = app_ctx.node_client.get_block_height().await?;
     let prover_ctx = Arc::new(ProverModuleCtx {
