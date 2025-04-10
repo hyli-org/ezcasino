@@ -257,6 +257,55 @@ async fn send(
     // TODO: add the correct identity value
     let identity = Identity(format!("{}.{}", account, ctx.blackjack_cn));
 
+    let endpoint = match action {
+        BlackJackAction::Init => "init",
+        BlackJackAction::Hit => "hit",
+        BlackJackAction::Stand => "stand",
+        BlackJackAction::DoubleDown => "double_down",
+        BlackJackAction::Claim { .. } => unreachable!(),
+    };
+
+    // Verify signature using ECDSA
+    let public_key = PublicKey::from_slice(&hex::decode(&account).map_err(|_| {
+        AppError(
+            StatusCode::UNAUTHORIZED,
+            anyhow::anyhow!("Invalid public key format"),
+        )
+    })?)
+    .map_err(|_| {
+        AppError(
+            StatusCode::UNAUTHORIZED,
+            anyhow::anyhow!("Invalid public key"),
+        )
+    })?;
+
+    let signature = Signature::from_der(&hex::decode(&auth.signature).map_err(|_| {
+        AppError(
+            StatusCode::UNAUTHORIZED,
+            anyhow::anyhow!("Invalid signature format"),
+        )
+    })?)
+    .map_err(|_| {
+        AppError(
+            StatusCode::UNAUTHORIZED,
+            anyhow::anyhow!("Invalid signature"),
+        )
+    })?;
+
+    // Create message hash
+    let message_hash = sha256::Hash::hash(endpoint.as_bytes());
+    let message = Message::from_digest(message_hash.to_byte_array());
+
+    // Verify the signature
+    let secp = Secp256k1::new();
+    secp.verify_ecdsa(&message, &signature, &public_key)
+        .map_err(|e| {
+            AppError(
+                StatusCode::UNAUTHORIZED,
+                anyhow::anyhow!("Invalid ecdsa signature: {e:#?}"),
+            )
+        })?;
+
     let blobs = vec![action.as_blob(ctx.blackjack_cn.clone())];
 
     let tx_hash = ctx
