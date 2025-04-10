@@ -3,10 +3,12 @@ import { SHA256 } from 'crypto-js';
 
 const SESSION_KEY_STORAGE_KEY = 'blackjack_session_key';
 const PUBLIC_KEY_STORAGE_KEY = 'blackjack_public_key';
+const USER_STORAGE_KEY = 'blackjack_user';
 
 class AuthService {
   private sessionKey: string | null = null;
   private publicKey: string | null = null;
+  private user: string | null = null; // New user field
   private ec: ec;
 
   constructor() {
@@ -14,6 +16,7 @@ class AuthService {
     // Récupérer la sessionKey et la publicKey du localStorage au démarrage
     this.sessionKey = localStorage.getItem(SESSION_KEY_STORAGE_KEY);
     this.publicKey = localStorage.getItem(PUBLIC_KEY_STORAGE_KEY);
+    this.user = localStorage.getItem(USER_STORAGE_KEY);
   }
 
   generateSessionKey(): string {
@@ -41,6 +44,15 @@ class AuthService {
 
   getSessionKey(): string | null {
     return this.publicKey; // On retourne la clé publique pour l'authentification
+  }
+
+  getUser(): string | null {
+    return this.user;
+  }
+
+  setUser(user: string): void {
+    this.user = user;
+    localStorage.setItem(USER_STORAGE_KEY, user);
   }
 
   signRequest(payload: any): string {
@@ -81,9 +93,11 @@ class AuthService {
   clearSession() {
     this.sessionKey = null;
     this.publicKey = null;
+    this.user = null;
     localStorage.removeItem(SESSION_KEY_STORAGE_KEY);
     localStorage.removeItem(PUBLIC_KEY_STORAGE_KEY);
+    localStorage.removeItem(USER_STORAGE_KEY);
   }
 }
 
-export const authService = new AuthService(); 
+export const authService = new AuthService();

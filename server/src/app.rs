@@ -124,6 +124,7 @@ async fn health() -> impl IntoResponse {
 //     Headers
 // --------------------------------------------------------
 
+const USER_HEADER: &str = "x-user";
 const SESSION_KEY_HEADER: &str = "x-session-key";
 const SIGNATURE_HEADER: &str = "x-request-signature";
 
@@ -131,6 +132,7 @@ const SIGNATURE_HEADER: &str = "x-request-signature";
 struct AuthHeaders {
     session_key: String,
     signature: String,
+    user: String,
 }
 
 impl AuthHeaders {
@@ -155,9 +157,20 @@ impl AuthHeaders {
                 )
             })?;
 
+        let user = headers
+            .get(USER_HEADER)
+            .and_then(|v| v.to_str().ok())
+            .ok_or_else(|| {
+                AppError(
+                    StatusCode::UNAUTHORIZED,
+                    anyhow::anyhow!("Missing signature"),
+                )
+            })?;
+
         Ok(AuthHeaders {
             session_key: session_key.to_string(),
             signature: signature.to_string(),
+            user: user.to_string(),
         })
     }
 }
@@ -202,48 +215,43 @@ struct ConfigResponse {
 
 async fn claim(
     State(ctx): State<RouterCtx>,
-    Path(identity): Path<Identity>,
     Path(amount): Path<u128>,
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
-    send_claim(ctx, identity, amount, auth).await
+    send_claim(ctx, amount, auth).await
 }
 
 async fn init(
     State(ctx): State<RouterCtx>,
-    Path(identity): Path<Identity>,
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
-    send(ctx, identity, BlackJackAction::Init, auth).await
+    send(ctx, BlackJackAction::Init, auth).await
 }
 
 async fn hit(
     State(ctx): State<RouterCtx>,
-    Path(identity): Path<Identity>,
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
-    send(ctx, identity, BlackJackAction::Hit, auth).await
+    send(ctx, BlackJackAction::Hit, auth).await
 }
 
 async fn stand(
     State(ctx): State<RouterCtx>,
-    Path(identity): Path<Identity>,
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
-    send(ctx, identity, BlackJackAction::Stand, auth).await
+    send(ctx, BlackJackAction::Stand, auth).await
 }
 
 async fn double_down(
     State(ctx): State<RouterCtx>,
-    Path(identity): Path<Identity>,
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
-    send(ctx, identity, BlackJackAction::DoubleDown, auth).await
+    send(ctx, BlackJackAction::DoubleDown, auth).await
 }
 
 async fn get_config(State(ctx): State<RouterCtx>) -> impl IntoResponse {
@@ -254,11 +262,11 @@ async fn get_config(State(ctx): State<RouterCtx>) -> impl IntoResponse {
 
 async fn send(
     ctx: RouterCtx,
-    identity: Identity,
     action: BlackJackAction,
     auth: AuthHeaders,
 ) -> Result<impl IntoResponse, AppError> {
-    let account = auth.session_key.clone();
+    let header_session_key = auth.session_key.clone();
+    let identity = auth.user.clone();
 
     let endpoint = match action {
         BlackJackAction::Init => "init",
@@ -269,7 +277,7 @@ async fn send(
     };
 
     // Verify signature using ECDSA
-    let public_key = PublicKey::from_slice(&hex::decode(&account).map_err(|_| {
+    let public_key = PublicKey::from_slice(&hex::decode(&header_session_key).map_err(|_| {
         AppError(
             StatusCode::UNAUTHORIZED,
             anyhow::anyhow!("Invalid public key format"),
@@ -343,11 +351,11 @@ async fn send(
 
 async fn send_claim(
     ctx: RouterCtx,
-    identity: Identity,
     amount: u128,
     auth: AuthHeaders,
 ) -> Result<impl IntoResponse, AppError> {
-    let account = auth.session_key.clone();
+    let header_session_key = auth.session_key.clone();
+    let identity = auth.user.clone();
 
     // depending on the action, the blobs will be different
     let mut blobs = vec![];
@@ -355,9 +363,8 @@ async fn send_claim(
     // Removing the .session-key-manager suffix from the identity that will be used by the manager&hyllar
     let user = Identity(
         identity
-            .0
             .rsplit_once('.')
-            .map_or(identity.0.clone(), |(base, _)| base.to_string()),
+            .map_or(identity.clone(), |(base, _)| base.to_string()),
     );
 
     let session_key_manager: SessionKeyManager = ctx
@@ -366,7 +373,7 @@ async fn send_claim(
         .await?;
 
     let session_key = session_key_manager
-        .get_user_session_key(&user, &account)
+        .get_user_session_key(&user, &header_session_key)
         .ok_or_else(|| {
             AppError(
                 StatusCode::BAD_REQUEST,
@@ -382,7 +389,7 @@ async fn send_claim(
     blobs.push(session_key_manager_action.as_blob(ctx.session_key_manager_cn, None, None));
 
     // Verify signature using ECDSA
-    let public_key = PublicKey::from_slice(&hex::decode(&account).map_err(|_| {
+    let public_key = PublicKey::from_slice(&hex::decode(&header_session_key).map_err(|_| {
         AppError(
             StatusCode::UNAUTHORIZED,
             anyhow::anyhow!("Invalid public key format"),

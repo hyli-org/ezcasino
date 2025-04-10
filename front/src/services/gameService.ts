@@ -6,6 +6,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 class GameService {
   private async makeRequest(endpoint: string, method: string = 'GET') {
     const sessionKey = authService.getSessionKey();
+    const user = authService.getUser();
     if (!sessionKey) {
       throw new Error('No active session');
     }
@@ -16,7 +17,8 @@ class GameService {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       'X-Session-Key': sessionKey,
-      'X-Request-Signature': signature
+      'X-Request-Signature': signature,
+      'X-User': user || '',
     };
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
