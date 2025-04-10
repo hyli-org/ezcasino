@@ -3,16 +3,19 @@
 
 extern crate alloc;
 
+use alloc::vec::Vec;
 use contract::BlackJack;
-use sdk::guest::execute;
-use sdk::guest::GuestEnv;
-use sdk::guest::Risc0Env;
+use sdk::{
+    guest::{execute, GuestEnv, Risc0Env},
+    Calldata,
+};
 
 risc0_zkvm::guest::entry!(main);
 
 fn main() {
     let env = Risc0Env {};
-    let input = env.read();
-    let (_, output) = execute::<BlackJack>(&input);
+    let (commitment_metadata, calldata): (Vec<u8>, Calldata) = env.read();
+
+    let output = execute::<BlackJack>(&commitment_metadata, &calldata);
     env.commit(&output);
 }

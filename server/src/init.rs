@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use anyhow::{bail, Result};
 use blackjack_contract::BlackJack;
 use client_sdk::rest_client::{IndexerApiHttpClient, NodeApiHttpClient};
-use sdk::{api::APIRegisterContract, info, ContractName, HyleContract, ProgramId, StateCommitment};
+use sdk::{api::APIRegisterContract, info, ContractName, ProgramId, StateCommitment, ZkContract};
 use session_key_manager_contract::SessionKeyManager;
 use tokio::time::timeout;
 

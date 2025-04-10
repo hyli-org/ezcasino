@@ -30,23 +30,23 @@ pub struct Secp256k1Blob {
     pub signature: [u8; 64],
 }
 
-impl sdk::HyleContract for BlackJack {
+impl sdk::ZkContract for BlackJack {
     /// Entry point of the contract's logic
-    fn execute(&mut self, contract_input: &sdk::ContractInput) -> RunResult {
+    fn execute(&mut self, calldata: &sdk::Calldata) -> RunResult {
         // Parse contract inputs
-        let (action, ctx) = sdk::utils::parse_raw_contract_input::<UniqueAction>(contract_input)?;
+        let (action, ctx) = sdk::utils::parse_raw_calldata::<UniqueAction>(calldata)?;
 
-        let user = &contract_input.identity;
+        let user = &calldata.identity;
 
-        let Some(tx_ctx) = contract_input.tx_ctx.as_ref() else {
+        let Some(tx_ctx) = calldata.tx_ctx.as_ref() else {
             return Err("Missing tx context necessary for this contract".to_string());
         };
 
         // Verify Secp256k1Blob
-        let secp_blob = contract_input
+        let (_, secp_blob) = calldata
             .blobs
             .iter()
-            .find(|b| b.contract_name == ContractName("secp256k1".to_string()))
+            .find(|(_, b)| b.contract_name == ContractName("secp256k1".to_string()))
             .ok_or_else(|| "Missing Secp256k1Blob".to_string())?;
 
         let secp_data: Secp256k1Blob = borsh::from_slice(&secp_blob.data.0)
@@ -82,14 +82,14 @@ impl sdk::HyleContract for BlackJack {
             BlackJackAction::DoubleDown => self.double_down(user)?,
             BlackJackAction::Claim => {
                 // Find the Hyllar transfer blob
-                let transfer_blob_index = contract_input
+                let transfer_blob_index = calldata
                     .blobs
                     .iter()
-                    .position(|b| b.contract_name == ContractName("hyllar".to_string()))
+                    .position(|(_, b)| b.contract_name == ContractName("hyllar".to_string()))
                     .ok_or_else(|| "Missing Hyllar transfer blob".to_string())?;
 
                 let transfer_action = sdk::utils::parse_structured_blob::<HyllarAction>(
-                    &contract_input.blobs,
+                    &calldata.blobs,
                     &sdk::BlobIndex(transfer_blob_index),
                 )
                 .ok_or_else(|| "Failed to decode Hyllar transfer action".to_string())?

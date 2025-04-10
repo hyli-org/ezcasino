@@ -11,8 +11,8 @@ use hyle::{
     utils::modules::{module_bus_client, Module},
 };
 use sdk::{
-    BlobTransaction, Block, BlockHeight, ContractInput, Hashed, HyleContract, ProofTransaction,
-    TransactionData, TxHash, HYLE_TESTNET_CHAIN_ID,
+    BlobTransaction, Block, BlockHeight, Calldata, Hashed, ProofTransaction, TransactionData,
+    TxHash, ZkContract, HYLE_TESTNET_CHAIN_ID,
 };
 use tracing::{error, info};
 
@@ -79,7 +79,7 @@ impl ProverModule {
                 let tx_ctx = sdk::TxContext {
                     block_height: block.block_height,
                     block_hash: block.hash.clone(),
-                    timestamp: block.block_timestamp as u128,
+                    timestamp: block.block_timestamp.clone(),
                     lane_id: block.lane_ids.get(&tx.hashed()).unwrap().clone(),
                     chain_id: HYLE_TESTNET_CHAIN_ID,
                 };
@@ -140,17 +140,19 @@ impl ProverModule {
                 return;
             };
 
-            let inputs = ContractInput {
-                state,
+            let commitment_metadata = state;
+
+            let calldata = Calldata {
                 identity: tx.identity.clone(),
                 tx_hash: tx_hash.clone(),
                 private_input: vec![],
-                blobs: blobs.clone(),
+                blobs: blobs.clone().into(),
                 index: sdk::BlobIndex(index),
                 tx_ctx: Some(tx_ctx),
+                tx_blob_count: blobs.len(),
             };
 
-            if let Err(e) = self.contract.execute(&inputs).map_err(|e| anyhow!(e)) {
+            if let Err(e) = self.contract.execute(&calldata).map_err(|e| anyhow!(e)) {
                 error!("error while executing contract: {e}");
                 self.bus
                     .send(AppEvent::FailedTx(tx_hash.clone(), e.to_string()))
@@ -180,7 +182,7 @@ impl ProverModule {
             let node_client = self.ctx.app.node_client.clone();
             let blob = blob.clone();
             tokio::task::spawn(async move {
-                match prover.prove(inputs).await {
+                match prover.prove(commitment_metadata, calldata).await {
                     Ok(proof) => {
                         info!("Proof generated for tx: {}", tx_hash);
                         let tx = ProofTransaction {

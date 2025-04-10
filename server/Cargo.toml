@@ -10,9 +10,9 @@ blackjack_contract = { workspace = true, features = ["client"] }
 session_key_manager_contract = { workspace = true, features = ["client"] }
 hyle_hyllar = { workspace = true }
 
-risc0-zkvm = { version = "=1.2.5", features = ["prove"] }
+risc0-zkvm = { version = "2.0.0", features = ["prove"] }
 
-axum = "0.8.1"
+axum = "0.8.3"
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -40,11 +40,11 @@ prometheus = { version = "0.13.4" }
 
 
 zip = "=2.3.0"
-risc0-binfmt = "=1.2.5"
-risc0-circuit-keccak = "=1.2.5"
-risc0-zkp = "=1.2.5"
-risc0-circuit-keccak-sys = "=1.2.5"
-risc0-circuit-recursion = "=1.2.5"
-risc0-sys = "=1.2.5"
-risc0-circuit-recursion-sys = "=1.2.5"
-risc0-groth16 = "=1.2.5"
+risc0-binfmt = "2.0.0"
+risc0-circuit-keccak = "2.0.0"
+risc0-zkp = "2.0.0"
+risc0-circuit-keccak-sys = "2.0.0"
+risc0-circuit-recursion = "2.0.0"
+risc0-sys = "1.4.0"
+risc0-circuit-recursion-sys = "2.0.0"
+risc0-groth16 = "2.0.0"

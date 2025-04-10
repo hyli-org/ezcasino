@@ -1,12 +1,13 @@
 use std::collections::BTreeMap;
 
 use borsh::{BorshDeserialize, BorshSerialize};
-use sdk::utils::parse_contract_input;
+use sdk::hyle_model_utils::TimestampMs;
+use sdk::utils::parse_calldata;
 use sdk::{
-    Blob, BlobData, BlobIndex, ContractAction, ContractInput, ContractName, Identity,
+    Blob, BlobData, BlobIndex, Calldata, ContractAction, ContractName, Identity,
     StructuredBlobData, TxContext, TxHash,
 };
-use sdk::{HyleContract, RunResult};
+use sdk::{RunResult, ZkContract};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -23,10 +24,9 @@ pub struct Secp256k1Blob {
     pub signature: [u8; 64],
 }
 
-impl HyleContract for SessionKeyManager {
-    fn execute(&mut self, contract_input: &ContractInput) -> RunResult {
-        let (action, execution_ctx) =
-            parse_contract_input::<SessionKeyManagerAction>(contract_input)?;
+impl ZkContract for SessionKeyManager {
+    fn execute(&mut self, calldata: &Calldata) -> RunResult {
+        let (action, execution_ctx) = parse_calldata::<SessionKeyManagerAction>(calldata)?;
 
         let output = match action {
             SessionKeyManagerAction::Add { session_key } => {
@@ -36,13 +36,13 @@ impl HyleContract for SessionKeyManager {
                 self.revoke_session_key(&execution_ctx.caller, session_key)
             }
             SessionKeyManagerAction::Use { session_key } => {
-                let native_verifier_blob = contract_input.blobs.get(contract_input.index.0 + 1);
+                let native_verifier_blob = calldata.blobs.get(&(calldata.index + 1));
                 self.use_session_key(
                     &execution_ctx.caller,
                     session_key,
                     native_verifier_blob,
-                    &contract_input.tx_hash,
-                    &contract_input.tx_ctx,
+                    &calldata.tx_hash,
+                    &calldata.tx_ctx,
                 )
             }
         };
@@ -59,7 +59,7 @@ impl HyleContract for SessionKeyManager {
             hasher.update(identity.0.as_bytes());
             for session_key in session_keys {
                 hasher.update(session_key.key.as_bytes());
-                hasher.update(session_key.expiration_date.to_le_bytes());
+                hasher.update(session_key.expiration_date.0.to_le_bytes());
                 hasher.update(session_key.nonce.to_le_bytes());
             }
         }
@@ -72,7 +72,7 @@ impl HyleContract for SessionKeyManager {
 )]
 pub struct SessionKey {
     key: String,
-    expiration_date: u128,
+    expiration_date: TimestampMs,
     nonce: u64,
     // contracts_whitelist: Vec[ContractName],
 }
