@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use crate::utils::AppError;
 use anyhow::Result;
 use axum::{
-    extract::{Json, State},
+    extract::{Json, Path, State},
     http::{HeaderMap, Method, StatusCode},
     response::IntoResponse,
     routing::{get, post},
@@ -23,6 +23,7 @@ use sdk::{BlobTransaction, ContractAction, ContractName, Identity, TxHash};
 use secp256k1::hashes::{sha256, Hash};
 use secp256k1::{ecdsa::Signature, Message, PublicKey, Secp256k1};
 use serde::Serialize;
+use session_key_manager::{SessionKeyManager, SessionKeyManagerAction};
 use tokio::sync::Mutex;
 use tower_http::cors::{Any, CorsLayer};
 
@@ -35,6 +36,7 @@ pub struct AppModuleCtx {
     pub node_client: Arc<NodeApiHttpClient>,
     pub indexer_client: Arc<IndexerApiHttpClient>,
     pub blackjack_cn: ContractName,
+    pub session_key_manager_cn: ContractName,
 }
 
 #[derive(Debug, Clone)]
@@ -57,6 +59,7 @@ impl Module for AppModule {
     async fn build(ctx: Self::Context) -> Result<Self> {
         let state = RouterCtx {
             blackjack_cn: ctx.blackjack_cn.clone(),
+            session_key_manager_cn: ctx.session_key_manager_cn.clone(),
             app: Arc::new(Mutex::new(HyleOofCtx {
                 bus: ctx.common.bus.new_handle(),
             })),
@@ -106,6 +109,7 @@ struct RouterCtx {
     pub client: Arc<NodeApiHttpClient>,
     pub indexer_client: Arc<IndexerApiHttpClient>,
     pub blackjack_cn: ContractName,
+    pub session_key_manager_cn: ContractName,
 }
 
 pub struct HyleOofCtx {
@@ -198,10 +202,11 @@ struct ConfigResponse {
 
 async fn claim(
     State(ctx): State<RouterCtx>,
+    Path(amount): Path<u128>,
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
-    send(ctx, BlackJackAction::Claim, auth).await
+    send_claim(ctx, amount, auth).await
 }
 
 async fn init(
@@ -247,16 +252,79 @@ async fn send(
     action: BlackJackAction,
     auth: AuthHeaders,
 ) -> Result<impl IntoResponse, AppError> {
-    let endpoint = match action {
-        BlackJackAction::Init => "init",
-        BlackJackAction::Hit => "hit",
-        BlackJackAction::Stand => "stand",
-        BlackJackAction::DoubleDown => "double_down",
-        BlackJackAction::Claim => "claim",
+    let account = auth.session_key.clone();
+
+    // TODO: add the correct identity value
+    let identity = Identity(format!("{}.{}", account, ctx.blackjack_cn));
+
+    let blobs = vec![action.as_blob(ctx.blackjack_cn.clone())];
+
+    let tx_hash = ctx
+        .client
+        .send_tx_blob(&BlobTransaction::new(identity.clone(), blobs))
+        .await?;
+
+    let mut bus = {
+        let app = ctx.app.lock().await;
+        AppModuleBusClient::new_from_bus(app.bus.new_handle()).await
     };
 
+    tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            match bus.recv().await? {
+                AppEvent::SequencedTx(sequenced_tx_hash, mut table, balance) => {
+                    if sequenced_tx_hash == tx_hash {
+                        table.balance = balance;
+                        return Ok(Json(table));
+                    }
+                }
+                AppEvent::FailedTx(sequenced_tx_hash, error) => {
+                    if sequenced_tx_hash == tx_hash {
+                        return Err(AppError(StatusCode::BAD_REQUEST, anyhow::anyhow!(error)));
+                    }
+                }
+            }
+        }
+    })
+    .await?
+}
+
+async fn send_claim(
+    ctx: RouterCtx,
+    amount: u128,
+    auth: AuthHeaders,
+) -> Result<impl IntoResponse, AppError> {
+    let account = auth.session_key.clone();
+
+    // depending on the action, the blobs will be different
+    let mut blobs = vec![];
+
+    // TODO: add the correct identity value for user (should not contain .sessionKeyManager)
+    let user = Identity(format!("{}.{}", account, ctx.blackjack_cn));
+
+    let session_key_manager: SessionKeyManager = ctx
+        .indexer_client
+        .fetch_current_state(&"session-key-manager".into())
+        .await?;
+
+    let session_key = session_key_manager
+        .get_user_session_key(&user, &account)
+        .ok_or_else(|| {
+            AppError(
+                StatusCode::BAD_REQUEST,
+                anyhow::anyhow!("Session key not found"),
+            )
+        })?;
+
+    let session_key_manager_action = SessionKeyManagerAction::Use {
+        session_key: session_key.clone(),
+    };
+
+    // First position in blobs: session-key-manager
+    blobs.push(session_key_manager_action.as_blob(ctx.session_key_manager_cn, None, None));
+
     // Verify signature using ECDSA
-    let public_key = PublicKey::from_slice(&hex::decode(&auth.session_key).map_err(|_| {
+    let public_key = PublicKey::from_slice(&hex::decode(&account).map_err(|_| {
         AppError(
             StatusCode::UNAUTHORIZED,
             anyhow::anyhow!("Invalid public key format"),
@@ -283,7 +351,7 @@ async fn send(
     })?;
 
     // Create message hash
-    let message_hash = sha256::Hash::hash(endpoint.as_bytes());
+    let message_hash = sha256::Hash::hash(&session_key.nonce.to_le_bytes());
     let message = Message::from_digest(message_hash.to_byte_array());
 
     // Verify the signature
@@ -296,54 +364,49 @@ async fn send(
             )
         })?;
 
-    let account = auth.session_key.clone();
-    let is_claim = matches!(action, BlackJackAction::Claim);
-
-    let identity = Identity(format!("{}.{}", account, ctx.blackjack_cn));
-    // get random
-    let random = rand::random::<u64>();
-
     // Create the EcdsaBlob
     let ecdsa_blob = Secp256k1Blob {
-        identity: identity.clone(),
+        identity: user.clone(),
         data: message_hash.to_byte_array(),
         public_key: public_key.serialize(),
         signature: signature.serialize_compact(),
     };
 
-    let mut blobs = vec![
-        action.with_id(random).as_blob(ctx.blackjack_cn.clone()),
-        ecdsa_blob.as_blob(),
-    ];
+    // Second position in blobs, add the EcdsaBlob
+    blobs.push(ecdsa_blob.as_blob());
+
+    let action = BlackJackAction::Claim { amount };
+    // Third position in blobs, add the BlackJackAction
+    blobs.push(action.as_blob(ctx.blackjack_cn.clone()));
 
     // Add Hyllar transfer blob for claim action
-    if is_claim {
-        let hyllar: Hyllar = ctx
-            .indexer_client
-            .fetch_current_state(&"hyllar".into())
-            .await?;
-        let balance = hyllar
-            .balance_of(&identity.0)
-            .map_err(|e| AppError(StatusCode::BAD_REQUEST, anyhow::anyhow!(e)))?;
+    let hyllar: Hyllar = ctx
+        .indexer_client
+        .fetch_current_state(&"hyllar".into())
+        .await?;
+    let balance = hyllar
+        .balance_of(&user.0)
+        .map_err(|e| AppError(StatusCode::BAD_REQUEST, anyhow::anyhow!(e)))?;
 
-        // Check if balance is sufficient for minimum bet
-        if balance < 10 {
-            return Err(AppError(
-                StatusCode::BAD_REQUEST,
-                anyhow::anyhow!("Insufficient balance. Minimum claim is 10"),
-            ));
-        }
-
-        let transfer_action = HyllarAction::Transfer {
-            recipient: ctx.blackjack_cn.0.clone(),
-            amount: balance,
-        };
-        blobs.insert(1, transfer_action.as_blob("hyllar".into(), None, None));
+    // Check if balance is sufficient for minimum bet
+    if balance < 10 {
+        return Err(AppError(
+            StatusCode::BAD_REQUEST,
+            anyhow::anyhow!("Insufficient balance. Minimum claim is 10"),
+        ));
     }
+
+    let transfer_action = HyllarAction::Transfer {
+        recipient: user.0.clone(),
+        amount: balance,
+    };
+
+    // Forth position in blobs, add the transfer action from ezcasino account to user
+    blobs.insert(1, transfer_action.as_blob("hyllar".into(), None, None));
 
     let tx_hash = ctx
         .client
-        .send_tx_blob(&BlobTransaction::new(identity.clone(), blobs))
+        .send_tx_blob(&BlobTransaction::new(user.clone(), blobs))
         .await?;
 
     let mut bus = {

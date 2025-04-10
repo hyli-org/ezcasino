@@ -14,7 +14,6 @@ use borsh::{io::Error, BorshDeserialize, BorshSerialize};
 use rand::Rng;
 use rand_seeder::{SipHasher, SipRng};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 
 use hyle_hyllar::HyllarAction;
 use sdk::{BlockHash, ContractName, Identity, RunResult};
@@ -36,43 +35,30 @@ impl sdk::ZkContract for BlackJack {
         // Parse contract inputs
         let (action, ctx) = sdk::utils::parse_raw_calldata::<UniqueAction>(calldata)?;
 
-        let user = &calldata.identity;
-
         let Some(tx_ctx) = calldata.tx_ctx.as_ref() else {
             return Err("Missing tx context necessary for this contract".to_string());
         };
 
-        // Verify Secp256k1Blob
-        let (_, secp_blob) = calldata
+        let (_, session_key_manager_blob) = calldata
             .blobs
             .iter()
-            .find(|(_, b)| b.contract_name == ContractName("secp256k1".to_string()))
-            .ok_or_else(|| "Missing Secp256k1Blob".to_string())?;
+            .find(|(_, b)| b.contract_name == ContractName("session_key_manager".to_string()))
+            .ok_or_else(|| "Missing SessionKeyManager blob".to_string())?;
 
-        let secp_data: Secp256k1Blob = borsh::from_slice(&secp_blob.data.0)
+        let secp_data: Secp256k1Blob = borsh::from_slice(&session_key_manager_blob.data.0)
             .map_err(|_| "Failed to decode Secp256k1Blob".to_string())?;
 
-        // Verify that the identity matches the user
-        if secp_data.identity != *user {
-            return Err("Secp256k1Blob identity does not match the user".to_string());
+        let user_parts: Vec<&str> = secp_data.identity.0.split('.').collect();
+        if let Some(last_part) = user_parts.last() {
+            if last_part != &"session_key_manager" {
+                return Err("Last part of user identity is not 'session_key_manager'".to_string());
+            }
+        } else {
+            return Err("User identity is invalid".to_string());
         }
 
-        // Verify that the data matches the action
-        let expected_data = match action.action {
-            BlackJackAction::Init => "init",
-            BlackJackAction::Hit => "hit",
-            BlackJackAction::Stand => "stand",
-            BlackJackAction::DoubleDown => "double_down",
-            BlackJackAction::Claim => "claim",
-        };
-
-        // Create message hash using SHA256 like in the server
-        let mut hasher = Sha256::new();
-        hasher.update(expected_data.as_bytes());
-        let message_hash: [u8; 32] = hasher.finalize().into();
-        if secp_data.data != message_hash {
-            return Err("Secp256k1Blob data does not match the action".to_string());
-        }
+        // user name is extracted from the session key manager.
+        let user = &Identity(user_parts[..user_parts.len() - 1].join("."));
 
         let mut rng = Self::rng(&tx_ctx.block_hash);
 
@@ -82,7 +68,9 @@ impl sdk::ZkContract for BlackJack {
             BlackJackAction::Hit => self.hit(user, &mut rng)?,
             BlackJackAction::Stand => self.stand(user, &mut rng)?,
             BlackJackAction::DoubleDown => self.double_down(user, &mut rng)?,
-            BlackJackAction::Claim => {
+            BlackJackAction::Claim {
+                amount: claim_amount,
+            } => {
                 // Find the Hyllar transfer blob
                 let transfer_blob_index = calldata
                     .blobs
@@ -101,24 +89,27 @@ impl sdk::ZkContract for BlackJack {
                 // Verify the transfer is for this contract and extract amount
                 match transfer_action {
                     HyllarAction::Transfer { recipient, amount } => {
-                        if recipient != ctx.contract_name.0 {
-                            return Err("Transfer is not for the blackjack contract".to_string());
+                        if recipient != user.0 {
+                            return Err(format!("Transfer is not for the correct user. Selected is {}; while expecting {}", recipient, user));
+                        }
+                        if amount != claim_amount {
+                            return Err(format!(
+                                "Claim amount {} does not match transfer amount {}",
+                                claim_amount, amount
+                            ));
                         }
 
-                        // Add to existing balance or create new balance
-                        let new_balance = if let Some(current_balance) = self.balances.get(user) {
-                            current_balance
-                                .checked_add(amount as u32)
-                                .ok_or_else(|| "Balance overflow".to_string())?
-                        } else {
-                            amount as u32
+                        let Some(current_balance) = self.balances.get_mut(&user.clone()) else {
+                            return Err(format!("User {} not found in balances", user));
                         };
 
-                        self.balances.insert(user.clone(), new_balance);
+                        current_balance
+                            .checked_sub(amount as u32)
+                            .ok_or_else(|| "Balance overflow".to_string())?;
 
                         Ok(format!(
-                            "Added {} to balance, new balance is {} for user {}",
-                            amount, new_balance, user
+                            "Send {} HyllarToken to balance, new balance is {} for user {}",
+                            amount, current_balance, user
                         ))
                     }
                     _ => Err("Invalid Hyllar action type, expected Transfer".to_string()),
@@ -176,16 +167,10 @@ pub enum BlackJackAction {
     Hit,
     Stand,
     DoubleDown,
-    Claim,
+    Claim { amount: u128 },
 }
 
 impl BlackJackAction {
-    pub fn with_id(self, id: u64) -> UniqueAction {
-        UniqueAction { id, action: self }
-    }
-}
-
-impl UniqueAction {
     pub fn as_blob(&self, contract_name: sdk::ContractName) -> sdk::Blob {
         sdk::Blob {
             contract_name,

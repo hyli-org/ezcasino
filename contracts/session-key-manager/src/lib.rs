@@ -5,7 +5,7 @@ use sdk::hyle_model_utils::TimestampMs;
 use sdk::utils::parse_calldata;
 use sdk::{
     Blob, BlobData, BlobIndex, Calldata, ContractAction, ContractName, Identity,
-    StructuredBlobData, TxContext, TxHash,
+    StructuredBlobData, TxContext,
 };
 use sdk::{RunResult, ZkContract};
 use serde::{Deserialize, Serialize};
@@ -41,7 +41,6 @@ impl ZkContract for SessionKeyManager {
                     &execution_ctx.caller,
                     session_key,
                     native_verifier_blob,
-                    &calldata.tx_hash,
                     &calldata.tx_ctx,
                 )
             }
@@ -73,7 +72,7 @@ impl ZkContract for SessionKeyManager {
 pub struct SessionKey {
     key: String,
     expiration_date: TimestampMs,
-    nonce: u64,
+    pub nonce: u64,
     // contracts_whitelist: Vec[ContractName],
 }
 
@@ -132,7 +131,6 @@ impl SessionKeyManager {
         caller: &Identity,
         session_key: SessionKey,
         native_verifier_blob: Option<&Blob>,
-        tx_hash: &TxHash,
         tx_ctx: &Option<TxContext>,
     ) -> Result<String, String> {
         let Some(tx_ctx) = tx_ctx else {
@@ -151,7 +149,7 @@ impl SessionKeyManager {
                 session_key.key, caller
             ));
         }
-        // On veut vérifier que le nonce du native blob est correct
+
         let secp_data: Secp256k1Blob = borsh::from_slice(&native_verifier_blob.data.0)
             .map_err(|_| "Failed to decode Secp256k1Blob".to_string())?;
 
@@ -159,15 +157,16 @@ impl SessionKeyManager {
         if secp_data.identity != *caller {
             return Err("Secp256k1Blob identity does not match the caller".to_string());
         }
+
+        // Compute the expected message hash
         let mut hasher = Sha256::new();
-        hasher.update(tx_hash.0.as_bytes());
         hasher.update(session_key.nonce.to_le_bytes());
         let message_hash: [u8; 32] = hasher.finalize().into();
+
         if secp_data.data != message_hash {
             return Err("Secp256k1Blob data does not match the expected data".to_string());
         }
 
-        // On veut vérifier que le timestamp du contexte est avant l'expiration date dans le native blob
         if session_key.expiration_date < tx_ctx.timestamp {
             return Err("Session key has expired".to_string());
         }
@@ -178,9 +177,13 @@ impl SessionKeyManager {
 
         Ok("Session key used successfully".to_string())
     }
+
+    pub fn get_user_session_key(&self, user: &Identity, key: &String) -> Option<SessionKey> {
+        let session_keys = self.session_keys.get(user)?;
+        session_keys.iter().find(|s| s.key == *key).cloned()
+    }
 }
 
-/// Enum representing possible calls to ERC-20 contract functions.
 #[derive(Serialize, Deserialize, BorshSerialize, BorshDeserialize, Debug, Clone, PartialEq)]
 pub enum SessionKeyManagerAction {
     Add { session_key: SessionKey },

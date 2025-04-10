@@ -92,6 +92,7 @@ async fn main() -> Result<()> {
         node_client,
         indexer_client,
         blackjack_cn: args.casino_contract_name.into(),
+        session_key_manager_cn: args.session_key_manager_contract_name.into(),
     });
     let start_height = app_ctx.node_client.get_block_height().await?;
     let prover_ctx = Arc::new(ProverModuleCtx {
