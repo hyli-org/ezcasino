@@ -12,6 +12,7 @@ sdk = { git = "https://github.com/hyle-org/hyle", package = "hyle-contract-sdk" 
 client-sdk = { git = "https://github.com/hyle-org/hyle", default-features = false, package = "hyle-client-sdk" }
 hyle = { git = "https://github.com/Hyle-org/hyle.git", package = "hyle" }
 hyle_hyllar = { git = "https://github.com/Hyle-org/hyle.git", package = "hyle-hyllar" }
+hyle_hydentity = { git = "https://github.com/Hyle-org/hyle.git", package = "hyle-hydentity" }
 contracts = { path = "contracts", default-features = false, package = "contracts" }
 blackjack = { path = "contracts/blackjack", package = "blackjack" }
 session-key-manager = { path = "contracts/session-key-manager", package = "session-key-manager" }

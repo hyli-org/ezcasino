@@ -9,6 +9,7 @@ hyle = { workspace = true }
 blackjack = { workspace = true, features = ["client"] }
 session-key-manager = { workspace = true, features = ["client"] }
 hyle_hyllar = { workspace = true }
+hyle_hydentity = { workspace = true }
 
 risc0-zkvm = { version = "2.0.0", features = ["prove"] }
 

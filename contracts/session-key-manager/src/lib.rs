@@ -71,8 +71,8 @@ impl ZkContract for SessionKeyManager {
     BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, Clone, Default, PartialEq,
 )]
 pub struct SessionKey {
-    key: String,
-    expiration_date: TimestampMs,
+    pub key: String,
+    pub expiration_date: TimestampMs,
     pub nonce: u64,
     // contracts_whitelist: Vec[ContractName],
 }
@@ -125,6 +125,19 @@ impl SessionKeyManager {
             "Session key {} removed successfully for {}",
             session_key.key, caller
         ))
+    }
+    pub fn has_session_key(
+        &mut self,
+        caller: &Identity,
+        session_key: String,
+    ) -> Result<bool, String> {
+        let Some(session_keys) = self.session_keys.get(caller) else {
+            return Err(format!("No session keys for caller {}", caller.0));
+        };
+
+        let found = session_keys.iter().find(|sk| sk.key == session_key);
+
+        Ok(found.is_some())
     }
 
     pub fn use_session_key(

@@ -1,9 +1,12 @@
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::Arc,
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
 
 use crate::utils::AppError;
 use anyhow::Result;
 use axum::{
-    extract::{Json, Path, State},
+    extract::{Json, Path, Query, State},
     http::{HeaderMap, Method, StatusCode},
     response::IntoResponse,
     routing::{get, post},
@@ -17,13 +20,16 @@ use hyle::{
     module_handle_messages,
     utils::modules::{module_bus_client, Module},
 };
+use hyle_hydentity::{identity_provider::IdentityVerification, Hydentity, HydentityAction};
 use hyle_hyllar::{erc20::ERC20, Hyllar, HyllarAction};
 
-use sdk::{BlobTransaction, ContractAction, ContractName, Identity, TxHash};
+use sdk::{
+    hyle_model_utils::TimestampMs, BlobTransaction, ContractAction, ContractName, Identity, TxHash,
+};
 use secp256k1::hashes::{sha256, Hash};
 use secp256k1::{ecdsa::Signature, Message, PublicKey, Secp256k1};
-use serde::Serialize;
-use session_key_manager::{SessionKeyManager, SessionKeyManagerAction};
+use serde::{Deserialize, Serialize};
+use session_key_manager::{SessionKey, SessionKeyManager, SessionKeyManagerAction};
 use tokio::sync::Mutex;
 use tower_http::cors::{Any, CorsLayer};
 
@@ -75,6 +81,7 @@ impl Module for AppModule {
 
         let api = Router::new()
             .route("/_health", get(health))
+            .route("/api/create_id", post(create_id))
             .route("/api/claim", post(claim))
             .route("/api/init", post(init))
             .route("/api/hit", post(hit))
@@ -212,6 +219,13 @@ struct ConfigResponse {
 // --------------------------------------------------------
 //     Routes
 // --------------------------------------------------------
+async fn create_id(
+    State(ctx): State<RouterCtx>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
+    let auth = AuthHeaders::from_headers(&headers)?;
+    check_or_create_identity(ctx, auth, "".to_string()).await
+}
 
 async fn claim(
     State(ctx): State<RouterCtx>,
@@ -258,6 +272,155 @@ async fn get_config(State(ctx): State<RouterCtx>) -> impl IntoResponse {
     Json(ConfigResponse {
         contract_name: ctx.blackjack_cn.0,
     })
+}
+
+async fn check_or_create_identity(
+    ctx: RouterCtx,
+    auth: AuthHeaders,
+    password: String,
+) -> Result<(), AppError> {
+    let account = auth.session_key.clone();
+
+    let user = auth.user.clone();
+
+    let (public_key, signature, message_hash) = validate_signed_message(
+        auth.session_key,
+        auth.signature,
+        "check_identity".to_string(),
+    )
+    .await?;
+
+    let hydentity: Hydentity = ctx
+        .indexer_client
+        .fetch_current_state(&"hydentity".into())
+        .await?;
+
+    let mut skm: SessionKeyManager = ctx
+        .indexer_client
+        .fetch_current_state(&"skm".into())
+        .await?;
+
+    let identity = Identity(format!("{}.hydentity", account));
+    // get random
+
+    let mut blobs = vec![];
+
+    let user_exists = hydentity.get_identity_info(user.as_str()).is_ok();
+    let has_sk = skm
+        .has_session_key(&user.clone().into(), account.clone())
+        .unwrap_or(false);
+
+    if user_exists && has_sk {
+        return Ok(());
+    }
+
+    if user_exists {
+        blobs.push(HydentityAction::RegisterIdentity { account: user }.as_blob("hydentity".into()))
+    } else if user_exists && !has_sk {
+        blobs.push(
+            HydentityAction::VerifyIdentity {
+                account: user,
+                nonce: 1,
+            }
+            .as_blob("hydentity".into()),
+        );
+        blobs.push(
+            SessionKeyManagerAction::Add {
+                session_key: SessionKey {
+                    key: account,
+                    expiration_date: TimestampMs(
+                        SystemTime::now()
+                            .duration_since(UNIX_EPOCH)
+                            .expect("test")
+                            .as_millis(),
+                    ) + Duration::from_secs(3600),
+                    nonce: 1,
+                },
+            }
+            .as_blob("skm".into(), None, None),
+        );
+    }
+
+    // Add Hyllar transfer blob for claim action
+
+    let tx_hash = ctx
+        .client
+        .send_tx_blob(&BlobTransaction::new(identity.clone(), blobs))
+        .await?;
+
+    let mut bus = {
+        let app = ctx.app.lock().await;
+        AppModuleBusClient::new_from_bus(app.bus.new_handle()).await
+    };
+
+    tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            match bus.recv().await? {
+                AppEvent::SequencedTx(sequenced_tx_hash, mut table, balance) => {
+                    if sequenced_tx_hash == tx_hash {
+                        table.balance = balance;
+                        return Ok(Json(table));
+                    }
+                }
+                AppEvent::FailedTx(sequenced_tx_hash, error) => {
+                    if sequenced_tx_hash == tx_hash {
+                        return Err(AppError(StatusCode::BAD_REQUEST, anyhow::anyhow!(error)));
+                    }
+                }
+            }
+        }
+    })
+    .await?;
+    Ok(())
+}
+
+async fn validate_signed_message(
+    session_key: String,
+    signature: String,
+    challenge: String,
+) -> Result<(PublicKey, Signature, sha256::Hash), AppError> {
+    // Verify signature using ECDSA
+    let public_key = PublicKey::from_slice(&hex::decode(&session_key).map_err(|_| {
+        AppError(
+            StatusCode::UNAUTHORIZED,
+            anyhow::anyhow!("Invalid public key format"),
+        )
+    })?)
+    .map_err(|_| {
+        AppError(
+            StatusCode::UNAUTHORIZED,
+            anyhow::anyhow!("Invalid public key"),
+        )
+    })?;
+
+    let signature = Signature::from_der(&hex::decode(&signature).map_err(|_| {
+        AppError(
+            StatusCode::UNAUTHORIZED,
+            anyhow::anyhow!("Invalid signature format"),
+        )
+    })?)
+    .map_err(|_| {
+        AppError(
+            StatusCode::UNAUTHORIZED,
+            anyhow::anyhow!("Invalid signature"),
+        )
+    })?;
+
+    // Create message hash
+    let message_hash = sha256::Hash::hash(challenge.as_bytes());
+    let message = Message::from_digest(message_hash.to_byte_array());
+
+    // Verify the signature
+    let secp = Secp256k1::new();
+    secp.verify_ecdsa(&message, &signature, &public_key)
+        .map_err(|e| {
+            AppError(
+                StatusCode::UNAUTHORIZED,
+                anyhow::anyhow!("Invalid ecdsa signature: {e:#?}"),
+            )
+        })?;
+
+    Ok((public_key, signature, message_hash))
 }
 
 async fn send(

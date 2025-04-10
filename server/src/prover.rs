@@ -141,8 +141,9 @@ impl ProverModule {
             let blobs = tx.blobs.clone();
             let tx_hash = tx.hashed();
 
-            let prover =
-                Risc0Prover::new(blackjack::client::tx_executor_handler::metadata::BLACKJACK_ELF);
+            let prover = Risc0Prover::new(
+                session_key_manager::client::tx_executor_handler::metadata::SESSION_KEY_MANAGER_ELF,
+            );
 
             info!("Proving tx: {}. Blob for {}", tx_hash, blob.contract_name);
 
