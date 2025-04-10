@@ -49,6 +49,10 @@ class AuthService {
   getUser(): string | null {
     return this.user;
   }
+  
+  getHydentityUser(): string | null {
+    return this.user + ".hydentity";
+  }
 
   setUser(user: string): void {
     this.user = user;

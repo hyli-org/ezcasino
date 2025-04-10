@@ -206,7 +206,7 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
   useEffect(() => {
     const initializeGame = async () => {
       try {
-        const username = localStorage.getItem('username');
+        const username = authService.getUser();
         if (!username) {
           setIsLoading(false);
           return;

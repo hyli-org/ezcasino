@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import { OnboardingContext } from '../contexts/OnboardingContext';
 import OnboardingStep from './OnboardingStep';
 import TutorialGame from './TutorialGame';
+import {authService} from '../services/authService';
 import './Onboarding.css';
 
 const Onboarding: React.FC = () => {
@@ -13,7 +14,7 @@ const Onboarding: React.FC = () => {
   const handleUsernameSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (username.trim()) {
-      localStorage.setItem('username', username.trim());
+      authService.setUser(username.trim());
       completeOnboarding();
     }
   };
