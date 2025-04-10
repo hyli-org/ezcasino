@@ -10,6 +10,7 @@ use hyle::{
     node_state::module::NodeStateEvent,
     utils::modules::{module_bus_client, Module},
 };
+use hyle_hydentity::{client::tx_executor_handler::metadata::HYDENTITY_ELF, Hydentity};
 use hyle_hyllar::Hyllar;
 use sdk::{
     BlobTransaction, Block, BlockHeight, Calldata, Hashed, ProofTransaction, TransactionData,
@@ -25,6 +26,7 @@ pub struct ProverModule {
     blackjack: BlackJack,
     session_key_manager: SessionKeyManager,
     hyllar: Hyllar,
+    hydentity: Hydentity,
 }
 
 module_bus_client! {
@@ -49,12 +51,14 @@ impl Module for ProverModule {
         let session_key_manager = SessionKeyManager::default();
         // TODO: fetch state from chain
         let hyllar = Hyllar::default();
+        let hydentity = Hydentity::default();
 
         Ok(ProverModule {
             bus,
             blackjack,
             session_key_manager,
             hyllar,
+            hydentity,
             ctx,
             unsettled_txs: vec![],
         })
@@ -250,31 +254,87 @@ impl ProverModule {
                 tx_blob_count: blobs.len(),
             };
 
-            if let Err(e) = self.blackjack.execute(&calldata).map_err(|e| anyhow!(e)) {
+            if let Err(e) = self
+                .session_key_manager
+                .execute(&calldata)
+                .map_err(|e| anyhow!(e))
+            {
                 error!("error while executing contract: {e}");
                 self.bus
                     .send(AppEvent::FailedTx(tx_hash.clone(), e.to_string()))
                     .unwrap();
             }
 
-            let balance = self
-                .blackjack
-                .balances
-                .get(&tx.identity)
-                .copied()
-                .unwrap_or(0);
-            let table = self
-                .blackjack
-                .tables
-                .get(&tx.identity)
-                .cloned()
-                .unwrap_or_default();
             self.bus
-                .send(AppEvent::SequencedTx(
-                    tx_hash.clone(),
-                    table.into(),
-                    balance,
-                ))
+                .send(AppEvent::SequencedSkm(tx_hash.clone()))
+                .unwrap();
+
+            let node_client = self.ctx.app.node_client.clone();
+            let blob = blob.clone();
+            tokio::task::spawn(async move {
+                match prover.prove(commitment_metadata, calldata).await {
+                    Ok(proof) => {
+                        info!("Proof generated for tx: {}", tx_hash);
+                        let tx = ProofTransaction {
+                            contract_name: blob.contract_name.clone(),
+                            proof,
+                        };
+                        let _ = log_error!(
+                            node_client.send_tx_proof(&tx).await,
+                            "failed to send proof to node"
+                        );
+                    }
+                    Err(e) => {
+                        error!("Error proving tx: {:?}", e);
+                    }
+                };
+            });
+        }
+    }
+
+    fn prove_identity(&mut self, tx: &BlobTransaction, tx_ctx: &sdk::TxContext) {
+        if tx_ctx.block_height.0 < self.ctx.start_height.0 {
+            return;
+        }
+        if let Some((index, blob)) = tx
+            .blobs
+            .iter()
+            .enumerate()
+            .find(|(_, b)| b.contract_name == "hydentity".into())
+        {
+            let blobs = tx.blobs.clone();
+            let tx_hash = tx.hashed();
+
+            let prover = Risc0Prover::new(HYDENTITY_ELF);
+
+            info!("Proving tx: {}. Blob for {}", tx_hash, blob.contract_name);
+
+            let Ok(state) = self.hydentity.as_bytes() else {
+                error!("Failed to serialize state on tx: {}", tx_hash);
+                return;
+            };
+
+            let commitment_metadata = state;
+
+            let calldata = Calldata {
+                identity: tx.identity.clone(),
+                tx_hash: tx_hash.clone(),
+                private_input: vec![],
+                blobs: blobs.clone().into(),
+                index: sdk::BlobIndex(index),
+                tx_ctx: Some(tx_ctx.clone()),
+                tx_blob_count: blobs.len(),
+            };
+
+            if let Err(e) = self.hydentity.execute(&calldata).map_err(|e| anyhow!(e)) {
+                error!("error while executing contract: {e}");
+                self.bus
+                    .send(AppEvent::FailedTx(tx_hash.clone(), e.to_string()))
+                    .unwrap();
+            }
+
+            self.bus
+                .send(AppEvent::SequencedId(tx_hash.clone()))
                 .unwrap();
 
             let node_client = self.ctx.app.node_client.clone();

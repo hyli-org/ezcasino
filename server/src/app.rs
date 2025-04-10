@@ -47,6 +47,8 @@ pub struct AppModuleCtx {
 
 #[derive(Debug, Clone)]
 pub enum AppEvent {
+    SequencedId(TxHash),
+    SequencedSkm(TxHash),
     SequencedTx(TxHash, ApiTable, u32),
     FailedTx(TxHash, String),
 }
@@ -315,11 +317,16 @@ async fn check_or_create_identity(
     }
 
     if user_exists {
-        blobs.push(HydentityAction::RegisterIdentity { account: user }.as_blob("hydentity".into()))
+        blobs.push(
+            HydentityAction::RegisterIdentity {
+                account: user.clone(),
+            }
+            .as_blob("hydentity".into()),
+        )
     } else if user_exists && !has_sk {
         blobs.push(
             HydentityAction::VerifyIdentity {
-                account: user,
+                account: user.clone(),
                 nonce: 1,
             }
             .as_blob("hydentity".into()),
@@ -356,17 +363,17 @@ async fn check_or_create_identity(
     tokio::time::timeout(Duration::from_secs(5), async {
         loop {
             match bus.recv().await? {
-                AppEvent::SequencedTx(sequenced_tx_hash, mut table, balance) => {
-                    if sequenced_tx_hash == tx_hash {
-                        table.balance = balance;
-                        return Ok(Json(table));
-                    }
-                }
                 AppEvent::FailedTx(sequenced_tx_hash, error) => {
                     if sequenced_tx_hash == tx_hash {
                         return Err(AppError(StatusCode::BAD_REQUEST, anyhow::anyhow!(error)));
                     }
                 }
+                AppEvent::SequencedId(sequenced_tx_hash) => {
+                    if sequenced_tx_hash == tx_hash {
+                        return Ok(Json(user));
+                    }
+                }
+                _ => {}
             }
         }
     })
@@ -506,6 +513,7 @@ async fn send(
                         return Err(AppError(StatusCode::BAD_REQUEST, anyhow::anyhow!(error)));
                     }
                 }
+                _ => {}
             }
         }
     })
@@ -656,6 +664,8 @@ async fn send_claim(
                         return Err(AppError(StatusCode::BAD_REQUEST, anyhow::anyhow!(error)));
                     }
                 }
+                AppEvent::SequencedSkm(_) => {}
+                _ => {}
             }
         }
     })
