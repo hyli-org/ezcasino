@@ -1,0 +1,95 @@
+.tutorial-game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  background-color: var(--win95-gray);
+  border: 2px solid;
+  border-color: var(--win95-highlight) var(--win95-shadow) var(--win95-shadow) var(--win95-highlight);
+  box-shadow: 2px 2px 0 var(--win95-border);
+  width: 600px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.tutorial-instruction {
+  background-color: white;
+  padding: 10px;
+  border: 1px solid;
+  border-color: var(--win95-shadow) var(--win95-highlight) var(--win95-highlight) var(--win95-shadow);
+  width: 100%;
+  text-align: center;
+  font-family: "MS Sans Serif", sans-serif;
+  font-size: 14px;
+  color: black;
+}
+
+.tutorial-table {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  background-color: #008000;
+  padding: 20px;
+  border: inset 2px var(--win95-shadow);
+}
+
+.dealer-area, .player-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.dealer-area h2, .player-area h2 {
+  color: white;
+  font-size: 16px;
+  margin: 0;
+}
+
+.hand {
+  display: flex;
+  gap: 10px;
+  min-height: 100px;
+}
+
+.tutorial-controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.win95-button {
+  background-color: var(--win95-gray);
+  border: 1px solid;
+  border-color: var(--win95-highlight) var(--win95-shadow) var(--win95-shadow) var(--win95-highlight);
+  padding: 4px 10px;
+  font-family: "MS Sans Serif", sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  min-width: 80px;
+}
+
+.win95-button:active {
+  border-color: var(--win95-shadow) var(--win95-highlight) var(--win95-highlight) var(--win95-shadow);
+}
+
+.win95-button.disabled {
+  color: var(--win95-shadow);
+  cursor: not-allowed;
+}
+
+.win95-button.active {
+  background-color: var(--win95-blue);
+  color: white;
+}
+
+.play-now {
+  margin-top: 20px;
+  min-width: 120px;
+  font-weight: bold;
+} 

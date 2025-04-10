@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import Card from './Card';
 import VisualEffects from './VisualEffects';
 import Cow from '../components/Cow';
@@ -7,6 +7,7 @@ import { GameState } from '../types/game';
 import { authService } from '../services/authService';
 import DesktopShortcut from './DesktopShortcut';
 import '../styles/Game.css';
+import { OnboardingContext } from '../contexts/OnboardingContext';
 
 type Suit = '♠' | '♣' | '♥' | '♦';
 type CardType = {
@@ -20,6 +21,7 @@ interface GameProps {
 }
 
 const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
+  const { isOnboarding, isTutorial } = useContext(OnboardingContext);
   const [playerHand, setPlayerHand] = useState<CardType[]>([]);
   const [dealerHand, setDealerHand] = useState<CardType[]>([]);
   const [gameOver, setGameOver] = useState(false);
@@ -202,10 +204,13 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
 
   // Initialiser la partie au chargement
   useEffect(() => {
-    const initGame = async () => {
-      if (isInitializedRef.current) return;
-      
+    const initializeGame = async () => {
       try {
+        const username = localStorage.getItem('username');
+        if (!username) {
+          setIsLoading(false);
+          return;
+        }
         setIsLoading(true);
         setError(null);
         setShowClaimButton(false);
@@ -224,21 +229,18 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
           // Sinon, démarrer une nouvelle partie
           await startNewGame();
         }
-      } catch (err: any) {
-        if (err.message?.includes('Insufficient balance')) {
-          setError(err.message);
-          setShowClaimButton(true);
-        } else {
-          setError('Failed to initialize game. Please try again.');
-        }
-        console.error('Error initializing game:', err);
+      } catch (error) {
+        setError('Failed to initialize game');
+        console.error('Error initializing game:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    initGame();
-  }, []);
+    if (!isOnboarding && !isTutorial) {
+      initializeGame();
+    }
+  }, [isOnboarding, isTutorial]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.target instanceof HTMLElement && e.target.closest('.win95-title-bar')) {
@@ -338,6 +340,10 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
   const toggleBackground = () => {
     onBackgroundChange(theme === 'day' ? 'night' : 'day');
   };
+
+  if (isOnboarding || isTutorial) {
+    return null;
+  }
 
   return (
     <>

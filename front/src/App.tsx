@@ -1,5 +1,7 @@
-import  { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Game from './components/Game';
+import Onboarding from './components/Onboarding';
+import { OnboardingProvider } from './contexts/OnboardingContext';
 import './App.css'
 
 function App() {
@@ -14,7 +16,7 @@ function App() {
   };
 
   return (
-    <>
+    <OnboardingProvider>
       <div className="sun" onClick={toggleTheme} style={{ cursor: 'pointer' }}></div>
       <div className="flower1"></div>
       <div className="flower2"></div>
@@ -28,8 +30,9 @@ function App() {
       <div className="flower10"></div>
       <div className="App">
         <Game onBackgroundChange={setBackgroundTheme} theme={backgroundTheme} />
+        <Onboarding />
       </div>
-    </>
+    </OnboardingProvider>
   );
 }
 

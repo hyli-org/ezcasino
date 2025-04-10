@@ -1,0 +1,86 @@
+.onboarding-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.onboarding-window {
+  width: 400px;
+  background-color: var(--win95-gray);
+  border: 2px solid;
+  border-color: var(--win95-highlight) var(--win95-shadow) var(--win95-shadow) var(--win95-highlight);
+  box-shadow: 2px 2px 0 var(--win95-border);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.onboarding-content {
+  padding: 16px;
+  background-color: var(--win95-gray);
+}
+
+.onboarding-step {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.onboarding-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.onboarding-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.onboarding-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.onboarding-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.win95-input {
+  padding: 4px 8px;
+  border: 1px solid;
+  border-color: var(--win95-shadow) var(--win95-highlight) var(--win95-highlight) var(--win95-shadow);
+  background-color: white;
+  font-family: "MS Sans Serif", sans-serif;
+  font-size: 12px;
+  width: 100%;
+}
+
+.win95-input:focus {
+  outline: none;
+  border-color: var(--win95-highlight) var(--win95-shadow) var(--win95-shadow) var(--win95-highlight);
+}
+
+.onboarding-header h2 {
+  color: black;
+  font-size: 14px;
+  margin: 0;
+}
+
+.onboarding-body p {
+  color: black;
+  font-size: 12px;
+  margin: 0;
+} 
