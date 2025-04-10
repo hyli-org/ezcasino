@@ -42,23 +42,18 @@ impl sdk::ZkContract for BlackJack {
         let (_, session_key_manager_blob) = calldata
             .blobs
             .iter()
-            .find(|(_, b)| b.contract_name == ContractName("session_key_manager".to_string()))
+            .find(|(_, b)| b.contract_name == ContractName("secp256k1".to_string()))
             .ok_or_else(|| "Missing SessionKeyManager blob".to_string())?;
 
         let secp_data: Secp256k1Blob = borsh::from_slice(&session_key_manager_blob.data.0)
             .map_err(|_| "Failed to decode Secp256k1Blob".to_string())?;
 
-        let user_parts: Vec<&str> = secp_data.identity.0.split('.').collect();
-        if let Some(last_part) = user_parts.last() {
-            if last_part != &"session_key_manager" {
-                return Err("Last part of user identity is not 'session_key_manager'".to_string());
-            }
-        } else {
-            return Err("User identity is invalid".to_string());
-        }
+        // user name is extracted from the session key manager native blob.
+        let user = &secp_data.identity;
 
-        // user name is extracted from the session key manager.
-        let user = &Identity(user_parts[..user_parts.len() - 1].join("."));
+        if format!("{}.session-key-manager", user) != ctx.caller.0 {
+            return Err("Caller is not the session key manager for this user".to_string());
+        }
 
         let mut rng = Self::rng(&tx_ctx.block_hash);
 
