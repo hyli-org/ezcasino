@@ -1,0 +1,29 @@
+[package]
+name = "contracts"
+edition = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+rust-version = "1.81"
+
+[lib]
+path = "metadata.rs"
+
+[dependencies]
+sdk = { workspace = true }
+blackjack = { workspace = true, features = ["client"] }
+session-key-manager = { workspace = true, features = ["client"] }
+
+[build-dependencies]
+risc0-build = { version = "2.0.1", optional = true }
+
+[package.metadata.risc0]
+methods = ["blackjack", "session-key-manager"]
+
+[features]
+build = ["dep:risc0-build"]
+nonreproducible = ["build", "all"]
+
+# Following features are used to choose which contracts should be rebuild with docker
+all = ["blackjack", "session-key-manager"]
+blackjack = []
+session-key-manager = []

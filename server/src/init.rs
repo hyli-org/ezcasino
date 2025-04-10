@@ -1,10 +1,10 @@
 use std::{sync::Arc, time::Duration};
 
 use anyhow::{bail, Result};
-use blackjack_contract::BlackJack;
+use blackjack::BlackJack;
 use client_sdk::rest_client::{IndexerApiHttpClient, NodeApiHttpClient};
 use sdk::{api::APIRegisterContract, info, ContractName, ProgramId, StateCommitment, ZkContract};
-use session_key_manager_contract::SessionKeyManager;
+use session_key_manager::SessionKeyManager;
 use tokio::time::timeout;
 
 pub async fn init_node(
@@ -45,7 +45,8 @@ async fn init_contracts(
             }
             Err(_) => {
                 info!("🚀 Registering {} contract", contract_name);
-                let image_id = hex::encode(blackjack_contract::client::metadata::PROGRAM_ID);
+                let image_id =
+                    hex::encode(blackjack::client::tx_executor_handler::metadata::PROGRAM_ID);
                 node.register_contract(&APIRegisterContract {
                     verifier: "risc0-1".into(),
                     program_id: ProgramId(hex::decode(image_id)?),
@@ -61,13 +62,13 @@ async fn init_contracts(
 
     register_contract(
         &casino_contract_name,
-        blackjack_contract::client::metadata::PROGRAM_ID,
+        blackjack::client::tx_executor_handler::metadata::PROGRAM_ID,
         BlackJack::default().commit(),
     )
     .await?;
     register_contract(
         &skm_contract_name,
-        session_key_manager_contract::client::metadata::PROGRAM_ID,
+        session_key_manager::client::tx_executor_handler::metadata::PROGRAM_ID,
         SessionKeyManager::default().commit(),
     )
     .await?;

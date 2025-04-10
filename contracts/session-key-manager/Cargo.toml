@@ -1,0 +1,42 @@
+[package]
+name = "session-key-manager"
+edition = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+rust-version = "1.81"
+
+[[bin]]
+name = "session-key-manager"
+path = "src/main.rs"
+required-features = ["risc0"]
+test = false
+
+[[example]]
+name = "session-key-manager-runner"
+path = "examples/host.rs"
+
+
+[dependencies]
+sdk = { workspace = true }
+hyle_hyllar = { workspace = true }
+serde = { version = "1.0", default-features = false, features = [
+  "derive",
+  "alloc",
+] }
+borsh = { version = "1.5.7" }
+rand = { version = "0.9.0", default-features = false }
+rand_seeder = { version = "0.4.0", default-features = false }
+sha2 = "=0.10.8"
+
+
+risc0-zkvm = { version = "2.0.0", default-features = false, optional = true, features = [
+  'std',
+] }
+client-sdk = { workspace = true, default-features = false, features = [
+  "risc0",
+], optional = true }
+
+[features]
+default = []
+client = ["dep:client-sdk"]
+risc0 = ["dep:risc0-zkvm", "sdk/risc0"]

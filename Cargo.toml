@@ -1,23 +1,20 @@
 [workspace]
 resolver = "2"
 members = [
-  "contracts/blackjack/host",
-  "contracts/blackjack/contract",
-  "contracts/blackjack/methods",
-  "contracts/session_key_manager/host",
-  "contracts/session_key_manager/contract",
-  "contracts/session_key_manager/methods",
+  "contracts",
+  "contracts/blackjack",
+  "contracts/session-key-manager",
   "server",
 ]
 
 [workspace.dependencies]
-# don't forget to update methods/guest/Cargo.toml 
 sdk = { git = "https://github.com/hyle-org/hyle", package = "hyle-contract-sdk" }
 client-sdk = { git = "https://github.com/hyle-org/hyle", default-features = false, package = "hyle-client-sdk" }
 hyle = { git = "https://github.com/Hyle-org/hyle.git", package = "hyle" }
 hyle_hyllar = { git = "https://github.com/Hyle-org/hyle.git", package = "hyle-hyllar" }
-blackjack_contract = { path = "contracts/blackjack/contract", package = "contract" }
-session_key_manager_contract = { path = "contracts/session_key_manager/contract", package = "session_key_manager_contract" }
+contracts = { path = "contracts", default-features = false, package = "contracts" }
+blackjack = { path = "contracts/blackjack", package = "blackjack" }
+session-key-manager = { path = "contracts/session-key-manager", package = "session-key-manager" }
 
 [workspace.package]
 version = "0.4.1"
@@ -25,3 +22,7 @@ edition = "2021"
 homepage = "https://hyle.eu/"
 repository = "https://github.com/Hyle-org/ezcasino/"
 # licence = ""
+
+
+[patch.crates-io]
+sha2 = { git = "https://github.com/risc0/RustCrypto-hashes", tag = "sha2-v0.10.8-risczero.0" }

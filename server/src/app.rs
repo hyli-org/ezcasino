@@ -9,7 +9,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use blackjack_contract::{BlackJack, BlackJackAction, Table, TableState};
+use blackjack::{BlackJack, BlackJackAction, Table, TableState};
 use client_sdk::rest_client::{IndexerApiHttpClient, NodeApiHttpClient};
 use hyle::{
     bus::{BusClientReceiver, BusMessage, SharedMessageBus},

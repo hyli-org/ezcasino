@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::app::{AppEvent, AppModuleCtx};
 use anyhow::{anyhow, Result};
-use blackjack_contract::BlackJack;
+use blackjack::BlackJack;
 use client_sdk::helpers::risc0::Risc0Prover;
 use hyle::{
     bus::BusClientSender,
@@ -131,7 +131,8 @@ impl ProverModule {
             let blobs = tx.blobs.clone();
             let tx_hash = tx.hashed();
 
-            let prover = Risc0Prover::new(blackjack_contract::client::metadata::ELF);
+            let prover =
+                Risc0Prover::new(blackjack::client::tx_executor_handler::metadata::BLACKJACK_ELF);
 
             info!("Proving tx: {}. Blob for {}", tx_hash, blob.contract_name);
 
