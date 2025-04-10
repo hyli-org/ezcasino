@@ -35,6 +35,9 @@ pub struct Args {
     #[arg(long, default_value = "skm")]
     pub session_key_manager_contract_name: String,
 
+    #[arg(long, default_value = "hyllar")]
+    pub hyllar_contract_name: String,
+
     #[clap(long, action)]
     pub pg: bool,
 }

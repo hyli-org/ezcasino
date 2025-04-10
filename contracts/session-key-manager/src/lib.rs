@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::io::Error;
 
 use borsh::{BorshDeserialize, BorshSerialize};
 use sdk::hyle_model_utils::TimestampMs;
@@ -181,6 +182,12 @@ impl SessionKeyManager {
     pub fn get_user_session_key(&self, user: &Identity, key: &String) -> Option<SessionKey> {
         let session_keys = self.session_keys.get(user)?;
         session_keys.iter().find(|s| s.key == *key).cloned()
+    }
+}
+
+impl SessionKeyManager {
+    pub fn as_bytes(&self) -> Result<Vec<u8>, Error> {
+        borsh::to_vec(self)
     }
 }
 
