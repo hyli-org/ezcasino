@@ -1,8 +1,9 @@
-use blackjack::client::tx_executor_handler::metadata::{BLACKJACK_ELF, PROGRAM_ID};
+// use blackjack::client::tx_executor_handler::metadata::BLACKJACK_ELF;
+use blackjack::client::tx_executor_handler::metadata::PROGRAM_ID;
 use blackjack::BlackJack;
 use blackjack::BlackJackAction;
 use clap::{Parser, Subcommand};
-use client_sdk::helpers::risc0::Risc0Prover;
+// use client_sdk::helpers::risc0::Risc0Prover;
 use sdk::api::APIRegisterContract;
 use sdk::{BlobTransaction, ZkContract};
 
@@ -45,7 +46,7 @@ async fn main() {
 
     let contract_name = &cli.contract_name;
 
-    let prover = Risc0Prover::new(BLACKJACK_ELF);
+    // let prover = Risc0Prover::new(BLACKJACK_ELF);
 
     match cli.command {
         Commands::Register {} => {
