@@ -6,6 +6,7 @@ import { gameService } from '../services/gameService';
 import { GameState } from '../types/game';
 import { authService } from '../services/authService';
 import DesktopShortcut from './DesktopShortcut';
+import SignUpWindow from './SignUpWindow';
 import '../styles/Game.css';
 import { OnboardingContext } from '../contexts/OnboardingContext';
 
@@ -41,6 +42,7 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
   const [showBSOD, setShowBSOD] = useState(false);
   const [showStartMenu, setShowStartMenu] = useState(false);
   const [showShutdown, setShowShutdown] = useState(false);
+  const [showSignUp, setShowSignUp] = useState(false);
   const [contractName, setContractName] = useState<string>('');
   const isInitializedRef = useRef(false);
 
@@ -433,6 +435,9 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
                   </div>
                 )}
               </div>
+              <div className="menu-item" onClick={() => setShowSignUp(true)}>
+                Sign Up
+              </div>
               <span className="menu-item">Options</span>
               <span className="menu-item">Help</span>
             </div>
@@ -581,6 +586,7 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
           )}
         </>
       )}
+      {showSignUp && <SignUpWindow onClose={() => setShowSignUp(false)} />}
     </>
   );
 };
