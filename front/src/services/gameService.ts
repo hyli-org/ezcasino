@@ -6,7 +6,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 class GameService {
   private async makeRequest(endpoint: string, method: string = 'GET') {
     const sessionKey = authService.getSessionKey();
-    const user = authService.getHydentityUser();
+    const user = authService.getTableIdentity();
     if (!sessionKey) {
       throw new Error('No active session');
     }

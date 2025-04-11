@@ -50,8 +50,8 @@ class AuthService {
     return this.user;
   }
   
-  getHydentityUser(): string | null {
-    return this.user + ".hydentity";
+  getTableIdentity(): string | null {
+    return this.publicKey + ".blackjack";
   }
 
   setUser(user: string): void {
