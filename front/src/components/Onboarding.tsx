@@ -15,6 +15,7 @@ const Onboarding: React.FC = () => {
     e.preventDefault();
     if (username.trim()) {
       authService.setUser(username.trim());
+      authService.generateSessionKey();
       completeOnboarding();
     }
   };
