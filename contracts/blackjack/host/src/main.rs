@@ -27,7 +27,7 @@ struct Cli {
     #[arg(long, default_value = "blackjack")]
     pub contract_name: String,
 
-    #[arg(long, default_value = "bob.blackjack")]
+    #[arg(long, default_value = "bob@blackjack")]
     pub id: String,
 }
 
