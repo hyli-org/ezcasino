@@ -301,7 +301,7 @@ async fn send(
     let account = auth.session_key.clone();
     let is_claim = matches!(action, BlackJackAction::Claim);
 
-    let identity = Identity(format!("{}.{}", account, ctx.blackjack_cn));
+    let identity = Identity(format!("{}@{}", account, ctx.blackjack_cn));
     // get random
     let random = rand::random::<u64>();
 
