@@ -1,5 +1,3 @@
-#![no_std]
-
 extern crate alloc;
 
 use core::hash::Hasher;
@@ -17,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use hyle_hyllar::HyllarAction;
-use sdk::{BlockHash, ContractName, Identity, RunResult};
+use sdk::{BlobIndex, BlockHash, ContractName, Identity, RunResult};
 
 #[cfg(feature = "client")]
 pub mod client;
@@ -30,32 +28,81 @@ pub struct Secp256k1Blob {
     pub signature: [u8; 64],
 }
 
-impl sdk::HyleContract for BlackJack {
+struct CheckSecp256k1<'a> {
+    contract_input: &'a sdk::Calldata,
+    expected_data: &'a [u8],
+    blob_index: Option<BlobIndex>,
+}
+
+impl<'a> CheckSecp256k1<'a> {
+    fn new(contract_input: &'a sdk::Calldata, expected_data: &'a [u8]) -> Self {
+        Self {
+            contract_input,
+            expected_data,
+            blob_index: None,
+        }
+    }
+
+    #[allow(dead_code)]
+    fn with_blob_index(mut self, blob_index: BlobIndex) -> Self {
+        self.blob_index = Some(blob_index);
+        self
+    }
+
+    fn expect(self) -> Result<(), String> {
+        // Verify Secp256k1Blob
+        let secp_blob = match self.blob_index {
+            Some(idx) => {
+                let blob = self
+                    .contract_input
+                    .blobs
+                    .get(&idx)
+                    .ok_or_else(|| "Invalid blob index for secp256k1".to_string())?;
+                if blob.contract_name != ContractName("secp256k1".to_string()) {
+                    return Err("Invalid contract name for Secp256k1Blob".to_string());
+                }
+                blob
+            }
+            None => self
+                .contract_input
+                .blobs
+                .iter()
+                .find(|(_, b)| b.contract_name == ContractName("secp256k1".to_string()))
+                .map(|(_, b)| b)
+                .ok_or_else(|| "Missing Secp256k1Blob".to_string())?,
+        };
+
+        let secp_data: Secp256k1Blob = borsh::from_slice(&secp_blob.data.0)
+            .map_err(|_| "Failed to decode Secp256k1Blob".to_string())?;
+
+        // Verify that the identity matches the user
+        if secp_data.identity != self.contract_input.identity {
+            return Err("Secp256k1Blob identity does not match".to_string());
+        }
+
+        let mut hasher = Sha256::new();
+        hasher.update(self.expected_data);
+        let message_hash: [u8; 32] = hasher.finalize().into();
+
+        if secp_data.data != message_hash {
+            return Err("Secp256k1Blob data does not match".to_string());
+        }
+
+        Ok(())
+    }
+}
+
+impl sdk::ZkContract for BlackJack {
     /// Entry point of the contract's logic
-    fn execute(&mut self, contract_input: &sdk::ContractInput) -> RunResult {
+    fn execute(&mut self, contract_input: &sdk::Calldata) -> RunResult {
         // Parse contract inputs
-        let (action, ctx) = sdk::utils::parse_raw_contract_input::<UniqueAction>(contract_input)?;
+        let (action, ctx) = sdk::utils::parse_raw_calldata::<UniqueAction>(contract_input)?;
 
         let user = &contract_input.identity;
 
         let Some(tx_ctx) = contract_input.tx_ctx.as_ref() else {
             return Err("Missing tx context necessary for this contract".to_string());
         };
-
-        // Verify Secp256k1Blob
-        let secp_blob = contract_input
-            .blobs
-            .iter()
-            .find(|b| b.contract_name == ContractName("secp256k1".to_string()))
-            .ok_or_else(|| "Missing Secp256k1Blob".to_string())?;
-
-        let secp_data: Secp256k1Blob = borsh::from_slice(&secp_blob.data.0)
-            .map_err(|_| "Failed to decode Secp256k1Blob".to_string())?;
-
-        // Verify that the identity matches the user
-        if secp_data.identity != *user {
-            return Err("Secp256k1Blob identity does not match the user".to_string());
-        }
 
         // Verify that the data matches the action
         let expected_data = match action.action {
@@ -66,13 +113,7 @@ impl sdk::HyleContract for BlackJack {
             BlackJackAction::Claim => "claim",
         };
 
-        // Create message hash using SHA256 like in the server
-        let mut hasher = Sha256::new();
-        hasher.update(expected_data.as_bytes());
-        let message_hash: [u8; 32] = hasher.finalize().into();
-        if secp_data.data != message_hash {
-            return Err("Secp256k1Blob data does not match the action".to_string());
-        }
+        CheckSecp256k1::new(contract_input, expected_data.as_bytes()).expect()?;
 
         // Execute the given action
         let res = match action.action {
@@ -85,7 +126,7 @@ impl sdk::HyleContract for BlackJack {
                 let transfer_blob_index = contract_input
                     .blobs
                     .iter()
-                    .position(|b| b.contract_name == ContractName("hyllar".to_string()))
+                    .position(|(_, b)| b.contract_name == ContractName("hyllar".to_string()))
                     .ok_or_else(|| "Missing Hyllar transfer blob".to_string())?;
 
                 let transfer_action = sdk::utils::parse_structured_blob::<HyllarAction>(

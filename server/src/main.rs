@@ -3,15 +3,19 @@ use app::{AppModule, AppModuleCtx};
 use axum::Router;
 use clap::Parser;
 use client_sdk::rest_client::{IndexerApiHttpClient, NodeApiHttpClient};
+use contract::BlackJack;
 use hyle::{
     bus::{metrics::BusMetrics, SharedMessageBus},
-    indexer::da_listener::{DAListener, DAListenerCtx},
+    indexer::{
+        contract_state_indexer::{ContractStateIndexer, ContractStateIndexerCtx},
+        da_listener::{DAListener, DAListenerCtx},
+    },
     model::{api::NodeInfo, CommonRunContext},
     rest::{RestApi, RestApiRunContext},
     utils::{conf, logger::setup_tracing, modules::ModulesHandler},
 };
 use prometheus::Registry;
-use prover::{ProverModule, ProverModuleCtx};
+use prover::{AutoProver, AutoProverCtx};
 use std::{
     env,
     sync::{Arc, Mutex},
@@ -90,15 +94,24 @@ async fn main() -> Result<()> {
         blackjack_cn: args.contract_name.into(),
     });
     let start_height = app_ctx.node_client.get_block_height().await?;
-    let prover_ctx = Arc::new(ProverModuleCtx {
-        app: app_ctx.clone(),
+    let prover_ctx = Arc::new(AutoProverCtx {
+        common: ctx.clone(),
         start_height,
+        elf: contract::client::metadata::ELF,
+        contract_name: app_ctx.blackjack_cn.clone(),
+        node: app_ctx.node_client.clone(),
     });
 
     handler.build_module::<AppModule>(app_ctx.clone()).await?;
+    handler
+        .build_module::<ContractStateIndexer<BlackJack>>(ContractStateIndexerCtx {
+            contract_name: app_ctx.blackjack_cn.clone(),
+            common: ctx.clone(),
+        })
+        .await?;
 
     handler
-        .build_module::<ProverModule>(prover_ctx.clone())
+        .build_module::<AutoProver<BlackJack>>(prover_ctx.clone())
         .await?;
 
     handler
@@ -128,7 +141,7 @@ async fn main() -> Result<()> {
             openapi: Default::default(),
             info: NodeInfo {
                 id: ctx.config.id.clone(),
-                da_address: ctx.config.da_address.clone(),
+                da_address: ctx.config.da_read_from.clone(),
                 pubkey: None,
             },
         })

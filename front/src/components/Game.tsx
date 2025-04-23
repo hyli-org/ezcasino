@@ -204,16 +204,16 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
   useEffect(() => {
     const initGame = async () => {
       if (isInitializedRef.current) return;
-      
+
       try {
         setIsLoading(true);
         setError(null);
         setShowClaimButton(false);
-        
+
         // Récupérer la configuration
         const config = await gameService.getConfig();
         setContractName(config.contract_name);
-        
+
         // Si nous avons déjà une sessionKey, l'utiliser directement
         const existingSessionKey = authService.getSessionKey();
         isInitializedRef.current = true;
@@ -273,16 +273,16 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
 
   const truncateSessionKey = (key: string | null): string => {
     if (!key) return 'No active session';
-    if (key.length <= 20) return `${key}.${contractName}`;
-    return `${key.slice(0, 10)}[...]${key.slice(-10)}.${contractName}`;
+    if (key.length <= 20) return `${key}@${contractName}`;
+    return `${key.slice(0, 10)}[...]${key.slice(-10)}@${contractName}`;
   };
 
   const copySessionKey = async () => {
     const sessionKey = authService.getSessionKey();
     if (!sessionKey) return;
-    
+
     try {
-      await navigator.clipboard.writeText(`${sessionKey}.${contractName}`);
+      await navigator.clipboard.writeText(`${sessionKey}@${contractName}`);
       setCopyMessage('Copied!');
       setTimeout(() => setCopyMessage(null), 2000);
     } catch (err) {
@@ -350,19 +350,19 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
             </div>
             <div className="bsod-message">
               An exception 0E has occurred at 0028:C11B0E47 in VxD VMM(01) + 00010E47.
-              This was called from 0028:C11B0E47 in VxD VWIN32(01) + 00010E47.<br/>
-              <br/>
-              The current application will be terminated.<br/>
-              <br/>
-              *  Press any key to terminate the current application<br/>
+              This was called from 0028:C11B0E47 in VxD VWIN32(01) + 00010E47.<br />
+              <br />
+              The current application will be terminated.<br />
+              <br />
+              *  Press any key to terminate the current application<br />
               *  Press CTRL+ALT+DEL again to restart your computer. You will
-                 lose any unsaved information in all applications.
+              lose any unsaved information in all applications.
             </div>
             <div className="bsod-message">
-              Error: INSUFFICIENT_HOUSE_EDGE<br/>
-              <br/>
-              An error has occurred while trying to take your money.<br/>
-              <br/>
+              Error: INSUFFICIENT_HOUSE_EDGE<br />
+              <br />
+              An error has occurred while trying to take your money.<br />
+              <br />
               The house always wins, but this time something went wrong.
             </div>
             <div className="bsod-footer">
@@ -413,8 +413,8 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
             </div>
 
             <div className="menu-bar">
-              <div 
-                className="menu-item" 
+              <div
+                className="menu-item"
                 onClick={() => setShowGameMenu(!showGameMenu)}
                 style={{ position: 'relative' }}
               >
@@ -461,8 +461,8 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
               )}
               <div className="session-key-container">
                 <span className="counter-label">Session Key</span>
-                <div 
-                  className="led-display session-key" 
+                <div
+                  className="led-display session-key"
                   onClick={copySessionKey}
                   style={{ cursor: 'pointer' }}
                 >

@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use anyhow::{bail, Result};
 use client_sdk::rest_client::{IndexerApiHttpClient, NodeApiHttpClient};
 use contract::BlackJack;
-use sdk::{api::APIRegisterContract, info, ContractName, HyleContract, ProgramId};
+use sdk::{api::APIRegisterContract, info, ContractName, ProgramId, ZkContract};
 use tokio::time::timeout;
 
 pub async fn init_node(

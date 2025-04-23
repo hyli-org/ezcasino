@@ -7,6 +7,7 @@ fn main() {
         // Convert u32 slice to hex
         let hex_image_id = data
             .image_id
+            .as_words()
             .iter()
             .map(|x| format!("{:08x}", x.to_be()))
             .collect::<Vec<_>>()
