@@ -4,6 +4,7 @@ use axum::Router;
 use clap::Parser;
 use client_sdk::rest_client::{IndexerApiHttpClient, NodeApiHttpClient};
 use contract::BlackJack;
+use hyle::modules::prover::{AutoProver, AutoProverCtx};
 use hyle::{
     bus::{metrics::BusMetrics, SharedMessageBus},
     indexer::{
@@ -15,7 +16,6 @@ use hyle::{
     utils::{conf, logger::setup_tracing, modules::ModulesHandler},
 };
 use prometheus::Registry;
-use prover::{AutoProver, AutoProverCtx};
 use std::{
     env,
     sync::{Arc, Mutex},
@@ -24,7 +24,7 @@ use tracing::{error, info, warn};
 
 mod app;
 mod init;
-mod prover;
+// mod prover;
 mod utils;
 
 #[derive(Parser, Debug)]

@@ -12,16 +12,15 @@ use axum::{
 use client_sdk::rest_client::{IndexerApiHttpClient, NodeApiHttpClient};
 use contract::{BlackJack, BlackJackAction, Table, TableState};
 use hyle::{
-    bus::{BusClientReceiver, BusMessage, SharedMessageBus},
+    bus::{BusClientReceiver, SharedMessageBus},
     model::CommonRunContext,
     module_handle_messages,
+    modules::prover::AutoProverEvent,
     utils::modules::{module_bus_client, Module},
 };
 use hyle_hyllar::{erc20::ERC20, Hyllar, HyllarAction};
 
-use sdk::{
-    Blob, BlobData, BlobIndex, BlobTransaction, ContractAction, ContractName, Identity, TxHash,
-};
+use sdk::{Blob, BlobData, BlobIndex, BlobTransaction, ContractAction, ContractName, Identity};
 use secp256k1::hashes::{sha256, Hash};
 use secp256k1::{ecdsa::Signature, Message, PublicKey, Secp256k1};
 use serde::Serialize;
@@ -39,17 +38,10 @@ pub struct AppModuleCtx {
     pub blackjack_cn: ContractName,
 }
 
-#[derive(Debug, Clone)]
-pub enum AppEvent {
-    SequencedTx(TxHash, ApiTable, u32),
-    FailedTx(TxHash, String),
-}
-impl BusMessage for AppEvent {}
-
 module_bus_client! {
 #[derive(Debug)]
 pub struct AppModuleBusClient {
-    receiver(AppEvent),
+    receiver(AutoProverEvent<BlackJack>),
 }
 }
 
@@ -357,13 +349,20 @@ async fn send(
         loop {
             let a = bus.recv().await?;
             match a {
-                AppEvent::SequencedTx(sequenced_tx_hash, mut table, balance) => {
+                AutoProverEvent::SuccessTx(sequenced_tx_hash, state) => {
                     if sequenced_tx_hash == tx_hash {
+                        let balance = state.balances.get(&identity).copied().unwrap_or(0);
+                        let mut table: ApiTable = state
+                            .tables
+                            .get(&identity)
+                            .cloned()
+                            .unwrap_or_default()
+                            .into();
                         table.balance = balance;
                         return Ok(Json(table));
                     }
                 }
-                AppEvent::FailedTx(sequenced_tx_hash, error) => {
+                AutoProverEvent::FailedTx(sequenced_tx_hash, error) => {
                     if sequenced_tx_hash == tx_hash {
                         return Err(AppError(StatusCode::BAD_REQUEST, anyhow::anyhow!(error)));
                     }
