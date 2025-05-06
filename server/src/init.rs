@@ -39,6 +39,7 @@ async fn init_contract(
                 program_id: ProgramId(hex::decode(image_id)?),
                 state_commitment: BlackJack::default().commit(),
                 contract_name: contract_name.clone(),
+                timeout_window: Some(100),
             })
             .await?;
             wait_contract_state(indexer, &contract_name).await?;

@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 sdk = { git = "https://github.com/hyle-org/hyle", package = "hyle-contract-sdk", features = [
   "risc0",
-], branch = "refacto/multiproof" }
+], branch = "main" }
 contract = { path = "../../contract", package = "contract" }
 
 risc0-zkvm = { version = "2.0.1", default-features = false, features = ['std'] }

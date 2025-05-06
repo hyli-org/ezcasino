@@ -421,7 +421,7 @@ name = "contract"
 version = "0.1.0"
 dependencies = [
  "borsh",
- "hyle-contract-sdk 0.13.0-rc.4 (git+https://github.com/hyle-org/hyle?branch=main)",
+ "hyle-contract-sdk",
  "hyle-hyllar",
  "rand 0.9.0",
  "rand_seeder",
@@ -691,7 +691,7 @@ name = "guest"
 version = "0.1.0"
 dependencies = [
  "contract",
- "hyle-contract-sdk 0.13.0-rc.4 (git+https://github.com/hyle-org/hyle?branch=refacto%2Fmultiproof)",
+ "hyle-contract-sdk",
  "risc0-zkvm",
 ]
 
@@ -728,18 +728,7 @@ version = "0.13.0-rc.4"
 source = "git+https://github.com/hyle-org/hyle?branch=main#ef9dc9124b7803decf6ff8dde5c0ad7dea655f4e"
 dependencies = [
  "borsh",
- "hyle-model 0.13.0-rc.4 (git+https://github.com/hyle-org/hyle?branch=main)",
- "serde",
- "sha2",
-]
-
-[[package]]
-name = "hyle-contract-sdk"
-version = "0.13.0-rc.4"
-source = "git+https://github.com/hyle-org/hyle?branch=refacto%2Fmultiproof#e938fada9f7998d3fb5ace81262c4b0e29573004"
-dependencies = [
- "borsh",
- "hyle-model 0.13.0-rc.4 (git+https://github.com/hyle-org/hyle?branch=refacto%2Fmultiproof)",
+ "hyle-model",
  "risc0-zkvm",
  "serde",
  "sha2",
@@ -752,7 +741,7 @@ source = "git+https://github.com/hyle-org/hyle?branch=main#ef9dc9124b7803decf6ff
 dependencies = [
  "anyhow",
  "borsh",
- "hyle-contract-sdk 0.13.0-rc.4 (git+https://github.com/hyle-org/hyle?branch=main)",
+ "hyle-contract-sdk",
  "serde",
  "serde_with",
  "sha2",
@@ -762,19 +751,6 @@ dependencies = [
 name = "hyle-model"
 version = "0.13.0-rc.4"
 source = "git+https://github.com/hyle-org/hyle?branch=main#ef9dc9124b7803decf6ff8dde5c0ad7dea655f4e"
-dependencies = [
- "borsh",
- "derive_more",
- "hex",
- "readonly",
- "serde",
- "strum",
-]
-
-[[package]]
-name = "hyle-model"
-version = "0.13.0-rc.4"
-source = "git+https://github.com/hyle-org/hyle?branch=refacto%2Fmultiproof#e938fada9f7998d3fb5ace81262c4b0e29573004"
 dependencies = [
  "borsh",
  "derive_more",

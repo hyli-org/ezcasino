@@ -23,7 +23,6 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
   const [playerHand, setPlayerHand] = useState<CardType[]>([]);
   const [dealerHand, setDealerHand] = useState<CardType[]>([]);
   const [gameOver, setGameOver] = useState(false);
-  const [message, setMessage] = useState('');
   const [currentBet, setCurrentBet] = useState(10);
   const [windowPosition, setWindowPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -33,13 +32,13 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const [showGameMenu, setShowGameMenu] = useState(false);
   const [showClaimButton, setShowClaimButton] = useState(false);
   const [showBSOD, setShowBSOD] = useState(false);
   const [showStartMenu, setShowStartMenu] = useState(false);
   const [showShutdown, setShowShutdown] = useState(false);
   const [contractName, setContractName] = useState<string>('');
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const isInitializedRef = useRef(false);
 
   const convertToCard = (value: number): CardType => {
@@ -69,11 +68,9 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
     // Ne pas déclencher les effets visuels lors d'un claim
     if (!isClaiming) {
       if (newGameState.state === 'Won') {
-        setMessage('You win!');
         setShowWinEffect(true);
         setTimeout(() => setShowWinEffect(false), 4000);
       } else if (newGameState.state === 'Lost') {
-        setMessage('Dealer wins!');
         setShowLoseEffect(true);
         setTimeout(() => setShowLoseEffect(false), 4000);
       }
@@ -91,12 +88,15 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
       }
       const gameState = await gameService.initGame();
       updateGameState(gameState);
-      setMessage('');
+      setError(null); // Clear any existing errors after successful initialization
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to initialize game. Please try again.';
-      setError(errorMessage);
-      if (errorMessage.includes('Insufficient balance')) {
-        setShowClaimButton(true);
+      // Only set error if we have a session key or if it's a specific error
+      if (authService.getSessionKey() || errorMessage.includes('Insufficient balance')) {
+        setError(errorMessage);
+        if (errorMessage.includes('Insufficient balance')) {
+          setShowClaimButton(true);
+        }
       }
       console.error('Error initializing game:', err);
     } finally {
@@ -166,6 +166,17 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
     }
   };
 
+  const truncateSessionKey = (key: string | null, suffix: string = ''): string => {
+    if (!key) return 'No active session';
+    if (key.length <= 20) return suffix ? `${key}${suffix}` : key;
+    return suffix ? `${key.slice(0, 10)}[...]${key.slice(-10)}${suffix}` : `${key.slice(0, 10)}[...]${key.slice(-10)}`;
+  };
+
+  const formatErrorMessage = (message: string): string => {
+    if (!message) return '';
+    return message.replace(/[a-f0-9]{40,}/gi, (match) => truncateSessionKey(match));
+  };
+
   useEffect(() => {
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove);
@@ -203,15 +214,15 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
   // Initialiser la partie au chargement
   useEffect(() => {
     const initGame = async () => {
-      if (isInitializedRef.current) return;
-
       try {
         setIsLoading(true);
-        setError(null);
         setShowClaimButton(false);
 
-        // Récupérer la configuration
+        // Get configuration first
         const config = await gameService.getConfig();
+        if (!config.contract_name) {
+          throw new Error('Contract name not received from server');
+        }
         setContractName(config.contract_name);
 
         // Si nous avons déjà une sessionKey, l'utiliser directement
@@ -220,18 +231,20 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
         if (existingSessionKey) {
           const gameState = await gameService.initGame();
           updateGameState(gameState);
-        } else {
-          // Sinon, démarrer une nouvelle partie
-          await startNewGame();
         }
       } catch (err: any) {
-        if (err.message?.includes('Insufficient balance')) {
-          setError(err.message);
-          setShowClaimButton(true);
-        } else {
-          setError('Failed to initialize game. Please try again.');
-        }
         console.error('Error initializing game:', err);
+        // Set a default contract name if we couldn't get it from the server
+        if (!contractName) {
+          setContractName('blackjack');
+        }
+        // Only set error if we have a session key or if it's a specific error
+        if (authService.getSessionKey() || err.message?.includes('Insufficient balance')) {
+          setError(err.message || 'Failed to initialize game. Please try again.');
+          if (err.message?.includes('Insufficient balance')) {
+            setShowClaimButton(true);
+          }
+        }
       } finally {
         setIsLoading(false);
       }
@@ -269,12 +282,6 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
 
   const handleMouseUp = () => {
     setIsDragging(false);
-  };
-
-  const truncateSessionKey = (key: string | null): string => {
-    if (!key) return 'No active session';
-    if (key.length <= 20) return `${key}@${contractName}`;
-    return `${key.slice(0, 10)}[...]${key.slice(-10)}@${contractName}`;
   };
 
   const copySessionKey = async () => {
@@ -432,33 +439,6 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
             </div>
 
             <div className="game-container">
-              {error && (
-                <div className="error">
-                  <div className="error-title-bar">
-                    <div className="error-title-text">Error</div>
-                    <div className="error-close-button" onClick={handleErrorClose}>×</div>
-                  </div>
-                  <div className="error-content">
-                    <div className="error-message-container">
-                      <img src="/error-icon.png" alt="Error" className="error-icon" />
-                      <p className="error-message">
-                        {error}
-                        {showClaimButton && (
-                          <>
-                            <br />
-                            Please send funds to your session key, then claim them
-                          </>
-                        )}
-                      </p>
-                    </div>
-                    {showClaimButton && (
-                      <button className="claim-button" onClick={handleClaim} disabled={isLoading}>
-                        Claim
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
               <div className="session-key-container">
                 <span className="counter-label">Session Key</span>
                 <div
@@ -466,7 +446,7 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
                   onClick={copySessionKey}
                   style={{ cursor: 'pointer' }}
                 >
-                  {truncateSessionKey(authService.getSessionKey())}
+                  {truncateSessionKey(authService.getSessionKey(), `@${contractName}`)}
                   {copyMessage && <span className="copy-message">{copyMessage}</span>}
                 </div>
               </div>
@@ -504,42 +484,77 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
                     />
                   ))}
                 </div>
-                {message && <div className="message">{message}</div>}
-                {!gameOver && (
-                  <div className="controls">
-                    <button
-                      className="win95-button"
-                      onClick={hit}
-                      disabled={isLoading}
-                    >
-                      HIT
-                    </button>
-                    <button
-                      className="win95-button"
-                      onClick={stand}
-                      disabled={isLoading}
-                    >
-                      STAND
-                    </button>
-                    <button
-                      className="win95-button"
-                      onClick={doubleDown}
-                      disabled={isLoading}
-                    >
-                      DOUBLE
+              </div>
+
+              {!authService.getSessionKey() && !error && (
+                <div className="message-overlay">
+                  <div className="welcome-message">
+                    <h2>Welcome to EZ Casino!</h2>
+                    <p>To start playing, you need to create a session key.</p>
+                    <button className="win95-button" onClick={handleNewSessionKey}>
+                      Create Session Key
                     </button>
                   </div>
-                )}
-                {gameOver && (
-                  <button
-                    className="win95-button"
-                    onClick={startNewGame}
-                    disabled={isLoading}
-                  >
-                    DEAL
+                </div>
+              )}
+
+              {error && (
+                <div className="message-overlay">
+                  <div className="error">
+                    <div className="error-title-bar">
+                      <div className="error-title-text">Error</div>
+                      <div className="error-close-button" onClick={handleErrorClose}>×</div>
+                    </div>
+                    <div className="error-content">
+                      <div className="error-message-container">
+                        <img src="/error-icon.png" alt="Error" className="error-icon" />
+                        <p className="error-message">
+                          {error ? formatErrorMessage(error) : ''}
+                          {showClaimButton && (
+                            <>
+                              <br />
+                              Please send funds to your session key, then claim them
+                              <br />
+                              <a 
+                                href={`${import.meta.env.VITE_FAUCET_COOKIE_CLICKER_BASE_URL}/?wallet=${authService.getSessionKey()}@${contractName}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="faucet-link"
+                              >
+                                Get test tokens here
+                              </a>
+                            </>
+                          )}
+                        </p>
+                      </div>
+                      {showClaimButton && (
+                        <button className="claim-button" onClick={handleClaim} disabled={isLoading}>
+                          Claim
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!error && !gameOver && (
+                <div className="controls">
+                  <button className="win95-button" onClick={hit} disabled={isLoading}>
+                    HIT
                   </button>
-                )}
-              </div>
+                  <button className="win95-button" onClick={stand} disabled={isLoading}>
+                    STAND
+                  </button>
+                  <button className="win95-button" onClick={doubleDown} disabled={isLoading}>
+                    DOUBLE
+                  </button>
+                </div>
+              )}
+              {!error && gameOver && (
+                <button className="win95-button" onClick={startNewGame} disabled={isLoading}>
+                  DEAL
+                </button>
+              )}
             </div>
           </div>
           <div className="taskbar">
@@ -579,4 +594,4 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
   );
 };
 
-export default Game; 
+export default Game;
