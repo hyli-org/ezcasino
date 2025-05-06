@@ -174,6 +174,22 @@
   padding-top: 8px;
 }
 
+.faucet-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: #000080;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.faucet-link:hover {
+  color: #0000ff;
+}
+
+.faucet-link:active {
+  color: #000080;
+}
+
 .error-button {
   align-self: center;
   min-width: 75px;
@@ -537,4 +553,45 @@
   to {
     width: 100%;
   }
-} 
+}
+
+.welcome-message {
+  text-align: center;
+  padding: 20px;
+  background-color: #c0c0c0;
+  border: 2px solid #858585;
+  margin: 20px;
+  box-shadow: inset 1px 1px #dfdfdf, inset -1px -1px #0a0a0a;
+}
+
+.welcome-message h2 {
+  color: #000;
+  margin-bottom: 15px;
+  font-size: 16px;
+}
+
+.welcome-message p {
+  color: #222;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.message-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+}
+
+.message-overlay .welcome-message,
+.message-overlay .error {
+  background: #c0c0c0;
+  max-width: 80%;
+  margin: 0;
+}

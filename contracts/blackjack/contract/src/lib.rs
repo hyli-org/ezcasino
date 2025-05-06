@@ -11,86 +11,14 @@ use alloc::{
 use borsh::{io::Error, BorshDeserialize, BorshSerialize};
 use rand::Rng;
 use rand_seeder::{SipHasher, SipRng};
+use sdk::secp256k1::CheckSecp256k1;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 
 use hyle_hyllar::HyllarAction;
-use sdk::{BlobIndex, BlockHash, ContractName, Identity, RunResult};
+use sdk::{BlockHash, ContractName, Identity, RunResult};
 
 #[cfg(feature = "client")]
 pub mod client;
-
-#[derive(Debug, borsh::BorshSerialize, borsh::BorshDeserialize)]
-pub struct Secp256k1Blob {
-    pub identity: Identity,
-    pub data: [u8; 32],
-    pub public_key: [u8; 33],
-    pub signature: [u8; 64],
-}
-
-struct CheckSecp256k1<'a> {
-    contract_input: &'a sdk::Calldata,
-    expected_data: &'a [u8],
-    blob_index: Option<BlobIndex>,
-}
-
-impl<'a> CheckSecp256k1<'a> {
-    fn new(contract_input: &'a sdk::Calldata, expected_data: &'a [u8]) -> Self {
-        Self {
-            contract_input,
-            expected_data,
-            blob_index: None,
-        }
-    }
-
-    #[allow(dead_code)]
-    fn with_blob_index(mut self, blob_index: BlobIndex) -> Self {
-        self.blob_index = Some(blob_index);
-        self
-    }
-
-    fn expect(self) -> Result<(), String> {
-        // Verify Secp256k1Blob
-        let secp_blob = match self.blob_index {
-            Some(idx) => {
-                let blob = self
-                    .contract_input
-                    .blobs
-                    .get(&idx)
-                    .ok_or_else(|| "Invalid blob index for secp256k1".to_string())?;
-                if blob.contract_name != ContractName("secp256k1".to_string()) {
-                    return Err("Invalid contract name for Secp256k1Blob".to_string());
-                }
-                blob
-            }
-            None => self
-                .contract_input
-                .blobs
-                .iter()
-                .find(|(_, b)| b.contract_name == ContractName("secp256k1".to_string()))
-                .map(|(_, b)| b)
-                .ok_or_else(|| "Missing Secp256k1Blob".to_string())?,
-        };
-
-        let secp_data: Secp256k1Blob = borsh::from_slice(&secp_blob.data.0)
-            .map_err(|_| "Failed to decode Secp256k1Blob".to_string())?;
-
-        // Verify that the identity matches the user
-        if secp_data.identity != self.contract_input.identity {
-            return Err("Secp256k1Blob identity does not match".to_string());
-        }
-
-        let mut hasher = Sha256::new();
-        hasher.update(self.expected_data);
-        let message_hash: [u8; 32] = hasher.finalize().into();
-
-        if secp_data.data != message_hash {
-            return Err("Secp256k1Blob data does not match".to_string());
-        }
-
-        Ok(())
-    }
-}
 
 impl sdk::ZkContract for BlackJack {
     /// Entry point of the contract's logic
@@ -315,8 +243,7 @@ impl BlackJack {
     }
 
     pub fn compute_score(cards: &[u32]) -> u32 {
-        let mut possible_scores: Vec<u32> = Vec::new();
-        possible_scores.push(0);
+        let mut possible_scores: Vec<u32> = vec![0];
 
         for card in cards.iter() {
             if *card == 1_u32 {
@@ -370,31 +297,35 @@ impl BlackJack {
 
         let user_score = Self::compute_score(table.user.as_slice());
 
-        if user_score == 21_u32 {
-            table.state = TableState::Won;
-            // Add winnings (2x bet for blackjack)
-            if let Some(balance) = self.balances.get_mut(user) {
-                *balance += table.bet * 2;
+        match user_score {
+            21 => {
+                table.state = TableState::Won;
+                // Add winnings (2x bet for blackjack)
+                if let Some(balance) = self.balances.get_mut(user) {
+                    *balance += table.bet * 2;
+                }
+                Ok(format!(
+                    "Hit for user {user} with block hash {blockhash}, BLACKJACK!!!!",
+                    user = user,
+                    blockhash = blockhash.0
+                ))
             }
-            Ok(format!(
-                "Hit for user {user} with block hash {blockhash}, BLACKJACK!!!!",
-                user = user,
-                blockhash = blockhash.0
-            ))
-        } else if user_score > 21_u32 {
-            table.state = TableState::Lost;
-            Ok(format!(
-                "Hit for user {user} with block hash {blockhash}, BURST, you loose",
-                user = user,
-                blockhash = blockhash.0
-            ))
-        } else {
-            // Still Ongoing
-            Ok(format!(
-                "Hit for user {user} with block hash {blockhash}, still ongoing",
-                user = user,
-                blockhash = blockhash.0
-            ))
+            score if score > 21 => {
+                table.state = TableState::Lost;
+                Ok(format!(
+                    "Hit for user {user} with block hash {blockhash}, BURST, you loose",
+                    user = user,
+                    blockhash = blockhash.0
+                ))
+            }
+            _ => {
+                // Still Ongoing
+                Ok(format!(
+                    "Hit for user {user} with block hash {blockhash}, still ongoing",
+                    user = user,
+                    blockhash = blockhash.0
+                ))
+            }
         }
     }
     pub fn stand(&mut self, user: &Identity) -> Result<String, String> {

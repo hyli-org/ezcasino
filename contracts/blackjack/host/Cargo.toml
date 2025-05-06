@@ -5,8 +5,8 @@ edition = "2021"
 
 [dependencies]
 sdk = { workspace = true }
-client-sdk = { workspace = true, features = ["rest", "risc0"] }
-contract = { path = "../contract", package = "contract"}
+client-sdk = { workspace = true, features = ["rest"] }
+contract = { path = "../contract", package = "contract" }
 
 methods = { path = "../methods" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
