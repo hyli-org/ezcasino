@@ -11,8 +11,8 @@ members = [
 # don't forget to update methods/guest/Cargo.toml 
 sdk = { git = "https://github.com/hyle-org/hyle", package = "hyle-contract-sdk", branch = "main" }
 client-sdk = { git = "https://github.com/hyle-org/hyle", default-features = false, package = "hyle-client-sdk", branch = "main" }
-hyle = { git = "https://github.com/Hyle-org/hyle.git", package = "hyle", branch = "main" }
-hyle_hyllar = { git = "https://github.com/Hyle-org/hyle.git", package = "hyle-hyllar", branch = "main" }
+hyle_modules = { git = "https://github.com/hyle-org/hyle", package = "hyle-modules", branch = "main" }
+hyle_hyllar = { git = "https://github.com/Hyle-org/hyle", package = "hyle-hyllar", branch = "main" }
 
 contract = { path = "contracts/blackjack/contract", package = "contract" }
 

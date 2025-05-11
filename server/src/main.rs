@@ -2,20 +2,24 @@ use anyhow::{Context, Result};
 use app::{AppModule, AppModuleCtx};
 use axum::Router;
 use clap::Parser;
-use client_sdk::rest_client::{IndexerApiHttpClient, NodeApiHttpClient};
+use client_sdk::{
+    helpers::risc0::Risc0Prover,
+    rest_client::{IndexerApiHttpClient, NodeApiHttpClient},
+};
 use contract::BlackJack;
-use hyle::modules::prover::{AutoProver, AutoProverCtx};
-use hyle::{
+use hyle_modules::{
     bus::{metrics::BusMetrics, SharedMessageBus},
-    indexer::{
+    modules::{
         contract_state_indexer::{ContractStateIndexer, ContractStateIndexerCtx},
         da_listener::{DAListener, DAListenerCtx},
+        prover::{AutoProver, AutoProverCtx},
+        rest::{RestApi, RestApiRunContext},
+        CommonRunContext, ModulesHandler,
     },
-    model::{api::NodeInfo, CommonRunContext},
-    rest::{RestApi, RestApiRunContext},
-    utils::{conf, logger::setup_tracing, modules::ModulesHandler},
+    utils::{conf, logger::setup_tracing},
 };
 use prometheus::Registry;
+use sdk::api::NodeInfo;
 use std::{
     env,
     sync::{Arc, Mutex},
@@ -46,8 +50,11 @@ async fn main() -> Result<()> {
     let config =
         conf::Conf::new(args.config_file, None, Some(true)).context("reading config file")?;
 
-    setup_tracing(&config, format!("{}(nopkey)", config.id.clone(),))
-        .context("setting up tracing")?;
+    setup_tracing(
+        &config.log_format,
+        format!("{}(nopkey)", config.id.clone(),),
+    )
+    .context("setting up tracing")?;
 
     let config = Arc::new(config);
 
@@ -95,9 +102,10 @@ async fn main() -> Result<()> {
     });
     let start_height = app_ctx.node_client.get_block_height().await?;
     let prover_ctx = Arc::new(AutoProverCtx {
-        common: ctx.clone(),
         start_height,
-        elf: contract::client::metadata::ELF,
+        bus: ctx.bus.new_handle(),
+        data_directory: config.data_directory.clone(),
+        prover: Arc::new(Risc0Prover::new(contract::client::metadata::ELF)),
         contract_name: app_ctx.blackjack_cn.clone(),
         node: app_ctx.node_client.clone(),
     });
@@ -135,7 +143,6 @@ async fn main() -> Result<()> {
             port: ctx.config.rest_server_port,
             max_body_size: ctx.config.rest_server_max_body_size,
             bus: ctx.bus.new_handle(),
-            metrics_layer: None,
             registry: Registry::new(),
             router: router.clone(),
             openapi: Default::default(),

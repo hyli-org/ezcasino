@@ -11,15 +11,13 @@ use axum::{
 };
 use client_sdk::rest_client::{IndexerApiHttpClient, NodeApiHttpClient};
 use contract::{BlackJack, BlackJackAction, Table, TableState};
-use hyle::{
-    bus::{BusClientReceiver, SharedMessageBus},
-    model::CommonRunContext,
-    module_handle_messages,
-    modules::prover::AutoProverEvent,
-    utils::modules::{module_bus_client, Module},
-};
 use hyle_hyllar::{erc20::ERC20, Hyllar, HyllarAction};
 
+use hyle_modules::{
+    bus::{BusClientReceiver, SharedMessageBus},
+    module_bus_client, module_handle_messages,
+    modules::{prover::AutoProverEvent, CommonRunContext, Module},
+};
 use sdk::{Blob, BlobData, BlobIndex, BlobTransaction, ContractAction, ContractName, Identity};
 use secp256k1::hashes::{sha256, Hash};
 use secp256k1::{ecdsa::Signature, Message, PublicKey, Secp256k1};

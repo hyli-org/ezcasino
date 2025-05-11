@@ -5,7 +5,7 @@ edition = "2021"
 [dependencies]
 sdk = { workspace = true, features = ["tracing"] }
 client-sdk = { workspace = true, features = ["risc0", "rest"] }
-hyle = { workspace = true }
+hyle_modules = { workspace = true }
 contract = { workspace = true, features = ["client"] }
 hyle_hyllar = { workspace = true }
 
@@ -28,7 +28,7 @@ rand = "0.9.0"
 borsh = "1.5.3"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-clap = "4.5.28"
+clap = { version = "4.2", features = ["derive"] }
 utoipa-axum = { version = "0.2.0" }
 utoipa = "5.3.1"
 
