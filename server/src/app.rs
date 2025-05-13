@@ -16,7 +16,7 @@ use hyle_hyllar::{erc20::ERC20, Hyllar, HyllarAction};
 use hyle_modules::{
     bus::{BusClientReceiver, SharedMessageBus},
     module_bus_client, module_handle_messages,
-    modules::{prover::AutoProverEvent, CommonRunContext, Module},
+    modules::{prover::AutoProverEvent, BuildApiContextInner, Module},
 };
 use sdk::{Blob, BlobData, BlobIndex, BlobTransaction, ContractAction, ContractName, Identity};
 use secp256k1::hashes::{sha256, Hash};
@@ -30,7 +30,7 @@ pub struct AppModule {
 }
 
 pub struct AppModuleCtx {
-    pub common: Arc<CommonRunContext>,
+    pub api: Arc<BuildApiContextInner>,
     pub node_client: Arc<NodeApiHttpClient>,
     pub indexer_client: Arc<IndexerApiHttpClient>,
     pub blackjack_cn: ContractName,
@@ -46,11 +46,11 @@ pub struct AppModuleBusClient {
 impl Module for AppModule {
     type Context = Arc<AppModuleCtx>;
 
-    async fn build(ctx: Self::Context) -> Result<Self> {
+    async fn build(bus: SharedMessageBus, ctx: Self::Context) -> Result<Self> {
         let state = RouterCtx {
             blackjack_cn: ctx.blackjack_cn.clone(),
             app: Arc::new(Mutex::new(HyleOofCtx {
-                bus: ctx.common.bus.new_handle(),
+                bus: bus.new_handle(),
             })),
             client: ctx.node_client.clone(),
             indexer_client: ctx.indexer_client.clone(),
@@ -73,12 +73,12 @@ impl Module for AppModule {
             .with_state(state)
             .layer(cors); // Appliquer le middleware CORS
 
-        if let Ok(mut guard) = ctx.common.router.lock() {
+        if let Ok(mut guard) = ctx.api.router.lock() {
             if let Some(router) = guard.take() {
                 guard.replace(router.merge(api));
             }
         }
-        let bus = AppModuleBusClient::new_from_bus(ctx.common.bus.new_handle()).await;
+        let bus = AppModuleBusClient::new_from_bus(bus.new_handle()).await;
 
         Ok(AppModule { bus })
     }

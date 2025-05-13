@@ -11,19 +11,16 @@ use hyle_modules::{
     bus::{metrics::BusMetrics, SharedMessageBus},
     modules::{
         contract_state_indexer::{ContractStateIndexer, ContractStateIndexerCtx},
-        da_listener::{DAListener, DAListenerCtx},
+        da_listener::{DAListener, DAListenerConf},
         prover::{AutoProver, AutoProverCtx},
         rest::{RestApi, RestApiRunContext},
-        CommonRunContext, ModulesHandler,
+        BuildApiContextInner, ModulesHandler,
     },
     utils::{conf, logger::setup_tracing},
 };
 use prometheus::Registry;
 use sdk::api::NodeInfo;
-use std::{
-    env,
-    sync::{Arc, Mutex},
-};
+use std::{env, sync::Arc};
 use tracing::{error, info, warn};
 
 mod app;
@@ -87,15 +84,13 @@ async fn main() -> Result<()> {
 
     let mut handler = ModulesHandler::new(&bus).await;
 
-    let ctx = Arc::new(CommonRunContext {
-        bus: bus.new_handle(),
-        config: config.clone(),
-        router: Mutex::new(Some(Router::new())),
-        openapi: Default::default(),
+    let build_api_ctx = Arc::new(BuildApiContextInner {
+        router: std::sync::Mutex::new(Some(Router::new())),
+        openapi: std::sync::Mutex::new(Default::default()),
     });
 
     let app_ctx = Arc::new(AppModuleCtx {
-        common: ctx.clone(),
+        api: build_api_ctx.clone(),
         node_client,
         indexer_client,
         blackjack_cn: args.contract_name.into(),
@@ -103,7 +98,6 @@ async fn main() -> Result<()> {
     let start_height = app_ctx.node_client.get_block_height().await?;
     let prover_ctx = Arc::new(AutoProverCtx {
         start_height,
-        bus: ctx.bus.new_handle(),
         data_directory: config.data_directory.clone(),
         prover: Arc::new(Risc0Prover::new(contract::client::metadata::ELF)),
         contract_name: app_ctx.blackjack_cn.clone(),
@@ -114,7 +108,8 @@ async fn main() -> Result<()> {
     handler
         .build_module::<ContractStateIndexer<BlackJack>>(ContractStateIndexerCtx {
             contract_name: app_ctx.blackjack_cn.clone(),
-            common: ctx.clone(),
+            data_directory: config.data_directory.clone(),
+            api: build_api_ctx.clone(),
         })
         .await?;
 
@@ -123,32 +118,38 @@ async fn main() -> Result<()> {
         .await?;
 
     handler
-        .build_module::<DAListener>(DAListenerCtx {
-            common: ctx.clone(),
+        .build_module::<DAListener>(DAListenerConf {
             start_block: None,
+            data_directory: config.data_directory.clone(),
+            da_read_from: config.da_read_from.clone(),
         })
         .await?;
 
     // Should come last so the other modules have nested their own routes.
     #[allow(clippy::expect_used, reason = "Fail on misconfiguration")]
-    let router = ctx
+    let router = build_api_ctx
         .router
         .lock()
         .expect("Context router should be available")
         .take()
         .expect("Context router should be available");
+    #[allow(clippy::expect_used, reason = "Fail on misconfiguration")]
+    let openapi = build_api_ctx
+        .openapi
+        .lock()
+        .expect("OpenAPI should be available")
+        .clone();
 
     handler
         .build_module::<RestApi>(RestApiRunContext {
-            port: ctx.config.rest_server_port,
-            max_body_size: ctx.config.rest_server_max_body_size,
-            bus: ctx.bus.new_handle(),
+            port: config.rest_server_port,
+            max_body_size: config.rest_server_max_body_size,
             registry: Registry::new(),
-            router: router.clone(),
-            openapi: Default::default(),
+            router,
+            openapi,
             info: NodeInfo {
-                id: ctx.config.id.clone(),
-                da_address: ctx.config.da_read_from.clone(),
+                id: config.id.clone(),
+                da_address: config.da_read_from.clone(),
                 pubkey: None,
             },
         })
