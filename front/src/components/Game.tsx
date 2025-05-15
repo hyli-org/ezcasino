@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Card from './Card';
 import VisualEffects from './VisualEffects';
 import Cow from '../components/Cow';
@@ -39,9 +39,7 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
   const [showBSOD, setShowBSOD] = useState(false);
   const [showStartMenu, setShowStartMenu] = useState(false);
   const [showShutdown, setShowShutdown] = useState(false);
-  const [contractName, setContractName] = useState<string>('');
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
-  const isInitializedRef = useRef(false);
   const [password, setPassword] = useState('password123');
 
   // Surveiller les changements de wallet pour détecter la déconnexion
@@ -255,53 +253,6 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
       window.removeEventListener('resize', centerWindow);
     };
   }, []);
-
-  // Initialiser la partie au chargement
-  // useEffect(() => {
-  //   const initGame = async () => {
-  //     try {
-  //       if (!wallet) {
-  //         throw new Error('Wallet not connected');
-  //       }
-  //       setIsLoading(true);
-  //       setShowClaimButton(false);
-
-  //       // Get configuration first
-  //       const config = await gameService.getConfig();
-  //       if (!config.contract_name) {
-  //         throw new Error('Contract name not received from server');
-  //       }
-  //       setContractName(config.contract_name);
-
-  //       // Si nous avons déjà une sessionKey, l'utiliser directement
-  //       const privateKey = gameService.getPrivateKey();
-  //       if (!privateKey) {
-  //         throw new Error('No session key found');
-  //       }
-  //       isInitializedRef.current = true;
-  //       const wallet_blobs = sessionKeyService.useSessionKey(wallet.username, privateKey);
-  //       const gameState = await gameService.initGame(wallet_blobs, wallet.address);
-  //       updateGameState(gameState);
-  //     } catch (err: any) {
-  //       console.error('Error initializing game:', err);
-  //       // Set a default contract name if we couldn't get it from the server
-  //       if (!contractName) {
-  //         setContractName('blackjack');
-  //       }
-  //       // Only set error if we have a session key or if it's a specific error
-  //       if (gameService.getPrivateKey() || err.message?.includes('Insufficient balance')) {
-  //         setError(err.message || 'Failed to initialize game. Please try again.');
-  //         if (err.message?.includes('Insufficient balance')) {
-  //           setShowClaimButton(true);
-  //         }
-  //       }
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   };
-
-  //   initGame();
-  // }, []);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.target instanceof HTMLElement && e.target.closest('.win95-title-bar')) {
@@ -589,7 +540,7 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
                               Please send funds to your session key, then claim them
                               <br />
                               <a 
-                                href={`${import.meta.env.VITE_FAUCET_COOKIE_CLICKER_BASE_URL}/?wallet=${wallet?.address}@${contractName}`}
+                                href={`${import.meta.env.VITE_FAUCET_COOKIE_CLICKER_BASE_URL}/?wallet=${wallet?.address}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="faucet-link"
