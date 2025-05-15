@@ -6,6 +6,7 @@ use client_sdk::{
     helpers::risc0::Risc0Prover,
     rest_client::{IndexerApiHttpClient, NodeApiHttpClient},
 };
+use conf::Conf;
 use contract::BlackJack;
 use hyle_modules::{
     bus::{metrics::BusMetrics, SharedMessageBus},
@@ -16,7 +17,7 @@ use hyle_modules::{
         rest::{RestApi, RestApiRunContext},
         BuildApiContextInner, ModulesHandler,
     },
-    utils::{conf, logger::setup_tracing},
+    utils::logger::setup_tracing,
 };
 use prometheus::Registry;
 use sdk::api::NodeInfo;
@@ -24,15 +25,15 @@ use std::{env, sync::Arc};
 use tracing::{error, info, warn};
 
 mod app;
+mod conf;
 mod init;
-// mod prover;
 mod utils;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct Args {
     #[arg(long, default_value = "config.toml")]
-    pub config_file: Option<String>,
+    pub config_file: Vec<String>,
 
     #[arg(long, default_value = "blackjack")]
     pub contract_name: String,
@@ -44,14 +45,9 @@ pub struct Args {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
-    let config =
-        conf::Conf::new(args.config_file, None, Some(true)).context("reading config file")?;
+    let config = Conf::new(args.config_file).context("reading config file")?;
 
-    setup_tracing(
-        &config.log_format,
-        format!("{}(nopkey)", config.id.clone(),),
-    )
-    .context("setting up tracing")?;
+    setup_tracing(&config.log_format, "ezcasino".to_string()).context("setting up tracing")?;
 
     let config = Arc::new(config);
 
@@ -78,7 +74,7 @@ async fn main() -> Result<()> {
         }
     }
 
-    let bus = SharedMessageBus::new(BusMetrics::global(config.id.clone()));
+    let bus = SharedMessageBus::new(BusMetrics::global("ezcasino".to_string()));
 
     std::fs::create_dir_all(&config.data_directory).context("creating data directory")?;
 
@@ -96,13 +92,6 @@ async fn main() -> Result<()> {
         blackjack_cn: args.contract_name.into(),
     });
     let start_height = app_ctx.node_client.get_block_height().await?;
-    let prover_ctx = Arc::new(AutoProverCtx {
-        start_height,
-        data_directory: config.data_directory.clone(),
-        prover: Arc::new(Risc0Prover::new(contract::client::metadata::ELF)),
-        contract_name: app_ctx.blackjack_cn.clone(),
-        node: app_ctx.node_client.clone(),
-    });
 
     handler.build_module::<AppModule>(app_ctx.clone()).await?;
     handler
@@ -114,7 +103,17 @@ async fn main() -> Result<()> {
         .await?;
 
     handler
-        .build_module::<AutoProver<BlackJack>>(prover_ctx.clone())
+        .build_module::<AutoProver<BlackJack>>(
+            AutoProverCtx {
+                start_height,
+                data_directory: config.data_directory.clone(),
+                prover: Arc::new(Risc0Prover::new(contract::client::metadata::ELF)),
+                contract_name: app_ctx.blackjack_cn.clone(),
+                node: app_ctx.node_client.clone(),
+                default_state: BlackJack::default(),
+            }
+            .into(),
+        )
         .await?;
 
     handler
@@ -148,7 +147,7 @@ async fn main() -> Result<()> {
             router,
             openapi,
             info: NodeInfo {
-                id: config.id.clone(),
+                id: "ezcasino".to_string(),
                 da_address: config.da_read_from.clone(),
                 pubkey: None,
             },
