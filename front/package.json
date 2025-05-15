@@ -12,22 +12,30 @@
   "dependencies": {
     "@types/crypto-js": "^4.2.2",
     "@types/elliptic": "^6.4.18",
+    "@types/react-router-dom": "^5.3.3",
     "crypto-js": "^4.2.0",
     "elliptic": "^6.6.1",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "hyle": "^0.2.5",
+    "hyle-check-secret": "^0.3.2",
+    "hyle-wallet": "file:../../wallet/hyle-wallet",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.21.0",
-    "@types/react": "^19.0.12",
-    "@types/react-dom": "^19.0.4",
-    "@vitejs/plugin-react": "^4.3.4",
-    "eslint": "^9.21.0",
-    "eslint-plugin-react-hooks": "^5.1.0",
-    "eslint-plugin-react-refresh": "^0.4.19",
-    "globals": "^15.15.0",
-    "typescript": "~5.7.2",
-    "typescript-eslint": "^8.24.1",
-    "vite": "^6.2.0"
+    "@eslint/js": "^9.26.0",
+    "@types/react": "^19.1.4",
+    "@types/react-dom": "^19.1.5",
+    "@vitejs/plugin-react": "^4.4.1",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.26.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.1.0",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.1.6",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.32.1",
+    "vite": "^6.3.5"
   }
 }

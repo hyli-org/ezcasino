@@ -4002,7 +4002,7 @@ dependencies = [
  "derive_more 2.0.1",
  "hex",
  "readonly",
- "secp256k1 0.31.0",
+ "secp256k1",
  "serde",
  "serde_json",
  "serde_with",
@@ -4084,7 +4084,7 @@ dependencies = [
  "hyle-crypto",
  "hyle-model",
  "rand 0.9.1",
- "secp256k1 0.31.0",
+ "secp256k1",
  "sha3",
  "tracing",
 ]
@@ -6947,33 +6947,13 @@ dependencies = [
 
 [[package]]
 name = "secp256k1"
-version = "0.30.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b50c5943d326858130af85e049f2661ba3c78b26589b8ab98e65e80ae44a1252"
-dependencies = [
- "bitcoin_hashes",
- "rand 0.8.5",
- "secp256k1-sys 0.10.1",
-]
-
-[[package]]
-name = "secp256k1"
 version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a3dff2d01c9aa65c3186a45ff846bfea52cbe6de3b6320ed2a358d90dad0d76"
 dependencies = [
  "bitcoin_hashes",
  "rand 0.9.1",
- "secp256k1-sys 0.11.0",
-]
-
-[[package]]
-name = "secp256k1-sys"
-version = "0.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4387882333d3aa8cb20530a17c69a3752e97837832f34f6dccc760e715001d9"
-dependencies = [
- "cc",
+ "secp256k1-sys",
 ]
 
 [[package]]
@@ -7192,7 +7172,6 @@ dependencies = [
  "risc0-sys",
  "risc0-zkp 1.2.5",
  "risc0-zkvm 1.2.5",
- "secp256k1 0.30.0",
  "serde",
  "serde_json",
  "sha2",

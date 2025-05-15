@@ -1,6 +1,7 @@
-import  { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Game from './components/Game';
-import './App.css'
+import './App.css';
+import { WalletProvider } from 'hyle-wallet';
 
 function App() {
   const [backgroundTheme, setBackgroundTheme] = useState<'day' | 'night'>('day');
@@ -14,7 +15,7 @@ function App() {
   };
 
   return (
-    <>
+    <WalletProvider>
       <div className="sun" onClick={toggleTheme} style={{ cursor: 'pointer' }}></div>
       <div className="flower1"></div>
       <div className="flower2"></div>
@@ -29,7 +30,7 @@ function App() {
       <div className="App">
         <Game onBackgroundChange={setBackgroundTheme} theme={backgroundTheme} />
       </div>
-    </>
+    </WalletProvider>
   );
 }
 
