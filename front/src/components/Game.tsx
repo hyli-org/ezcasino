@@ -449,7 +449,7 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
             <div className="game-container">
               <div className="address-container">
                 <span className="counter-label">Address</span>
-                <div                  
+                <div
                   className="led-display"
                   onClick={copyAddress}
                   style={{ cursor: 'pointer' }}

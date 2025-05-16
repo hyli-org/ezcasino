@@ -4,12 +4,7 @@ use alloc::{
 };
 use anyhow::{anyhow, Result};
 use client_sdk::contract_indexer::{
-    axum::{
-        extract::{Path, State},
-        http::StatusCode,
-        response::IntoResponse,
-        Json, Router,
-    },
+    axum::{extract::State, http::StatusCode, response::IntoResponse, Json, Router},
     utoipa::openapi::OpenApi,
     utoipa_axum::{router::OpenApiRouter, routes},
     AppError, ContractHandler, ContractHandlerStore,
@@ -53,35 +48,9 @@ impl ContractHandler for BlackJack {
     async fn api(store: ContractHandlerStore<BlackJack>) -> (Router<()>, OpenApi) {
         let (router, api) = OpenApiRouter::default()
             .routes(routes!(get_state))
-            .routes(routes!(get_table))
             .split_for_parts();
 
         (router.with_state(store), api)
-    }
-}
-
-#[derive(Serialize, Debug, Clone)]
-pub struct ApiTable {
-    pub bank: Vec<u32>,
-    pub bank_count: u32,
-    pub user: Vec<u32>,
-    pub user_count: u32,
-    pub bet: u32,
-    pub state: TableState,
-    pub balance: u32,
-}
-
-impl From<Table> for ApiTable {
-    fn from(table: Table) -> Self {
-        ApiTable {
-            bank_count: BlackJack::compute_score(&table.bank),
-            bank: table.bank,
-            user_count: BlackJack::compute_score(&table.user),
-            user: table.user,
-            bet: table.bet,
-            state: table.state,
-            balance: 0, // Will be set in the send function
-        }
     }
 }
 
@@ -101,32 +70,4 @@ pub async fn get_state<S: Serialize + Clone + 'static>(
         StatusCode::NOT_FOUND,
         anyhow!("No state found for contract '{}'", store.contract_name),
     ))
-}
-
-#[utoipa::path(
-    get,
-    path = "/table/{identity}",
-    tag = "Table",
-    responses(
-        (status = OK, description = "Get table state for identity"),
-    )
-)]
-pub async fn get_table(
-    Path(identity): Path<Identity>,
-    State(state): State<ContractHandlerStore<BlackJack>>,
-) -> Result<impl IntoResponse, AppError> {
-    let store = state.read().await;
-    let state = store.state.clone().ok_or(AppError(
-        StatusCode::NOT_FOUND,
-        anyhow!("No state found for contract '{}'", store.contract_name),
-    ))?;
-    let balance = state.balances.get(&identity).copied().unwrap_or(0);
-    let mut table: ApiTable = state
-        .tables
-        .get(&identity)
-        .cloned()
-        .unwrap_or_default()
-        .into();
-    table.balance = balance;
-    Ok(Json(table))
 }
