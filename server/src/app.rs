@@ -18,9 +18,7 @@ use hyle_modules::{
     module_bus_client, module_handle_messages,
     modules::{prover::AutoProverEvent, BuildApiContextInner, Module},
 };
-use sdk::{Blob, BlobData, BlobIndex, BlobTransaction, ContractAction, ContractName, Identity};
-use secp256k1::hashes::{sha256, Hash};
-use secp256k1::{ecdsa::Signature, Message, PublicKey, Secp256k1};
+use sdk::{Blob, BlobTransaction, ContractAction, ContractName, Identity};
 use serde::Serialize;
 use tokio::sync::Mutex;
 use tower_http::cors::{Any, CorsLayer};
@@ -112,41 +110,27 @@ async fn health() -> impl IntoResponse {
 //     Headers
 // --------------------------------------------------------
 
-const SESSION_KEY_HEADER: &str = "x-session-key";
-const SIGNATURE_HEADER: &str = "x-request-signature";
+const IDENTITY_HEADER: &str = "x-identity";
 
 #[derive(Debug)]
 struct AuthHeaders {
-    session_key: String,
-    signature: String,
+    identity: String,
 }
 
 impl AuthHeaders {
     fn from_headers(headers: &HeaderMap) -> Result<Self, AppError> {
-        let session_key = headers
-            .get(SESSION_KEY_HEADER)
+        let identity = headers
+            .get(IDENTITY_HEADER)
             .and_then(|v| v.to_str().ok())
             .ok_or_else(|| {
                 AppError(
                     StatusCode::UNAUTHORIZED,
-                    anyhow::anyhow!("Missing session key"),
+                    anyhow::anyhow!("Missing identity"),
                 )
-            })?;
+            })?
+            .to_string();
 
-        let signature = headers
-            .get(SIGNATURE_HEADER)
-            .and_then(|v| v.to_str().ok())
-            .ok_or_else(|| {
-                AppError(
-                    StatusCode::UNAUTHORIZED,
-                    anyhow::anyhow!("Missing signature"),
-                )
-            })?;
-
-        Ok(AuthHeaders {
-            session_key: session_key.to_string(),
-            signature: signature.to_string(),
-        })
+        Ok(AuthHeaders { identity })
     }
 }
 
@@ -191,41 +175,46 @@ struct ConfigResponse {
 async fn claim(
     State(ctx): State<RouterCtx>,
     headers: HeaderMap,
+    Json(wallet_blobs): Json<[Blob; 2]>,
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
-    send(ctx, BlackJackAction::Claim, auth).await
+    send(ctx, BlackJackAction::Claim, auth, wallet_blobs).await
 }
 
 async fn init(
     State(ctx): State<RouterCtx>,
     headers: HeaderMap,
+    Json(wallet_blobs): Json<[Blob; 2]>,
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
-    send(ctx, BlackJackAction::Init, auth).await
+    send(ctx, BlackJackAction::Init, auth, wallet_blobs).await
 }
 
 async fn hit(
     State(ctx): State<RouterCtx>,
     headers: HeaderMap,
+    Json(wallet_blobs): Json<[Blob; 2]>,
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
-    send(ctx, BlackJackAction::Hit, auth).await
+    send(ctx, BlackJackAction::Hit, auth, wallet_blobs).await
 }
 
 async fn stand(
     State(ctx): State<RouterCtx>,
     headers: HeaderMap,
+    Json(wallet_blobs): Json<[Blob; 2]>,
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
-    send(ctx, BlackJackAction::Stand, auth).await
+    send(ctx, BlackJackAction::Stand, auth, wallet_blobs).await
 }
 
 async fn double_down(
     State(ctx): State<RouterCtx>,
     headers: HeaderMap,
+    Json(wallet_blobs): Json<[Blob; 2]>,
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
-    send(ctx, BlackJackAction::DoubleDown, auth).await
+    send(ctx, BlackJackAction::DoubleDown, auth, wallet_blobs).await
 }
 
 async fn get_config(State(ctx): State<RouterCtx>) -> impl IntoResponse {
@@ -238,75 +227,14 @@ async fn send(
     ctx: RouterCtx,
     action: BlackJackAction,
     auth: AuthHeaders,
+    wallet_blobs: [Blob; 2],
 ) -> Result<impl IntoResponse, AppError> {
-    let endpoint = match action {
-        BlackJackAction::Init => "init",
-        BlackJackAction::Hit => "hit",
-        BlackJackAction::Stand => "stand",
-        BlackJackAction::DoubleDown => "double_down",
-        BlackJackAction::Claim => "claim",
-    };
-
-    // Verify signature using ECDSA
-    let public_key = PublicKey::from_slice(&hex::decode(&auth.session_key).map_err(|_| {
-        AppError(
-            StatusCode::UNAUTHORIZED,
-            anyhow::anyhow!("Invalid public key format"),
-        )
-    })?)
-    .map_err(|_| {
-        AppError(
-            StatusCode::UNAUTHORIZED,
-            anyhow::anyhow!("Invalid public key"),
-        )
-    })?;
-
-    let signature = Signature::from_der(&hex::decode(&auth.signature).map_err(|_| {
-        AppError(
-            StatusCode::UNAUTHORIZED,
-            anyhow::anyhow!("Invalid signature format"),
-        )
-    })?)
-    .map_err(|_| {
-        AppError(
-            StatusCode::UNAUTHORIZED,
-            anyhow::anyhow!("Invalid signature"),
-        )
-    })?;
-
-    // Create message hash
-    let message_hash = sha256::Hash::hash(endpoint.as_bytes());
-    let message = Message::from_digest(message_hash.to_byte_array());
-
-    // Verify the signature
-    let secp = Secp256k1::new();
-    secp.verify_ecdsa(&message, &signature, &public_key)
-        .map_err(|e| {
-            AppError(
-                StatusCode::UNAUTHORIZED,
-                anyhow::anyhow!("Invalid ecdsa signature: {e:#?}"),
-            )
-        })?;
-
-    let account = auth.session_key.clone();
     let is_claim = matches!(action, BlackJackAction::Claim);
 
-    let identity = Identity(format!("{}@{}", account, ctx.blackjack_cn));
-    // get random
-    let random = rand::random::<u64>();
+    let identity = Identity(auth.identity);
 
-    // Create the EcdsaBlob
-    let ecdsa_blob = Secp256k1Blob {
-        identity: identity.clone(),
-        data: message_hash.to_byte_array(),
-        public_key: public_key.serialize(),
-        signature: signature.serialize_compact(),
-    };
-
-    let mut blobs = vec![
-        action.with_id(random).as_blob(ctx.blackjack_cn.clone()),
-        ecdsa_blob.as_blob(),
-    ];
+    let mut blobs = wallet_blobs.into_iter().collect::<Vec<_>>();
+    blobs.push(action.as_blob(ctx.blackjack_cn.clone()));
 
     // Add Hyllar transfer blob for claim action
     if is_claim {
@@ -369,33 +297,4 @@ async fn send(
         }
     })
     .await?
-}
-
-#[derive(Debug, borsh::BorshSerialize, borsh::BorshDeserialize)]
-pub struct Secp256k1Blob {
-    pub identity: Identity,
-    pub data: [u8; 32],
-    pub public_key: [u8; 33],
-    pub signature: [u8; 64],
-}
-
-impl Secp256k1Blob {
-    pub fn as_blob(&self) -> Blob {
-        <Self as ContractAction>::as_blob(self, "secp256k1".into(), None, None)
-    }
-}
-
-impl ContractAction for Secp256k1Blob {
-    fn as_blob(
-        &self,
-        contract_name: ContractName,
-        _caller: Option<BlobIndex>,
-        _callees: Option<Vec<BlobIndex>>,
-    ) -> Blob {
-        #[allow(clippy::expect_used)]
-        Blob {
-            contract_name,
-            data: BlobData(borsh::to_vec(self).expect("failed to encode EcdsaBlob")),
-        }
-    }
 }

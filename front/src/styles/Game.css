@@ -1,8 +1,8 @@
-.session-key-container {
+.address-container {
   margin-bottom: 20px;
 }
 
-.session-key-container .counter-label {
+.address-container .counter-label {
   display: block;
   margin-bottom: 5px;
   font-size: 14px;
@@ -10,7 +10,7 @@
   text-align: center;
 }
 
-.session-key-container .session-key {
+.address-container .session-key {
   font-size: 12px;
   padding: 8px;
   background-color: #000;

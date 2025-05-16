@@ -11,7 +11,6 @@ use alloc::{
 use borsh::{io::Error, BorshDeserialize, BorshSerialize};
 use rand::Rng;
 use rand_seeder::{SipHasher, SipRng};
-use sdk::secp256k1::CheckSecp256k1;
 use serde::{Deserialize, Serialize};
 
 use hyle_hyllar::HyllarAction;
@@ -22,43 +21,32 @@ pub mod client;
 
 impl sdk::ZkContract for BlackJack {
     /// Entry point of the contract's logic
-    fn execute(&mut self, contract_input: &sdk::Calldata) -> RunResult {
+    fn execute(&mut self, calldata: &sdk::Calldata) -> RunResult {
         // Parse contract inputs
-        let (action, ctx) = sdk::utils::parse_raw_calldata::<UniqueAction>(contract_input)?;
+        let (action, ctx) = sdk::utils::parse_raw_calldata::<BlackJackAction>(calldata)?;
 
-        let user = &contract_input.identity;
+        let user = &calldata.identity;
 
-        let Some(tx_ctx) = contract_input.tx_ctx.as_ref() else {
+        let Some(tx_ctx) = calldata.tx_ctx.as_ref() else {
             return Err("Missing tx context necessary for this contract".to_string());
         };
 
-        // Verify that the data matches the action
-        let expected_data = match action.action {
-            BlackJackAction::Init => "init",
-            BlackJackAction::Hit => "hit",
-            BlackJackAction::Stand => "stand",
-            BlackJackAction::DoubleDown => "double_down",
-            BlackJackAction::Claim => "claim",
-        };
-
-        CheckSecp256k1::new(contract_input, expected_data.as_bytes()).expect()?;
-
         // Execute the given action
-        let res = match action.action {
+        let res = match action {
             BlackJackAction::Init => self.new_game(user, &tx_ctx.block_hash)?,
             BlackJackAction::Hit => self.hit(user, &tx_ctx.block_hash)?,
             BlackJackAction::Stand => self.stand(user)?,
             BlackJackAction::DoubleDown => self.double_down(user)?,
             BlackJackAction::Claim => {
                 // Find the Hyllar transfer blob
-                let transfer_blob_index = contract_input
+                let transfer_blob_index = calldata
                     .blobs
                     .iter()
                     .position(|(_, b)| b.contract_name == ContractName("hyllar".to_string()))
                     .ok_or_else(|| "Missing Hyllar transfer blob".to_string())?;
 
                 let transfer_action = sdk::utils::parse_structured_blob::<HyllarAction>(
-                    &contract_input.blobs,
+                    &calldata.blobs,
                     &sdk::BlobIndex(transfer_blob_index),
                 )
                 .ok_or_else(|| "Failed to decode Hyllar transfer action".to_string())?
@@ -130,12 +118,6 @@ pub struct BlackJack {
     pub balances: BTreeMap<Identity, u32>,
 }
 
-#[derive(Serialize, Deserialize, BorshSerialize, BorshDeserialize, Debug, Clone, PartialEq)]
-pub struct UniqueAction {
-    pub id: u64, // random, to have a different blob hash, unused in contract
-    pub action: BlackJackAction,
-}
-
 /// Enum representing possible calls to the contract functions.
 #[derive(Serialize, Deserialize, BorshSerialize, BorshDeserialize, Debug, Clone, PartialEq)]
 pub enum BlackJackAction {
@@ -147,12 +129,6 @@ pub enum BlackJackAction {
 }
 
 impl BlackJackAction {
-    pub fn with_id(self, id: u64) -> UniqueAction {
-        UniqueAction { id, action: self }
-    }
-}
-
-impl UniqueAction {
     pub fn as_blob(&self, contract_name: sdk::ContractName) -> sdk::Blob {
         sdk::Blob {
             contract_name,
