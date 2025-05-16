@@ -37,7 +37,7 @@ interface GameProps {
 }
 
 const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
-  const { wallet, logout, stage, error: authError, registerSessionKey, createIdentityBlobs, cleanExpiredSessionKey } = useWallet();
+  const { wallet, logout, stage, registerSessionKey, createIdentityBlobs, cleanExpiredSessionKey } = useWallet();
   const [playerHand, setPlayerHand] = useState<CardType[]>([]);
   const [dealerHand, setDealerHand] = useState<CardType[]>([]);
   const [gameOver, setGameOver] = useState(false);
@@ -631,7 +631,7 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
                               Please send funds to your session key, then claim them
                               <br />
                               <a 
-                                href={`${import.meta.env.VITE_FAUCET_COOKIE_CLICKER_BASE_URL}/?wallet=${wallet?.address}`}
+                                href={`${import.meta.env.VITE_FAUCET_URL}/?wallet=${wallet?.address}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="faucet-link"
