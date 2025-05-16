@@ -1,0 +1,323 @@
+.ad-popup {
+  position: absolute;
+  width: 450px;
+  height: auto;
+  min-height: 300px;
+  background-color: #c0c0c0;
+  border: 3px solid;
+  border-color: #fff #808080 #808080 #fff;
+  box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.5);
+  font-family: "MS Sans Serif", Arial, sans-serif;
+  color: #000;
+  overflow: hidden;
+  user-select: none;
+  will-change: transform;
+}
+
+.ad-title-bar {
+  height: 35px;
+  background: linear-gradient(to right, #800000, #ff0000);
+  color: #fff;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  cursor: move;
+  text-shadow: 1px 1px 1px #000;
+  text-transform: uppercase;
+  font-size: 16px;
+}
+
+.ad-controls {
+  display: flex;
+}
+
+.ad-close {
+  width: 28px;
+  height: 28px;
+  background-color: #c0c0c0;
+  border: 2px solid;
+  border-color: #fff #808080 #808080 #fff;
+  font-weight: bold;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ad-close:hover {
+  background-color: #ff0000;
+  color: #fff;
+}
+
+.ad-content {
+  padding: 15px;
+  text-align: center;
+  overflow: hidden;
+}
+
+/* Shared styles for ad content */
+.ad-content h2 {
+  font-size: 18px;
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #ff0000;
+  text-transform: uppercase;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
+}
+
+.ad-button {
+  background: linear-gradient(to bottom, #ffff00, #ffa500);
+  border: 2px solid;
+  border-color: #fff #808080 #808080 #fff;
+  padding: 8px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #ff0000;
+  text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  margin: 15px 0;
+  text-transform: uppercase;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.ad-button:hover {
+  background: linear-gradient(to bottom, #ffa500, #ff8c00);
+}
+
+.ad-button:active {
+  border-color: #808080 #fff #fff #808080;
+  box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.ad-disclaimer {
+  font-size: 8px;
+  color: #808080;
+  margin-top: 15px;
+}
+
+/* Blinking text animation */
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+.blink-text {
+  animation: blink 1s infinite;
+  font-weight: bold;
+  color: #ff0000;
+}
+
+/* Progress bar animation */
+.progress-bar {
+  width: 100%;
+  height: 20px;
+  background-color: #fff;
+  border: 2px solid;
+  border-color: #808080 #fff #fff #808080;
+  margin: 10px 0;
+  overflow: hidden;
+}
+
+@keyframes progress {
+  0% { width: 0; }
+  100% { width: 100%; }
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(to right, #00ff00, #008000);
+  animation: progress 10s linear;
+}
+
+/* Specific ad type styling */
+
+/* Casino bonus styling */
+.casino-bonus {
+  background: linear-gradient(to bottom, #000080, #0000ff);
+  color: #fff;
+}
+
+.bonus-amount {
+  font-size: 36px;
+  font-weight: bold;
+  color: #ffff00;
+  text-shadow: 2px 2px 2px #ff0000, -2px -2px 2px #ff0000;
+  margin: 10px 0;
+}
+
+/* Congratulations styling */
+.congratulations {
+  background: linear-gradient(to bottom, #ffff00, #ffd700);
+  color: #000080;
+}
+
+/* Download now styling */
+.download-now {
+  background: linear-gradient(to bottom, #ffffff, #f0f0f0);
+  border: 3px solid #ff0000;
+}
+
+/* Hot singles styling */
+.hot-singles {
+  background: linear-gradient(to bottom, #ff69b4, #ff1493);
+  color: #fff;
+}
+
+.aliens-grid {
+  display: flex;
+  justify-content: space-around;
+  margin: 15px 0;
+}
+
+.alien-profile {
+  width: 80px;
+  height: 80px;
+  background-color: #00ff00;
+  border-radius: 50%;
+  border: 3px solid #ffffff;
+  background-image: radial-gradient(circle, transparent, rgba(0, 0, 0, 0.3)), 
+                   linear-gradient(to bottom, #00ff00, #008000);
+  position: relative;
+}
+
+.alien-profile::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 15px;
+  height: 15px;
+  background-color: #000;
+  border-radius: 50%;
+  box-shadow: 30px 0 0 #000;
+}
+
+.alien-profile::after {
+  content: '';
+  position: absolute;
+  bottom: 25px;
+  left: 35px;
+  width: 10px;
+  height: 5px;
+  background-color: #000;
+  border-radius: 50%;
+}
+
+/* Orange Fields styling */
+.orange-fields {
+  background: linear-gradient(to bottom, #FFA500, #FF8C00);
+  color: #000;
+}
+
+.product-name {
+  font-size: 24px;
+  font-weight: bold;
+  color: #006400;
+  text-shadow: 1px 1px 1px #fff;
+  letter-spacing: 1px;
+}
+
+.product-image {
+  width: 150px;
+  height: 120px;
+  margin: 15px auto;
+  background-color: #8B4513;
+  border: 2px solid #663300;
+  position: relative;
+  overflow: hidden;
+  background-image: linear-gradient(to bottom, #FF8C00, #CD853F);
+}
+
+.product-image::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(circle at 30% 30%, #FFA500 2px, transparent 3px),
+    radial-gradient(circle at 70% 40%, #FFA500 2px, transparent 3px),
+    radial-gradient(circle at 40% 70%, #FFA500 2px, transparent 3px),
+    radial-gradient(circle at 60% 60%, #FFA500 2px, transparent 3px);
+  background-size: 30px 30px;
+}
+
+.product-image::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background-color: rgba(139, 69, 19, 0.7);
+}
+
+.price {
+  font-size: 18px;
+  font-weight: bold;
+  color: #006400;
+  text-shadow: 1px 1px 1px #fff;
+  background-color: rgba(255, 255, 255, 0.7);
+  padding: 5px;
+  border-radius: 5px;
+  margin: 10px auto;
+  max-width: 80%;
+}
+
+/* Free money styling */
+.free-money {
+  background: linear-gradient(to bottom, #008000, #006400);
+  color: #fff;
+}
+
+/* Mars storm styling */
+.mars-storm {
+  background: linear-gradient(to bottom, #8B4513, #A52A2A);
+  color: #fff;
+}
+
+.storm-animation {
+  width: 100%;
+  height: 100px;
+  margin: 15px 0;
+  background-image: linear-gradient(to right, transparent, rgba(222, 184, 135, 0.5), transparent);
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes dust {
+  0% { transform: translateX(-100%) rotate(0deg); }
+  100% { transform: translateX(100%) rotate(360deg); }
+}
+
+.storm-animation::before {
+  content: '';
+  position: absolute;
+  width: 150%;
+  height: 150%;
+  top: -25%;
+  left: -25%;
+  background-image: 
+    radial-gradient(circle, rgba(222, 184, 135, 0.8) 1px, transparent 1px),
+    radial-gradient(circle, rgba(222, 184, 135, 0.6) 2px, transparent 2px),
+    radial-gradient(circle, rgba(222, 184, 135, 0.4) 3px, transparent 3px);
+  background-size: 20px 20px, 30px 30px, 40px 40px;
+  animation: dust 8s linear infinite;
+}
+
+/* Secret strategy styling */
+.secret-strategy {
+  background: linear-gradient(to bottom, #000000, #2F4F4F);
+  color: #fff;
+}
+
+.secret-text {
+  font-style: italic;
+  color: #FFD700;
+  margin: 10px 0;
+} 
