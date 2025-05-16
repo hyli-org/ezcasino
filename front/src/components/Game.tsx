@@ -5,8 +5,25 @@ import Cow from '../components/Cow';
 import { gameService } from '../services/gameService';
 import { GameState } from '../types/game';
 import DesktopShortcut from './DesktopShortcut';
-import { HyleWallet, sessionKeyService, useWallet } from 'hyle-wallet';
+import { HyleWallet, useWallet } from 'hyle-wallet';
 import '../styles/Game.css';
+import { WindowsLoader } from './WindowsLoader';
+
+const funnyLoadingMessages = [
+  "Shuffling the virtual deck...",
+  "Dealing you in...",
+  "Polishing the casino chips...",
+  "Checking the dealer's sleeves for aces...",
+  "Calculating odds (they're in your favor, maybe)...",
+  "Inflating the virtual tires on the money truck...",
+  "Teaching the dealer to count (past 21)...",
+  "Finding a dealer who doesn't look like a Bond villain...",
+  "Placing your bets (don't worry, it's only virtual money... for now)...",
+  "Waiting for the pit boss's approval...",
+  "Warming up the random number generator...",
+  "Don't hit on 17... unless the dealer is a psychic...",
+  "Dusting off the high roller suite..."
+];
 
 type Suit = '♠' | '♣' | '♥' | '♦';
 type CardType = {
@@ -20,7 +37,7 @@ interface GameProps {
 }
 
 const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
-  const { wallet } = useWallet();
+  const { wallet, logout, stage, error: authError, registerSessionKey, createIdentityBlobs, cleanExpiredSessionKey } = useWallet();
   const [playerHand, setPlayerHand] = useState<CardType[]>([]);
   const [dealerHand, setDealerHand] = useState<CardType[]>([]);
   const [gameOver, setGameOver] = useState(false);
@@ -41,14 +58,15 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
   const [showShutdown, setShowShutdown] = useState(false);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const [password, setPassword] = useState('password123');
+  const [currentFunnyMessage, setCurrentFunnyMessage] = useState("");
 
   // Surveiller les changements de wallet pour détecter la déconnexion
   useEffect(() => {
     console.log('Wallet object changed:', wallet);
-    if (!wallet && gameService.getPrivateKey()) {
-      gameService.clearSession();
+    if (wallet && cleanExpiredSessionKey) {
+      cleanExpiredSessionKey();
     }
-  }, [wallet]);
+  }, [wallet, cleanExpiredSessionKey]);
 
   const convertToCard = (value: number): CardType => {
     const suits: Suit[] = ['♠', '♣', '♥', '♦'];
@@ -93,14 +111,14 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
       }
       const privateKey = gameService.getPrivateKey();
       if (!privateKey) {
-        throw new Error('No session key found');
+        throw new Error('No session key found. Please create one via the game menu.');
       }
       setIsLoading(true);
       setError(null);
       setShowClaimButton(false);
-      const wallet_blobs = sessionKeyService.useSessionKey(wallet.username, privateKey);
-      const gameState = await gameService.initGame(wallet_blobs, wallet.address);
-      updateGameState(gameState);
+      const wallet_blobs = createIdentityBlobs();
+      const gameStateResult = await gameService.initGame(wallet_blobs, wallet.address);
+      updateGameState(gameStateResult);
       setShowStartGame(false);
       setError(null);
     } catch (err: any) {
@@ -126,9 +144,9 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
       }
       setIsLoading(true);
       setError(null);
-      const wallet_blobs = sessionKeyService.useSessionKey(wallet.username, privateKey);
-      const gameState = await gameService.hit(wallet_blobs, wallet.address);
-      updateGameState(gameState);
+      const wallet_blobs = createIdentityBlobs();
+      const gameStateResult = await gameService.hit(wallet_blobs, wallet.address);
+      updateGameState(gameStateResult);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to hit. Please try again.';
       setError(errorMessage);
@@ -149,9 +167,9 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
       }
       setIsLoading(true);
       setError(null);
-      const wallet_blobs = sessionKeyService.useSessionKey(wallet.username, privateKey);
-      const gameState = await gameService.stand(wallet_blobs, wallet.address);
-      updateGameState(gameState);
+      const wallet_blobs = createIdentityBlobs();
+      const gameStateResult = await gameService.stand(wallet_blobs, wallet.address);
+      updateGameState(gameStateResult);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to stand. Please try again.';
       setError(errorMessage);
@@ -172,9 +190,9 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
       }
       setIsLoading(true);
       setError(null);
-      const wallet_blobs = sessionKeyService.useSessionKey(wallet.username, privateKey);
-      const gameState = await gameService.doubleDown(wallet_blobs, wallet.address);
-      updateGameState(gameState);
+      const wallet_blobs = createIdentityBlobs();
+      const gameStateResult = await gameService.doubleDown(wallet_blobs, wallet.address);
+      updateGameState(gameStateResult);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to double down. Please try again.';
       setError(errorMessage);
@@ -195,9 +213,9 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
       }
       setIsLoading(true);
       setError(null);
-      const wallet_blobs = sessionKeyService.useSessionKey(wallet.username, privateKey);
-      const gameState = await gameService.claim(wallet_blobs, wallet.address);
-      updateGameState(gameState, true);
+      const wallet_blobs = createIdentityBlobs();
+      const gameStateResult = await gameService.claim(wallet_blobs, wallet.address);
+      updateGameState(gameStateResult, true);
       setShowClaimButton(false);
       setGameOver(true);
     } catch (err: any) {
@@ -298,14 +316,38 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
     }
   };
 
-  const handleNewSessionKey = () => {
-    if (!wallet) {
-      throw new Error('Wallet not connected');
+  const handleNewSessionKey = async () => {
+    if (!wallet || !registerSessionKey) {
+      setError("Wallet not connected or session key registration unavailable.");
+      return;
     }
-    gameService.clearSession();
-    gameService.initialize(wallet, password)
-    startNewGame();
+    try {
+      setIsLoading(true);
+      setError(null);
+      gameService.clearSession();
+
+      const expiration = Date.now() + (7 * 24 * 60 * 60 * 1000); // 7 days
+      const whitelist = ["blackjack", "hyllar"]; // Example whitelist
+
+      const { sessionKey } = await registerSessionKey(password, expiration, whitelist);
+
+      gameService.setSessionPrivateKey(sessionKey.privateKey);
+      
+      await startNewGame();
+      setShowGameMenu(false);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to create new session key.';
+      setError(formatErrorMessage(errorMessage));
+      console.error('Error creating new session key:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDisconnect = () => {
+    logout();
     setShowGameMenu(false);
+    gameService.clearSession();
   };
 
   const handleErrorClose = () => {
@@ -351,11 +393,49 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
     onBackgroundChange(theme === 'day' ? 'night' : 'day');
   };
 
+  const renderCustomWalletButton = ({ onClick }: { onClick: () => void }) => (
+    <button className="win95-button" onClick={onClick} style={{ padding: '10px 20px', fontSize: '1rem' }}>
+      {wallet ? "Log Out from Custom" : "Login or Signup"}
+    </button>
+  );
+
+  const showAuthLoader = stage === 'submitting' || stage === 'blobSent';
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | undefined = undefined;
+
+    if (showAuthLoader) {
+      // Set initial message
+      const randomIndex = Math.floor(Math.random() * funnyLoadingMessages.length);
+      setCurrentFunnyMessage(funnyLoadingMessages[randomIndex]);
+
+      // Start interval to rotate messages
+      intervalId = setInterval(() => {
+        const newRandomIndex = Math.floor(Math.random() * funnyLoadingMessages.length);
+        setCurrentFunnyMessage(funnyLoadingMessages[newRandomIndex]);
+      }, 2500); // Change message every 2.5 seconds
+    } else {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    }
+
+    // Cleanup function to clear interval on component unmount or when showAuthLoader becomes false
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [showAuthLoader]); // Re-run effect when showAuthLoader changes
+
+  let loaderMessage = "";
+  if (showAuthLoader) {
+    loaderMessage = currentFunnyMessage;
+  }
+
   return (
     <>
-      <div style={{ position: 'absolute', top: '10px', left: '10px', padding: '20px' }}>
-        <HyleWallet providers={['password', 'google', 'github', 'x']}/>
-      </div>
+      {showAuthLoader && <WindowsLoader message={loaderMessage} />}
       <VisualEffects isWin={showWinEffect} isLose={showLoseEffect} />
       {showBSOD ? (
         <div className="bsod" onClick={handleBSODClick}>
@@ -439,6 +519,11 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
                     <div className="menu-option" onClick={handleNewSessionKey}>
                       New session key
                     </div>
+                    {wallet && (
+                      <div className="menu-option" onClick={handleDisconnect}>
+                        Disconnect
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -494,16 +579,22 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
                 </div>
               </div>
 
-              {!wallet && !error && (
+              {!wallet && !error && !showAuthLoader && (
                 <div className="message-overlay">
                   <div className="welcome-message">
                     <h2>Welcome to EZ Casino!</h2>
                     <p>Please connect your wallet to start playing.</p>
+                    <div style={{ marginTop: '20px' }}>
+                      <HyleWallet 
+                        providers={['password', 'google', 'github', 'x']}
+                        button={renderCustomWalletButton} 
+                      />
+                    </div>
                   </div>
                 </div>
               )}
 
-              {wallet && !gameService.getPrivateKey() && !error && (
+              {wallet && !gameService.getPrivateKey() && !error && !showAuthLoader && (
                 <div className="message-overlay">
                   <div className="welcome-message">
                     <h2>Welcome to EZ Casino {wallet.username}!</h2>
@@ -522,7 +613,7 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
                 </div>
               )}
 
-              {error && (
+              {error && !showAuthLoader && (
                 <div className="message-overlay">
                   <div className="error">
                     <div className="error-title-bar">
@@ -553,7 +644,12 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
                       </div>
                       {showClaimButton && (
                         <button className="claim-button" onClick={handleClaim} disabled={isLoading}>
-                          Claim
+                          Deposit
+                        </button>
+                      )}
+                      {error && error.includes("finished game") && (
+                        <button className="win95-button" onClick={startNewGame} disabled={isLoading}>
+                          NEW GAME
                         </button>
                       )}
                     </div>
