@@ -21,7 +21,7 @@ use hyle_modules::{
 };
 use prometheus::Registry;
 use sdk::api::NodeInfo;
-use std::{env, sync::Arc};
+use std::sync::Arc;
 use tracing::{error, info, warn};
 
 mod app;
@@ -53,13 +53,11 @@ async fn main() -> Result<()> {
 
     info!("Starting app with config: {:?}", &config);
 
-    let node_url = env::var("NODE_URL").unwrap_or_else(|_| "http://localhost:4321".to_string());
-    let indexer_url =
-        env::var("INDEXER_URL").unwrap_or_else(|_| "http://localhost:4321".to_string());
-    let node_client = Arc::new(NodeApiHttpClient::new(node_url).context("build node client")?);
-    let indexer_client =
-        Arc::new(IndexerApiHttpClient::new(indexer_url).context("build indexer client")?);
-
+    let node_client =
+        Arc::new(NodeApiHttpClient::new(config.node_url.clone()).context("build node client")?);
+    let indexer_client = Arc::new(
+        IndexerApiHttpClient::new(config.indexer_url.clone()).context("build indexer client")?,
+    );
     match init::init_node(
         node_client.clone(),
         indexer_client.clone(),
