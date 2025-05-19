@@ -1,12 +1,29 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Card from './Card';
 import VisualEffects from './VisualEffects';
 import Cow from '../components/Cow';
 import { gameService } from '../services/gameService';
 import { GameState } from '../types/game';
-import { authService } from '../services/authService';
 import DesktopShortcut from './DesktopShortcut';
+import { HyliWallet, useWallet } from 'hyli-wallet';
 import '../styles/Game.css';
+import { WindowsLoader } from './WindowsLoader';
+
+const funnyLoadingMessages = [
+  "Shuffling the virtual deck...",
+  "Dealing you in...",
+  "Polishing the casino chips...",
+  "Checking the dealer's sleeves for aces...",
+  "Calculating odds (they're in your favor, maybe)...",
+  "Inflating the virtual tires on the money truck...",
+  "Teaching the dealer to count (past 21)...",
+  "Finding a dealer who doesn't look like a Bond villain...",
+  "Placing your bets (don't worry, it's only virtual money... for now)...",
+  "Waiting for the pit boss's approval...",
+  "Warming up the random number generator...",
+  "Don't hit on 17... unless the dealer is a psychic...",
+  "Dusting off the high roller suite..."
+];
 
 type Suit = '♠' | '♣' | '♥' | '♦';
 type CardType = {
@@ -20,10 +37,12 @@ interface GameProps {
 }
 
 const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
+  const { wallet, logout, stage, registerSessionKey, createIdentityBlobs, cleanExpiredSessionKey } = useWallet();
   const [playerHand, setPlayerHand] = useState<CardType[]>([]);
   const [dealerHand, setDealerHand] = useState<CardType[]>([]);
   const [gameOver, setGameOver] = useState(false);
   const [currentBet, setCurrentBet] = useState(10);
+  const [showStartGame, setShowStartGame] = useState(true);
   const [windowPosition, setWindowPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -37,9 +56,17 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
   const [showBSOD, setShowBSOD] = useState(false);
   const [showStartMenu, setShowStartMenu] = useState(false);
   const [showShutdown, setShowShutdown] = useState(false);
-  const [contractName, setContractName] = useState<string>('');
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
-  const isInitializedRef = useRef(false);
+  const [password, setPassword] = useState('password123');
+  const [currentFunnyMessage, setCurrentFunnyMessage] = useState("");
+
+  // Surveiller les changements de wallet pour détecter la déconnexion
+  useEffect(() => {
+    console.log('Wallet object changed:', wallet);
+    if (wallet && cleanExpiredSessionKey) {
+      cleanExpiredSessionKey();
+    }
+  }, [wallet, cleanExpiredSessionKey]);
 
   const convertToCard = (value: number): CardType => {
     const suits: Suit[] = ['♠', '♣', '♥', '♦'];
@@ -79,24 +106,26 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
 
   const startNewGame = async () => {
     try {
+      if (!wallet) {
+        throw new Error('Wallet not connected');
+      }
+      const privateKey = gameService.getPrivateKey();
+      if (!privateKey) {
+        throw new Error('No session key found. Please create one via the game menu.');
+      }
       setIsLoading(true);
       setError(null);
       setShowClaimButton(false);
-      // Ne générer une nouvelle sessionKey que si nous n'en avons pas déjà une
-      if (!authService.getSessionKey()) {
-        authService.generateSessionKey();
-      }
-      const gameState = await gameService.initGame();
-      updateGameState(gameState);
-      setError(null); // Clear any existing errors after successful initialization
+      const wallet_blobs = createIdentityBlobs();
+      const gameStateResult = await gameService.initGame(wallet_blobs, wallet.address);
+      updateGameState(gameStateResult);
+      setShowStartGame(false);
+      setError(null);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to initialize game. Please try again.';
-      // Only set error if we have a session key or if it's a specific error
-      if (authService.getSessionKey() || errorMessage.includes('Insufficient balance')) {
+      if (errorMessage.includes('Insufficient balance')) {
         setError(errorMessage);
-        if (errorMessage.includes('Insufficient balance')) {
-          setShowClaimButton(true);
-        }
+        setShowClaimButton(true);
       }
       console.error('Error initializing game:', err);
     } finally {
@@ -106,10 +135,18 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
 
   const hit = async () => {
     try {
+      if (!wallet) {
+        throw new Error('Wallet not connected');
+      }
+      const privateKey = gameService.getPrivateKey();
+      if (!privateKey) {
+        throw new Error('No session key found');
+      }
       setIsLoading(true);
       setError(null);
-      const gameState = await gameService.hit();
-      updateGameState(gameState);
+      const wallet_blobs = createIdentityBlobs();
+      const gameStateResult = await gameService.hit(wallet_blobs, wallet.address);
+      updateGameState(gameStateResult);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to hit. Please try again.';
       setError(errorMessage);
@@ -121,10 +158,18 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
 
   const stand = async () => {
     try {
+      if (!wallet) {
+        throw new Error('Wallet not connected');
+      }
+      const privateKey = gameService.getPrivateKey();
+      if (!privateKey) {
+        throw new Error('No session key found');
+      }
       setIsLoading(true);
       setError(null);
-      const gameState = await gameService.stand();
-      updateGameState(gameState);
+      const wallet_blobs = createIdentityBlobs();
+      const gameStateResult = await gameService.stand(wallet_blobs, wallet.address);
+      updateGameState(gameStateResult);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to stand. Please try again.';
       setError(errorMessage);
@@ -136,10 +181,18 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
 
   const doubleDown = async () => {
     try {
+      if (!wallet) {
+        throw new Error('Wallet not connected');
+      }
+      const privateKey = gameService.getPrivateKey();
+      if (!privateKey) {
+        throw new Error('No session key found');
+      }
       setIsLoading(true);
       setError(null);
-      const gameState = await gameService.doubleDown();
-      updateGameState(gameState);
+      const wallet_blobs = createIdentityBlobs();
+      const gameStateResult = await gameService.doubleDown(wallet_blobs, wallet.address);
+      updateGameState(gameStateResult);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to double down. Please try again.';
       setError(errorMessage);
@@ -151,10 +204,18 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
 
   const handleClaim = async () => {
     try {
+      if (!wallet) {
+        throw new Error('Wallet not connected');
+      }
+      const privateKey = gameService.getPrivateKey();
+      if (!privateKey) {
+        throw new Error('No session key found');
+      }
       setIsLoading(true);
       setError(null);
-      const gameState = await gameService.claim();
-      updateGameState(gameState, true);
+      const wallet_blobs = createIdentityBlobs();
+      const gameStateResult = await gameService.claim(wallet_blobs, wallet.address);
+      updateGameState(gameStateResult, true);
       setShowClaimButton(false);
       setGameOver(true);
     } catch (err: any) {
@@ -211,48 +272,6 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
     };
   }, []);
 
-  // Initialiser la partie au chargement
-  useEffect(() => {
-    const initGame = async () => {
-      try {
-        setIsLoading(true);
-        setShowClaimButton(false);
-
-        // Get configuration first
-        const config = await gameService.getConfig();
-        if (!config.contract_name) {
-          throw new Error('Contract name not received from server');
-        }
-        setContractName(config.contract_name);
-
-        // Si nous avons déjà une sessionKey, l'utiliser directement
-        const existingSessionKey = authService.getSessionKey();
-        isInitializedRef.current = true;
-        if (existingSessionKey) {
-          const gameState = await gameService.initGame();
-          updateGameState(gameState);
-        }
-      } catch (err: any) {
-        console.error('Error initializing game:', err);
-        // Set a default contract name if we couldn't get it from the server
-        if (!contractName) {
-          setContractName('blackjack');
-        }
-        // Only set error if we have a session key or if it's a specific error
-        if (authService.getSessionKey() || err.message?.includes('Insufficient balance')) {
-          setError(err.message || 'Failed to initialize game. Please try again.');
-          if (err.message?.includes('Insufficient balance')) {
-            setShowClaimButton(true);
-          }
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initGame();
-  }, []);
-
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.target instanceof HTMLElement && e.target.closest('.win95-title-bar')) {
       setIsDragging(true);
@@ -284,23 +303,51 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
     setIsDragging(false);
   };
 
-  const copySessionKey = async () => {
-    const sessionKey = authService.getSessionKey();
-    if (!sessionKey) return;
-
-    try {
-      await navigator.clipboard.writeText(`${sessionKey}@${contractName}`);
-      setCopyMessage('Copied!');
-      setTimeout(() => setCopyMessage(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
+  const copyAddress = async () => {
+    if (wallet?.address) {
+      try {
+        await navigator.clipboard.writeText(wallet.address);
+        setCopyMessage('Copied!');
+        setTimeout(() => setCopyMessage(null), 2000);
+      } catch (err) {
+        console.error('Failed to copy:', err);
+      }
+      return;
     }
   };
 
-  const handleNewSessionKey = () => {
-    authService.clearSession();
-    startNewGame();
+  const handleNewSessionKey = async () => {
+    if (!wallet || !registerSessionKey) {
+      setError("Wallet not connected or session key registration unavailable.");
+      return;
+    }
+    try {
+      setIsLoading(true);
+      setError(null);
+      gameService.clearSession();
+
+      const expiration = Date.now() + (7 * 24 * 60 * 60 * 1000); // 7 days
+      const whitelist = ["blackjack", "hyllar"]; // Example whitelist
+
+      const { sessionKey } = await registerSessionKey(password, expiration, whitelist);
+
+      gameService.setSessionPrivateKey(sessionKey.privateKey);
+      
+      await startNewGame();
+      setShowGameMenu(false);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to create new session key.';
+      setError(formatErrorMessage(errorMessage));
+      console.error('Error creating new session key:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDisconnect = () => {
+    logout();
     setShowGameMenu(false);
+    gameService.clearSession();
   };
 
   const handleErrorClose = () => {
@@ -346,8 +393,49 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
     onBackgroundChange(theme === 'day' ? 'night' : 'day');
   };
 
+  const renderCustomWalletButton = ({ onClick }: { onClick: () => void }) => (
+    <button className="win95-button" onClick={onClick} style={{ padding: '10px 20px', fontSize: '1rem' }}>
+      {wallet ? "Log Out from Custom" : "Login or Signup"}
+    </button>
+  );
+
+  const showAuthLoader = stage === 'submitting' || stage === 'blobSent';
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | undefined = undefined;
+
+    if (showAuthLoader) {
+      // Set initial message
+      const randomIndex = Math.floor(Math.random() * funnyLoadingMessages.length);
+      setCurrentFunnyMessage(funnyLoadingMessages[randomIndex]);
+
+      // Start interval to rotate messages
+      intervalId = setInterval(() => {
+        const newRandomIndex = Math.floor(Math.random() * funnyLoadingMessages.length);
+        setCurrentFunnyMessage(funnyLoadingMessages[newRandomIndex]);
+      }, 2500); // Change message every 2.5 seconds
+    } else {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    }
+
+    // Cleanup function to clear interval on component unmount or when showAuthLoader becomes false
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [showAuthLoader]); // Re-run effect when showAuthLoader changes
+
+  let loaderMessage = "";
+  if (showAuthLoader) {
+    loaderMessage = currentFunnyMessage;
+  }
+
   return (
     <>
+      {showAuthLoader && <WindowsLoader message={loaderMessage} />}
       <VisualEffects isWin={showWinEffect} isLose={showLoseEffect} />
       {showBSOD ? (
         <div className="bsod" onClick={handleBSODClick}>
@@ -431,6 +519,11 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
                     <div className="menu-option" onClick={handleNewSessionKey}>
                       New session key
                     </div>
+                    {wallet && (
+                      <div className="menu-option" onClick={handleDisconnect}>
+                        Disconnect
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -439,14 +532,14 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
             </div>
 
             <div className="game-container">
-              <div className="session-key-container">
-                <span className="counter-label">Session Key</span>
+              <div className="address-container">
+                <span className="counter-label">Address</span>
                 <div
-                  className="led-display session-key"
-                  onClick={copySessionKey}
+                  className="led-display"
+                  onClick={copyAddress}
                   style={{ cursor: 'pointer' }}
                 >
-                  {truncateSessionKey(authService.getSessionKey(), `@${contractName}`)}
+                  {wallet?.address || "Not connected"}
                   {copyMessage && <span className="copy-message">{copyMessage}</span>}
                 </div>
               </div>
@@ -486,11 +579,33 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
                 </div>
               </div>
 
-              {!authService.getSessionKey() && !error && (
+              {!wallet && !error && !showAuthLoader && (
                 <div className="message-overlay">
                   <div className="welcome-message">
                     <h2>Welcome to EZ Casino!</h2>
-                    <p>To start playing, you need to create a session key.</p>
+                    <p>Please connect your wallet to start playing.</p>
+                    <div style={{ marginTop: '20px' }}>
+                      <HyliWallet
+                        providers={['password', 'google', 'github', 'x']}
+                        button={renderCustomWalletButton} 
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {wallet && !gameService.getPrivateKey() && !error && !showAuthLoader && (
+                <div className="message-overlay">
+                  <div className="welcome-message">
+                    <h2>Welcome to EZ Casino {wallet.username}!</h2>
+                    <p>Now that you're connected, create a session key to start playing.</p>
+                    <input
+                      type="password"
+                      placeholder="Enter your wallet password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="win95-input"
+                    />
                     <button className="win95-button" onClick={handleNewSessionKey}>
                       Create Session Key
                     </button>
@@ -498,7 +613,7 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
                 </div>
               )}
 
-              {error && (
+              {error && !showAuthLoader && (
                 <div className="message-overlay">
                   <div className="error">
                     <div className="error-title-bar">
@@ -516,7 +631,7 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
                               Please send funds to your session key, then claim them
                               <br />
                               <a 
-                                href={`${import.meta.env.VITE_FAUCET_COOKIE_CLICKER_BASE_URL}/?wallet=${authService.getSessionKey()}@${contractName}`}
+                                href={`${import.meta.env.VITE_FAUCET_URL}/?wallet=${wallet?.address}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="faucet-link"
@@ -529,7 +644,12 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
                       </div>
                       {showClaimButton && (
                         <button className="claim-button" onClick={handleClaim} disabled={isLoading}>
-                          Claim
+                          Deposit
+                        </button>
+                      )}
+                      {error && error.includes("finished game") && (
+                        <button className="win95-button" onClick={startNewGame} disabled={isLoading}>
+                          NEW GAME
                         </button>
                       )}
                     </div>
@@ -537,7 +657,14 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
                 </div>
               )}
 
-              {!error && !gameOver && (
+              {!error && showStartGame && (
+                <div className="controls">
+                  <button className="win95-button" onClick={startNewGame} disabled={isLoading}>
+                    START GAME
+                  </button>
+                </div>
+              )}
+              {!error && !showStartGame && !gameOver && gameState && (
                 <div className="controls">
                   <button className="win95-button" onClick={hit} disabled={isLoading}>
                     HIT
@@ -550,7 +677,7 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
                   </button>
                 </div>
               )}
-              {!error && gameOver && (
+              {!error && !showStartGame && gameOver && (
                 <button className="win95-button" onClick={startNewGame} disabled={isLoading}>
                   DEAL
                 </button>

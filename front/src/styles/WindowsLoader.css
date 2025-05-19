@@ -1,0 +1,110 @@
+.windows-loader-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000; /* Ensure it's above other elements */
+  font-family: "MS Sans Serif", Arial, sans-serif;
+}
+
+.windows-loader-container {
+  background-color: #c0c0c0;
+  border: 2px solid;
+  border-top-color: #dfdfdf;
+  border-left-color: #dfdfdf;
+  border-right-color: #808080;
+  border-bottom-color: #808080;
+  box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.2);
+  width: 350px;
+  padding: 2px; /* For the inner border effect */
+}
+
+.windows-loader-title-bar {
+  background-color: #000080; /* Dark blue */
+  color: white;
+  padding: 3px 5px;
+  font-weight: bold;
+  text-align: left;
+}
+
+.windows-loader-content {
+  padding: 20px;
+  text-align: center;
+}
+
+.windows-loader-content p {
+  margin-bottom: 20px;
+  font-size: 12px;
+  color: #000;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 20px;
+  border: 1px solid #808080;
+  background-color: #fff;
+  padding: 2px;
+  box-shadow: inset 1px 1px 0px #808080, inset -1px -1px 0px #dfdfdf;
+  margin-bottom: 20px;
+  overflow: hidden; /* To contain the blocks during animation */
+}
+
+.progress-bar-blocks {
+  width: 100%; /* Should be wider than container to allow smooth scrolling of blocks */
+  height: 100%;
+  display: flex;
+  /* Remove the fixed translateX and let animation handle it */
+  animation: progressBarAnimation 1.5s infinite linear;
+}
+
+.progress-block {
+  min-width: 15px; /* Use min-width so they don't shrink */
+  height: 100%;
+  background-color: #000080; /* Dark blue */
+  margin-right: 3px; /* Space between blocks */
+}
+
+/* Adjust animation to ensure blocks traverse the container properly */
+@keyframes progressBarAnimation {
+  0% {
+    transform: translateX(-100%); /* Start with all blocks off-screen to the left */
+  }
+  100% {
+    /* The total width of blocks + margins needs to traverse the container width. */
+    /* For 6 blocks of 15px width and 3px margin: (6 * 15) + (5 * 3) = 90 + 15 = 105px of blocks. */
+    /* To make them appear to scroll across the 300px+ container, they need to travel that distance. */
+    /* Let's make it a bit more than the container width to ensure they exit. */
+    transform: translateX(350px); 
+  }
+}
+
+.cancel-button {
+  padding: 5px 15px;
+  background-color: #c0c0c0;
+  border: 2px solid;
+  border-top-color: #dfdfdf;
+  border-left-color: #dfdfdf;
+  border-right-color: #808080;
+  border-bottom-color: #808080;
+  box-shadow: 1px 1px 0px #000; /* Simpler shadow for Win95 style */
+  font-size: 12px;
+}
+
+.cancel-button:active {
+  border-top-color: #808080;
+  border-left-color: #808080;
+  border-right-color: #dfdfdf;
+  border-bottom-color: #dfdfdf;
+  box-shadow: inset 1px 1px 0px #000000; /* Inset shadow on click */
+  padding: 6px 14px 4px 16px; /* Slight move effect */
+}
+
+.cancel-button:disabled {
+  color: #808080;
+  text-shadow: 1px 1px 0px #dfdfdf; /* Embossed effect for disabled text */
+} 

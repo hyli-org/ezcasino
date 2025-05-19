@@ -1,28 +1,48 @@
-import { authService } from './authService';
 import { GameState } from '../types/game';
+import { Blob } from "hyle";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const SESSION_PRIVATE_KEY_STORAGE_KEY = 'ezcasino_private_key';
 
-class GameService {
-  private async makeRequest(endpoint: string, method: string = 'GET') {
-    const sessionKey = authService.getSessionKey();
-    if (!sessionKey) {
-      throw new Error('No active session');
+class GameService {  
+  private privateKey: string | null = null;
+
+  setSessionPrivateKey(privateKey: string): void {
+    this.privateKey = privateKey;
+    localStorage.setItem(SESSION_PRIVATE_KEY_STORAGE_KEY, privateKey);
+  }
+
+  getPrivateKey(): string | null {
+    if (!this.privateKey) {
+      const storedPrivateKey = localStorage.getItem(SESSION_PRIVATE_KEY_STORAGE_KEY);
+      if (storedPrivateKey) {
+        this.privateKey = storedPrivateKey;
+      }
     }
+    return this.privateKey;
+  }
 
-    const action = endpoint.split('/').pop() || '';
-    const signature = authService.signMessage(action);
+  clearSession() {
+    localStorage.removeItem(SESSION_PRIVATE_KEY_STORAGE_KEY);
+    this.privateKey = null;
+  }
 
+  private async makeRequest(endpoint: string, method: string = 'GET', body?: any, identity?: string) {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      'X-Session-Key': sessionKey,
-      'X-Request-Signature': signature
+      'X-Identity': identity || '',
     };
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const fetchOptions: RequestInit = {
       method,
       headers,
-    });
+    };
+
+    if (body !== undefined) {
+      fetchOptions.body = JSON.stringify(body);
+    }
+    console.log('Making request to:', `${API_BASE_URL}${endpoint}`, fetchOptions);
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, fetchOptions);
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -32,24 +52,24 @@ class GameService {
     return response.json();
   }
 
-  async initGame(): Promise<GameState> {
-    return this.makeRequest('/init', 'POST');
+  async initGame(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
+    return this.makeRequest('/init', 'POST', wallet_blobs, identity);
   }
 
-  async hit(): Promise<GameState> {
-    return this.makeRequest('/hit', 'POST');
+  async hit(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
+    return this.makeRequest('/hit', 'POST', wallet_blobs, identity);
   }
 
-  async stand(): Promise<GameState> {
-    return this.makeRequest('/stand', 'POST');
+  async stand(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
+    return this.makeRequest('/stand', 'POST', wallet_blobs, identity);
   }
 
-  async doubleDown(): Promise<GameState> {
-    return this.makeRequest('/double_down', 'POST');
+  async doubleDown(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
+    return this.makeRequest('/double_down', 'POST', wallet_blobs, identity);
   }
 
-  async claim(): Promise<GameState> {
-    return this.makeRequest('/claim', 'POST');
+  async claim(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
+    return this.makeRequest('/claim', 'POST', wallet_blobs, identity);
   }
 
   async getConfig(): Promise<{ contract_name: string }> {
