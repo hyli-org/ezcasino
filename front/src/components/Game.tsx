@@ -9,6 +9,7 @@ import { HyleWallet, useWallet } from 'hyli-wallet';
 import '../styles/Game.css';
 import { WindowsLoader } from './WindowsLoader';
 import BigRedButton from './BigRedButton';
+import Hyli from './Hyli';
 
 const funnyLoadingMessages = [
   "Shuffling the virtual deck...",
@@ -61,6 +62,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   const [password, setPassword] = useState('password123');
   const [currentFunnyMessage, setCurrentFunnyMessage] = useState("");
   const [showBigRedButton, setShowBigRedButton] = useState(false);
+  const [showHyliExplorer, setShowHyliExplorer] = useState(false);
 
   // Surveiller les changements de wallet pour détecter la déconnexion
   useEffect(() => {
@@ -376,15 +378,18 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
         }
         break;
       case 'adware':
-        // Toggle adware feature - we'll need to add this from App component
+        // Toggle adware feature
         window.dispatchEvent(new CustomEvent('toggle-adware'));
-        break;
-      case 'msn-chat':
-        // Toggle MSN Messenger feature - we'll need to add this from App component
-        window.dispatchEvent(new CustomEvent('toggle-msn-chat'));
         break;
       case 'oranj-tokens':
         setShowBigRedButton(true);
+        break;
+      case 'hyli-explorer':
+        setShowHyliExplorer(true);
+        break;
+      case 'msn-chat':
+        // Toggle MSN Chat
+        window.dispatchEvent(new CustomEvent('toggle-msn-chat'));
         break;
       case 'shutdown':
         setShowShutdown(true);
@@ -452,6 +457,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       {showAuthLoader && <WindowsLoader message={loaderMessage} />}
       <VisualEffects isWin={showWinEffect} isLose={showLoseEffect} />
       {showBigRedButton && <BigRedButton onClose={() => setShowBigRedButton(false)} />}
+      {showHyliExplorer && <Hyli onClose={() => setShowHyliExplorer(false)} />}
       {showBSOD ? (
         <div className="bsod" onClick={handleBSODClick}>
           <div className="bsod-content">
@@ -725,13 +731,17 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                   <img src="/adware-icon.svg" alt="Adware" />
                   Get $1000 FREE
                 </div>
-                <div className="start-menu-item" onClick={() => handleStartMenuItemClick('msn-chat')}>
-                  <img src="/msn-logo.svg" alt="MSN Messenger" />
-                  MSN Messenger
-                </div>
                 <div className="start-menu-item" onClick={() => handleStartMenuItemClick('oranj-tokens')}>
                   <img src="/button.png" alt="Big Red Button" />
                   Big Red Button
+                </div>
+                <div className="start-menu-item" onClick={() => handleStartMenuItemClick('hyli-explorer')}>
+                  <img src="/hyli.svg" alt="Hyli Explorer" />
+                  Hyli Explorer
+                </div>
+                <div className="start-menu-item" onClick={() => handleStartMenuItemClick('msn-chat')}>
+                  <img src="/msn-logo.svg" alt="MSN Chat" />
+                  MSN Messenger
                 </div>
                 <div className="start-menu-item" onClick={() => handleStartMenuItemClick('shutdown')}>
                   <img src="/shutdown-icon.png" alt="Shut Down" />

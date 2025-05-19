@@ -7,6 +7,7 @@ import WeatherWidget from './components/WeatherWidget';
 import AdManager from './components/AdManager';
 import BigRedButton from './components/BigRedButton';
 import MsnChat from './components/MsnChat';
+import Hyli from './components/Hyli';
 
 function App() {
   // Default to 'day' theme only since we're removing the toggle
@@ -15,6 +16,7 @@ function App() {
   const [isAdwareActive, setIsAdwareActive] = useState(false);
   const [showBigRedButton, setShowBigRedButton] = useState(false);
   const [showMsnChat, setShowMsnChat] = useState(false);
+  const [showHyliExplorer, setShowHyliExplorer] = useState(false);
   const [selectionBox, setSelectionBox] = useState<{
     startX: number;
     startY: number;
@@ -41,23 +43,29 @@ function App() {
       toggleAdware();
     };
     
-    window.addEventListener('toggle-adware', handleToggleAdware);
-    
-    return () => {
-      window.removeEventListener('toggle-adware', handleToggleAdware);
-    };
-  }, []);
-
-  // Add event listener for toggle-msn-chat event dispatched from Game component
-  useEffect(() => {
     const handleToggleMsnChat = () => {
       toggleMsnChat();
     };
     
+    window.addEventListener('toggle-adware', handleToggleAdware);
     window.addEventListener('toggle-msn-chat', handleToggleMsnChat);
     
     return () => {
+      window.removeEventListener('toggle-adware', handleToggleAdware);
       window.removeEventListener('toggle-msn-chat', handleToggleMsnChat);
+    };
+  }, []);
+
+  // Add event listener for toggle-hyli-explorer event
+  useEffect(() => {
+    const handleToggleHyliExplorer = () => {
+      toggleHyliExplorer();
+    };
+    
+    window.addEventListener('toggle-hyli-explorer', handleToggleHyliExplorer);
+    
+    return () => {
+      window.removeEventListener('toggle-hyli-explorer', handleToggleHyliExplorer);
     };
   }, []);
 
@@ -131,6 +139,10 @@ function App() {
 
   const toggleMsnChat = () => {
     setShowMsnChat(!showMsnChat);
+  };
+
+  const toggleHyliExplorer = () => {
+    setShowHyliExplorer(!showHyliExplorer);
   };
 
   return (
@@ -211,6 +223,16 @@ function App() {
           />
         </div>
 
+        {/* Hyli Explorer Desktop Shortcut */}
+        <div style={{ position: 'absolute', top: '420px', left: '100px' }}>
+          <DesktopShortcut 
+            icon="/hyli.svg" 
+            label="Hyli Explorer" 
+            onClick={toggleHyliExplorer}
+            labelStyle={{ color: '#FFFFFF', textShadow: '1px 1px 1px rgba(0,0,0,0.8)' }}
+          />
+        </div>
+
         {/* Weather Widget Window */}
         {showWeatherWidget && (
           <WeatherWidget onClose={() => setShowWeatherWidget(false)} />
@@ -224,6 +246,11 @@ function App() {
         {/* MSN Chat Window */}
         {showMsnChat && (
           <MsnChat onClose={() => setShowMsnChat(false)} />
+        )}
+
+        {/* Hyli Explorer Window */}
+        {showHyliExplorer && (
+          <Hyli onClose={() => setShowHyliExplorer(false)} />
         )}
 
         {/* Ad Popups */}

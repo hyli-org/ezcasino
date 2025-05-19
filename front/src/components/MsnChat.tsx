@@ -39,7 +39,6 @@ const ChatWindow: React.FC<{
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [inputMessage, setInputMessage] = useState('');
-  const [showMenu, setShowMenu] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatWindowRef = useRef<HTMLDivElement>(null);
   const { contact, position, messages, isMinimized } = chatWindow;
@@ -65,7 +64,7 @@ const ChatWindow: React.FC<{
   }, [messages]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.target instanceof HTMLElement && e.target.closest('.win95-title-bar')) {
+    if (e.target instanceof HTMLElement && e.target.closest('.msn-title-bar')) {
       setIsDragging(true);
       const rect = e.currentTarget.getBoundingClientRect();
       setDragStart({
@@ -109,8 +108,14 @@ const ChatWindow: React.FC<{
     }
   };
 
-  const toggleMenu = () => {
-    setShowMenu(!showMenu);
+  const getStatusIcon = (status: Contact['status']) => {
+    switch (status) {
+      case 'online': return <span className="status-circle online-status"></span>;
+      case 'away': return <span className="status-circle away-status"></span>;
+      case 'busy': return <span className="status-circle busy-status"></span>;
+      case 'offline': return <span className="status-circle offline-status"></span>;
+      default: return <span className="status-circle offline-status"></span>;
+    }
   };
 
   if (isMinimized) {
@@ -119,8 +124,9 @@ const ChatWindow: React.FC<{
 
   return (
     <div 
-      className="msn-win95-window"
+      className={`msn-chat-window-container ${isDragging ? 'dragging' : ''}`}
       style={{
+        position: 'absolute',
         transform: `translate(${position.x}px, ${position.y}px)`,
         cursor: isDragging ? 'grabbing' : 'default',
         width: '400px',
@@ -129,30 +135,24 @@ const ChatWindow: React.FC<{
       ref={chatWindowRef}
       onMouseDown={handleMouseDown}
     >
-      <div className="win95-title-bar">
-        <span>Chat with {contact.name}</span>
+      <div className="win95-title-bar msn-title-bar">
+        <div className="title-content">
+          <img src="/msn-logo.svg" alt="MSN" className="msn-logo" />
+          <span>{contact.name}</span>
+        </div>
         <div className="window-controls">
-          <button className="minimize" onClick={() => onMinimize(contact.id)}>-</button>
-          <button className="maximize">□</button>
-          <button className="close" onClick={() => onClose(contact.id)}>×</button>
+          <button className="win95-btn minimize" title="Minimize" onClick={() => onMinimize(contact.id)}>_</button>
+          <button className="win95-btn maximize" title="Maximize">□</button>
+          <button className="win95-btn close" onClick={() => onClose(contact.id)} title="Close">✕</button>
         </div>
       </div>
-
-      <div className="menu-bar">
-        <div className="menu-item" onClick={toggleMenu} style={{ position: 'relative' }}>
-          File
-          {showMenu && (
-            <div className="menu-dropdown">
-              <div className="menu-option" onClick={() => onClose(contact.id)}>
-                Close Chat
-              </div>
-            </div>
-          )}
-        </div>
-        <span className="menu-item">Edit</span>
-        <span className="menu-item">Actions</span>
-        <span className="menu-item">Tools</span>
-        <span className="menu-item">Help</span>
+      
+      <div className="msn-menu-bar">
+        <div className="msn-menu-item">File</div>
+        <div className="msn-menu-item">Edit</div>
+        <div className="msn-menu-item">Actions</div>
+        <div className="msn-menu-item">Tools</div>
+        <div className="msn-menu-item">Help</div>
       </div>
       
       <div className="msn-toolbar">
@@ -185,87 +185,85 @@ const ChatWindow: React.FC<{
         </div>
       </div>
       
-      <div className="game-container">
-        <div className="msn-classic-chat">
-          <div className="classic-chat-main">
-            <div className="to-field">
-              <div className="to-label">To:</div>
-              <div className="to-value">{contact.name}</div>
-            </div>
-            
-            <div className="chat-message-area">
-              {/* This area will display the conversation */}
-              {messages.map(message => (
-                <div 
-                  key={message.id} 
-                  className={`message ${message.isOwn ? 'own-message' : 'other-message'}`}
-                >
-                  <div className="message-sender">{message.sender}:</div>
-                  <div className="message-content">{message.content}</div>
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-            
-            <div className="chat-input-container">
-              <div className="formatting-toolbar">
-                <button className="formatting-btn font-btn">A</button>
-                <button className="formatting-btn emoji-btn">😊</button>
-                <button className="formatting-btn voice-clip-btn">🔊</button>
-                <button className="formatting-btn emoji-selector">😊</button>
-                <div className="extra-buttons">
-                  <button className="formatting-btn">🎮</button>
-                  <button className="formatting-btn">🎲</button>
-                  <button className="formatting-btn">🎨</button>
-                </div>
-              </div>
-              
-              <div className="input-area">
-                <textarea 
-                  className="message-input"
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Type a message..."
-                />
-                <div className="input-buttons">
-                  <button 
-                    className="msn-win95-button"
-                    onClick={handleSendMessage}
-                    disabled={inputMessage.trim() === ''}
-                  >
-                    Send
-                  </button>
-                  <button className="msn-win95-button">
-                    Search
-                  </button>
-                </div>
-              </div>
-            </div>
+      <div className="msn-classic-chat">
+        <div className="classic-chat-main">
+          <div className="to-field">
+            <div className="to-label">To:</div>
+            <div className="to-value">{contact.name}</div>
           </div>
           
-          <div className="classic-chat-sidebar">
-            <div className="display-pic-container user-dp">
-              <img 
-                src="/online-alien.svg" 
-                alt="Your Display Picture"
-                className="display-pic" 
-              />
+          <div className="chat-message-area">
+            {/* This area will display the conversation */}
+            {messages.map(message => (
+              <div 
+                key={message.id} 
+                className={`message ${message.isOwn ? 'own-message' : 'other-message'}`}
+              >
+                <div className="message-sender">{message.sender}:</div>
+                <div className="message-content">{message.content}</div>
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+          
+          <div className="chat-input-container">
+            <div className="formatting-toolbar">
+              <button className="formatting-btn font-btn">A</button>
+              <button className="formatting-btn emoji-btn">😊</button>
+              <button className="formatting-btn voice-clip-btn">🔊</button>
+              <button className="formatting-btn emoji-selector">😊</button>
+              <div className="extra-buttons">
+                <button className="formatting-btn">🎮</button>
+                <button className="formatting-btn">🎲</button>
+                <button className="formatting-btn">🎨</button>
+              </div>
             </div>
             
-            <div className="display-pic-container contact-dp">
-              <img 
-                src={contact.status === 'offline' ? "/offline-alien.svg" : "/online-alien.svg"}
-                alt={`${contact.name}'s Display Picture`}
-                className="display-pic" 
+            <div className="input-area">
+              <textarea 
+                className="message-input"
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Type a message..."
               />
+              <div className="input-buttons">
+                <button 
+                  className="send-button"
+                  onClick={handleSendMessage}
+                  disabled={inputMessage.trim() === ''}
+                >
+                  Send
+                </button>
+                <button className="search-button">
+                  Search
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      
-        <div className="msn-footer">
-          Click for new Emoticons and Theme Packs from Blue Mountain
+        
+        <div className="classic-chat-sidebar">
+          <div className="display-pic-container user-dp">
+            <img 
+              src="/online-alien.svg" 
+              alt="Your Display Picture"
+              className="display-pic" 
+            />
+          </div>
+          
+          <div className="display-pic-container contact-dp">
+            <img 
+              src={contact.status === 'offline' ? "/offline-alien.svg" : "/online-alien.svg"}
+              alt={`${contact.name}'s Display Picture`}
+              className="display-pic" 
+            />
+          </div>
         </div>
+      </div>
+      
+      <div className="msn-footer">
+        Click for new Emoticons and Theme Packs from Blue Mountain
       </div>
     </div>
   );
@@ -278,7 +276,6 @@ const MsnChat: React.FC<MsnChatProps> = ({ onClose }) => {
   const [chatWindows, setChatWindows] = useState<ChatWindow[]>([]);
   const [userStatus, setUserStatus] = useState<'online' | 'away' | 'busy' | 'offline'>('online');
   const [statusMessage, setStatusMessage] = useState('');
-  const [showMenu, setShowMenu] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([
     { id: '1', name: 'Buzz Aldrin', status: 'busy', avatar: '👨‍🚀' },
     { id: '2', name: 'Mars Rover', status: 'online', avatar: '🤖' },
@@ -309,7 +306,7 @@ const MsnChat: React.FC<MsnChatProps> = ({ onClose }) => {
   }, [isDragging, dragStart]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.target instanceof HTMLElement && e.target.closest('.win95-title-bar')) {
+    if (e.target instanceof HTMLElement && e.target.closest('.msn-title-bar')) {
       setIsDragging(true);
       const rect = e.currentTarget.getBoundingClientRect();
       setDragStart({
@@ -496,190 +493,170 @@ const MsnChat: React.FC<MsnChatProps> = ({ onClose }) => {
     );
   };
 
-  const toggleMenu = () => {
-    setShowMenu(!showMenu);
-  };
-
   return (
     <>
-      <div 
-        className="win95-window"
-        style={{
-          transform: `translate(${position.x}px, ${position.y}px)`,
-          cursor: isDragging ? 'grabbing' : 'default',
-          transition: isDragging ? 'none' : 'transform 0.1s ease-out'
-        }}
-        ref={chatWindowRef}
-        onMouseDown={handleMouseDown}
-      >
-        <div className="win95-title-bar">
+    <div 
+      className={`msn-chat ${isDragging ? 'dragging' : ''}`}
+      style={{
+        transform: `translate(${position.x}px, ${position.y}px)`,
+        cursor: isDragging ? 'grabbing' : 'default'
+      }}
+      ref={chatWindowRef}
+      onMouseDown={handleMouseDown}
+    >
+        <div className="win95-title-bar msn-title-bar">
+        <div className="title-content">
+          <img src="/msn-logo.svg" alt="MSN" className="msn-logo" />
           <span>MSN Messenger</span>
-          <div className="window-controls">
-            <button className="minimize" title="Minimize">-</button>
-            <button className="maximize" title="Maximize">□</button>
-            <button className="close" onClick={onClose} title="Close">×</button>
-          </div>
         </div>
-        
-        <div className="menu-bar">
-          <div 
-            className="menu-item"
-            onClick={toggleMenu}
-            style={{ position: 'relative' }}
-          >
-            File
-            {showMenu && (
-              <div className="menu-dropdown">
-                <div className="menu-option">
-                  Send Instant Message
-                </div>
-                <div className="menu-option" onClick={onClose}>
-                  Close
-                </div>
+        <div className="window-controls">
+          <button className="win95-btn minimize" title="Minimize">_</button>
+          <button className="win95-btn maximize" title="Maximize">□</button>
+          <button className="win95-btn close" onClick={onClose} title="Close">✕</button>
+        </div>
+      </div>
+      
+      <div className="msn-menu-bar">
+        <div className="msn-menu-item">File</div>
+        <div className="msn-menu-item">Contacts</div>
+        <div className="msn-menu-item">Actions</div>
+        <div className="msn-menu-item">Tools</div>
+        <div className="msn-menu-item">Help</div>
+      </div>
+      
+      <div className="msn-content">
+          <div className="msn-main-view">
+            <div className="msn-sidebar">
+              <div className="sidebar-icon">
+                <img src="/online-alien.svg" alt="Online Alien" width="20" height="20" />
               </div>
-            )}
-          </div>
-          <span className="menu-item">Edit</span>
-          <span className="menu-item">View</span>
-          <span className="menu-item">Tools</span>
-          <span className="menu-item">Help</span>
-        </div>
-        
-        <div className="game-container">
-          <div className="msn-content">
-            <div className="msn-main-view">
-              <div className="msn-sidebar">
-                <div className="sidebar-icon">
-                  <img src="/online-alien.svg" alt="Online Alien" width="20" height="20" />
+              <div className="sidebar-icon">✉️</div>
+              <div className="sidebar-icon">☎️</div>
+              <div className="sidebar-icon">🌐</div>
+              <div className="sidebar-icon">🎮</div>
+              <div className="sidebar-icon">🎵</div>
+              <div className="sidebar-icon">🔍</div>
+              <div className="sidebar-icon">⚙️</div>
+            </div>
+            
+            <div className="msn-contacts-view">
+              <div className="msn-status-bar">
+                <div className="user-status">
+                  <span className="user-icon">
+                    <img src="/online-alien.svg" alt="Online Alien" width="16" height="16" />
+                  </span>
+                  <span className="status-text">My Status:</span>
+                  <span className="user-name">xXx_M4r5_xXx (Online)</span>
                 </div>
-                <div className="sidebar-icon">✉️</div>
-                <div className="sidebar-icon">☎️</div>
-                <div className="sidebar-icon">🌐</div>
-                <div className="sidebar-icon">🎮</div>
-                <div className="sidebar-icon">🎵</div>
-                <div className="sidebar-icon">🔍</div>
-                <div className="sidebar-icon">⚙️</div>
+                <div className="email-status">
+                  <span className="email-icon">✉️</span>
+                  <span className="email-text">No new transmissions from Earth</span>
+                </div>
               </div>
               
-              <div className="msn-contacts-view">
-                <div className="msn-status-bar">
-                  <div className="user-status">
-                    <span className="user-icon">
-                      <img src="/online-alien.svg" alt="Online Alien" width="16" height="16" />
-                    </span>
-                    <span className="status-text">My Status:</span>
-                    <span className="user-name">xXx_M4r5_xXx (Online)</span>
+              <div className="contacts-groups">
+                <div className="contact-group">
+                  <div className="group-header">
+                    <span className="group-toggle">▼</span>
+                    <span className="group-name">Online ({getOnlineContacts().length})</span>
                   </div>
-                  <div className="email-status">
-                    <span className="email-icon">✉️</span>
-                    <span className="email-text">No new transmissions from Earth</span>
-                  </div>
-                </div>
-                
-                <div className="contacts-groups">
-                  <div className="contact-group">
-                    <div className="group-header">
-                      <span className="group-toggle">▼</span>
-                      <span className="group-name">Online ({getOnlineContacts().length})</span>
-                    </div>
-                    <div className="group-contacts">
-                      {getOnlineContacts().map(contact => (
-                        <div 
-                          key={contact.id} 
-                          className="contact-item"
-                          onClick={() => openChatWindow(contact)}
-                        >
-                          <div className="contact-avatar">
-                            <img src="/online-alien.svg" alt="Online Alien" width="16" height="16" />
-                          </div>
-                          <div className="contact-name-status">
-                            <span className="contact-name">{contact.name}</span>
-                            {contact.status !== 'online' && (
-                              <span className="contact-status-text">({contact.status})</span>
-                            )}
-                          </div>
+                  <div className="group-contacts">
+                    {getOnlineContacts().map(contact => (
+                      <div 
+                        key={contact.id} 
+                        className="contact-item"
+                        onClick={() => openChatWindow(contact)}
+                      >
+                        <div className="contact-avatar">
+                          <img src="/online-alien.svg" alt="Online Alien" width="16" height="16" />
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="contact-group">
-                    <div className="group-header">
-                      <span className="group-toggle">▼</span>
-                      <span className="group-name">Not Online ({getOfflineContacts().length})</span>
-                    </div>
-                    <div className="group-contacts">
-                      {getOfflineContacts().map(contact => (
-                        <div 
-                          key={contact.id} 
-                          className="contact-item"
-                          onClick={() => openChatWindow(contact)}
-                        >
-                          <div className="contact-avatar">
-                            <img src="/offline-alien.svg" alt="Offline Alien" width="16" height="16" />
-                          </div>
-                          <span className="contact-name">{contact.email || contact.name}</span>
+                        <div className="contact-name-status">
+                          <span className="contact-name">{contact.name}</span>
+                          {contact.status !== 'online' && (
+                            <span className="contact-status-text">({contact.status})</span>
+                          )}
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
                 
-                <div className="quick-actions">
-                  <div className="action-label">I want to...</div>
-                  <div className="action-item">
-                    <span className="action-icon">➕</span>
-                    <span className="action-text">Add an Alien Contact</span>
+                <div className="contact-group">
+                  <div className="group-header">
+                    <span className="group-toggle">▼</span>
+                    <span className="group-name">Not Online ({getOfflineContacts().length})</span>
                   </div>
-                  <div className="action-item">
-                    <span className="action-icon">✉️</span>
-                    <span className="action-text">Send an Interplanetary Message</span>
-                  </div>
-                  <div className="action-item">
-                    <span className="action-icon">📎</span>
-                    <span className="action-text">Send a Martian Landscape Photo</span>
-                  </div>
-                  <div className="action-item">
-                    <span className="action-icon">🎮</span>
-                    <span className="action-text">Play Zero-G Games</span>
-                  </div>
-                  <div className="action-item">
-                    <span className="action-icon">🔍</span>
-                    <span className="action-text">Search for Extraterrestrial Life</span>
-                  </div>
-                </div>
-                
-                <div className="msn-ad-banner">
-                  <div className="msn-ad-content">
-                    <div className="msn-logo-small">msn</div>
-                    <div className="ad-text">New Radiation Protection service</div>
-                    <button className="msn-ad-button">Join Mars Colony® now!</button>
+                  <div className="group-contacts">
+                    {getOfflineContacts().map(contact => (
+                      <div 
+                        key={contact.id} 
+                        className="contact-item"
+                        onClick={() => openChatWindow(contact)}
+                      >
+                        <div className="contact-avatar">
+                          <img src="/offline-alien.svg" alt="Offline Alien" width="16" height="16" />
+                        </div>
+                        <span className="contact-name">{contact.email || contact.name}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
+              
+              <div className="quick-actions">
+                <div className="action-label">I want to...</div>
+                <div className="action-item">
+                  <span className="action-icon">➕</span>
+                  <span className="action-text">Add an Alien Contact</span>
+                </div>
+                <div className="action-item">
+                  <span className="action-icon">✉️</span>
+                  <span className="action-text">Send an Interplanetary Message</span>
+                </div>
+                <div className="action-item">
+                  <span className="action-icon">📎</span>
+                  <span className="action-text">Send a Martian Landscape Photo</span>
+                </div>
+                <div className="action-item">
+                  <span className="action-icon">🎮</span>
+                  <span className="action-text">Play Zero-G Games</span>
+                </div>
+                <div className="action-item">
+                  <span className="action-icon">🔍</span>
+                  <span className="action-text">Search for Extraterrestrial Life</span>
+                </div>
+              </div>
+              
+              <div className="msn-ad-banner">
+                <div className="msn-ad-content">
+                  <div className="msn-logo-small">msn</div>
+                  <div className="ad-text">New Radiation Protection service</div>
+                  <button className="msn-ad-button">Join Mars Colony® now!</button>
+                </div>
+              </div>
             </div>
+              </div>
+            </div>
+            
+        {/* Taskbar showing minimized chats */}
+        {minimizedChats.length > 0 && (
+          <div className="msn-taskbar">
+            {minimizedChats.map(chatId => {
+              const chat = chatWindows.find(w => w.contact.id === chatId);
+              if (!chat) return null;
+              return (
+                <div 
+                  key={chatId} 
+                  className="msn-taskbar-item"
+                  onClick={() => restoreMinimizedChat(chatId)}
+                >
+                  <img src="/msn-logo.svg" alt="MSN" className="msn-logo-small" />
+                  <span className="taskbar-item-name">{chat.contact.name}</span>
+                </div>
+              );
+            })}
           </div>
-          
-          {/* Taskbar showing minimized chats */}
-          {minimizedChats.length > 0 && (
-            <div className="msn-taskbar">
-              {minimizedChats.map(chatId => {
-                const chat = chatWindows.find(w => w.contact.id === chatId);
-                if (!chat) return null;
-                return (
-                  <div 
-                    key={chatId} 
-                    className="msn-taskbar-item"
-                    onClick={() => restoreMinimizedChat(chatId)}
-                  >
-                    <img src="/msn-logo.svg" alt="MSN" className="msn-logo-small" />
-                    <span className="taskbar-item-name">{chat.contact.name}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        )}
       </div>
       
       {/* Render all chat windows */}

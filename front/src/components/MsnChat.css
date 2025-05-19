@@ -114,7 +114,6 @@
   display: flex;
   overflow: hidden;
   background-color: #ffffff;
-  height: calc(100% - 40px);
 }
 
 /* Main Contact View */
@@ -608,7 +607,7 @@
 
 .msn-classic-chat {
   display: flex;
-  height: calc(100% - 60px);
+  height: calc(100% - 130px);
   background-color: #f0f0f0;
   overflow: hidden;
 }
@@ -868,69 +867,4 @@
   width: 60px;
   margin-left: 5px;
   align-self: flex-end;
-}
-
-/* Keep the MSN-specific styling but adapt for the Win95 window structure */
-.win95-window .game-container {
-  padding: 0;
-  height: calc(100% - 44px);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* Update toolbar styles */
-.msn-toolbar {
-  display: flex;
-  align-items: center;
-  background: linear-gradient(to right, #e3efff, #c1d3ef);
-  padding: 5px 10px;
-  height: 40px;
-  border-bottom: 1px solid #9db4cd;
-}
-
-/* Update buttons for Win95 style */
-.msn-win95-button {
-  min-width: 60px;
-  padding: 3px 10px;
-  font-size: 11px;
-  background-color: #c0c0c0;
-  border: 2px solid;
-  border-color: #dfdfdf #505050 #505050 #dfdfdf;
-  color: #000;
-  text-align: center;
-  cursor: pointer;
-  outline: 1px solid #000;
-  outline-offset: -1px;
-  box-sizing: border-box;
-}
-
-.msn-win95-button:active {
-  border-color: #505050 #dfdfdf #dfdfdf #505050;
-}
-
-.msn-win95-button:disabled {
-  color: #808080;
-  text-shadow: 1px 1px #ffffff;
-  cursor: default;
-}
-
-/* Update chat window container to match Win95 style */
-.win95-window .msn-classic-chat {
-  display: flex;
-  height: calc(100% - 60px);
-  background-color: #f0f0f0;
-  overflow: hidden;
-}
-
-/* Adjust the footer styling */
-.msn-footer {
-  height: 20px;
-  background-color: #f5f5f5;
-  border-top: 1px solid #c0c0c0;
-  padding: 0 10px;
-  display: flex;
-  align-items: center;
-  font-size: 10px;
-  color: #606060;
 } 
