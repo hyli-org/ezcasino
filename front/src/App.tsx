@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Game from './components/Game';
 import './App.css';
-import { WalletProvider } from 'hyle-wallet';
+import { WalletProvider } from 'hyli-wallet';
 
 function App() {
   const [backgroundTheme, setBackgroundTheme] = useState<'day' | 'night'>('day');

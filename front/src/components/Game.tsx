@@ -5,7 +5,7 @@ import Cow from '../components/Cow';
 import { gameService } from '../services/gameService';
 import { GameState } from '../types/game';
 import DesktopShortcut from './DesktopShortcut';
-import { HyleWallet, useWallet } from 'hyle-wallet';
+import { HyliWallet, useWallet } from 'hyli-wallet';
 import '../styles/Game.css';
 import { WindowsLoader } from './WindowsLoader';
 
@@ -585,7 +585,7 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
                     <h2>Welcome to EZ Casino!</h2>
                     <p>Please connect your wallet to start playing.</p>
                     <div style={{ marginTop: '20px' }}>
-                      <HyleWallet 
+                      <HyliWallet
                         providers={['password', 'google', 'github', 'x']}
                         button={renderCustomWalletButton} 
                       />
