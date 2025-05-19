@@ -1,6 +1,5 @@
 import { GameState } from '../types/game';
 import { Blob } from "hyle";
-import { Wallet } from 'hyli-wallet';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const SESSION_PRIVATE_KEY_STORAGE_KEY = 'ezcasino_private_key';
