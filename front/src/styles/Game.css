@@ -599,3 +599,23 @@
   max-width: 80%;
   margin: 0;
 }
+
+/* Thèmes jour/nuit */
+.day-theme {
+  --theme-bg: #FFFFFF;
+  --theme-text: #000000;
+  --theme-shadow: rgba(0, 0, 0, 0.2);
+  --theme-highlight: #FFFFFF;
+}
+
+.night-theme {
+  --theme-bg: #1a1a1a;
+  --theme-text: #FFFFFF;
+  --theme-shadow: rgba(255, 255, 255, 0.1);
+  --theme-highlight: #333333;
+}
+
+.game-root {
+  background-color: var(--theme-bg);
+  color: var(--theme-text);
+}

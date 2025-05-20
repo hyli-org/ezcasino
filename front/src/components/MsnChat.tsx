@@ -108,16 +108,6 @@ const ChatWindow: React.FC<{
     }
   };
 
-  const getStatusIcon = (status: Contact['status']) => {
-    switch (status) {
-      case 'online': return <span className="status-circle online-status"></span>;
-      case 'away': return <span className="status-circle away-status"></span>;
-      case 'busy': return <span className="status-circle busy-status"></span>;
-      case 'offline': return <span className="status-circle offline-status"></span>;
-      default: return <span className="status-circle offline-status"></span>;
-    }
-  };
-
   if (isMinimized) {
     return null;
   }
@@ -274,9 +264,7 @@ const MsnChat: React.FC<MsnChatProps> = ({ onClose }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [chatWindows, setChatWindows] = useState<ChatWindow[]>([]);
-  const [userStatus, setUserStatus] = useState<'online' | 'away' | 'busy' | 'offline'>('online');
-  const [statusMessage, setStatusMessage] = useState('');
-  const [contacts, setContacts] = useState<Contact[]>([
+  const [contacts] = useState<Contact[]>([
     { id: '1', name: 'Buzz Aldrin', status: 'busy', avatar: '👨‍🚀' },
     { id: '2', name: 'Mars Rover', status: 'online', avatar: '🤖' },
     { id: '3', name: 'Xenon', status: 'online', avatar: '👽' },
@@ -460,16 +448,6 @@ const MsnChat: React.FC<MsnChatProps> = ({ onClose }) => {
         })
       );
     }, 1000 + Math.random() * 2000);
-  };
-
-  const getStatusIcon = (status: Contact['status']) => {
-    switch (status) {
-      case 'online': return <span className="status-circle online-status"></span>;
-      case 'away': return <span className="status-circle away-status"></span>;
-      case 'busy': return <span className="status-circle busy-status"></span>;
-      case 'offline': return <span className="status-circle offline-status"></span>;
-      default: return <span className="status-circle offline-status"></span>;
-    }
   };
 
   const getOnlineContacts = () => {

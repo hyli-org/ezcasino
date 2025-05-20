@@ -210,6 +210,7 @@ const AdManager: React.FC<AdManagerProps> = ({ isActive, onToggleAdware }) => {
   const closeAllPopups = () => {
     setPopups([]);
     setIsSpawning(false);
+    onToggleAdware(); // Call the parent callback to disable adware
   };
   
   // Display a "Close All" button when there are many popups
@@ -263,4 +264,4 @@ const AdManager: React.FC<AdManagerProps> = ({ isActive, onToggleAdware }) => {
   );
 };
 
-export default AdManager; 
+export default AdManager;

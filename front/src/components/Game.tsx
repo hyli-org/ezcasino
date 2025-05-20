@@ -452,7 +452,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   }
 
   return (
-    <>
+    <div className={`game-root ${theme}-theme`}>
       {showAuthLoader && <WindowsLoader message={loaderMessage} />}
       <VisualEffects isWin={showWinEffect} isLose={showLoseEffect} />
       {showBigRedButton && <BigRedButton onClose={() => setShowBigRedButton(false)} />}
@@ -501,9 +501,9 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
         </div>
       ) : (
         <>
-          <Cow className="cow1" theme="day" />
-          <Cow className="cow2" theme="day" />
-          <Cow className="cow3" theme="day" />
+          <Cow className="cow1" theme={theme} />
+          <Cow className="cow2" theme={theme} />
+          <Cow className="cow3" theme={theme} />
           <div
             className="win95-window"
             style={{
@@ -751,7 +751,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
           )}
         </>
       )}
-    </>
+    </div>
   );
 };
 
