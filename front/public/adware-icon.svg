@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <!-- Background -->
+  <rect x="0" y="0" width="48" height="48" rx="2" fill="#00BB00" stroke="#000000" stroke-width="1" />
+  
+  <!-- Dollar sign -->
+  <text x="24" y="36" font-family="Arial, sans-serif" font-size="36" font-weight="bold" text-anchor="middle" fill="#FFFF00" stroke="#FF0000" stroke-width="1">$</text>
+  
+  <!-- "FREE" text -->
+  <text x="24" y="19" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#FFFFFF" stroke="#000000" stroke-width="0.5">FREE</text>
+  
+  <!-- "1000" text -->
+  <text x="24" y="12" font-family="Arial, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" fill="#FFFFFF" stroke="#000000" stroke-width="0.5">1000</text>
+  
+  <!-- "NOW" text at bottom -->
+  <rect x="7" y="39" width="34" height="8" rx="2" fill="#FF0000" />
+  <text x="24" y="46" font-family="Arial, sans-serif" font-size="6" font-weight="bold" text-anchor="middle" fill="#FFFFFF">CLICK NOW!</text>
+  
+  <!-- Flashing stars -->
+  <path d="M6,6 L9,9 L6,12 L3,9 Z" fill="#FFFF00" transform="rotate(15, 6, 9)" />
+  <path d="M42,6 L45,9 L42,12 L39,9 Z" fill="#FFFF00" transform="rotate(-15, 42, 9)" />
+  <path d="M6,36 L9,39 L6,42 L3,39 Z" fill="#FFFF00" transform="rotate(-15, 6, 39)" />
+  <path d="M42,36 L45,39 L42,42 L39,39 Z" fill="#FFFF00" transform="rotate(15, 42, 39)" />
+</svg> 

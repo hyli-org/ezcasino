@@ -31,6 +31,9 @@ impl TxExecutorHandler for BlackJack {
     fn handle(&mut self, calldata: &Calldata) -> anyhow::Result<sdk::HyleOutput> {
         let initial_state_commitment = <Self as ZkContract>::commit(self);
         let mut res = <Self as ZkContract>::execute(self, calldata);
+        if res.is_err() {
+            return Err(anyhow!(res.err().unwrap()));
+        }
         let next_state_commitment = <Self as ZkContract>::commit(self);
         Ok(as_hyle_output(
             initial_state_commitment,

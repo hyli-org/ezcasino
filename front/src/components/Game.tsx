@@ -4,10 +4,11 @@ import VisualEffects from './VisualEffects';
 import Cow from '../components/Cow';
 import { gameService } from '../services/gameService';
 import { GameState } from '../types/game';
-import DesktopShortcut from './DesktopShortcut';
 import { HyliWallet, useWallet } from 'hyli-wallet';
 import '../styles/Game.css';
 import { WindowsLoader } from './WindowsLoader';
+import BigRedButton from './BigRedButton';
+import Hyli from './Hyli';
 
 const funnyLoadingMessages = [
   "Shuffling the virtual deck...",
@@ -32,11 +33,11 @@ type CardType = {
 };
 
 interface GameProps {
-  onBackgroundChange: (theme: 'day' | 'night') => void;
   theme: 'day' | 'night';
+  toggleWeatherWidget?: () => void;
 }
 
-const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
+const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   const { wallet, logout, stage, registerSessionKey, createIdentityBlobs, cleanExpiredSessionKey } = useWallet();
   const [playerHand, setPlayerHand] = useState<CardType[]>([]);
   const [dealerHand, setDealerHand] = useState<CardType[]>([]);
@@ -59,6 +60,8 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const [password, setPassword] = useState('password123');
   const [currentFunnyMessage, setCurrentFunnyMessage] = useState("");
+  const [showBigRedButton, setShowBigRedButton] = useState(false);
+  const [showHyliExplorer, setShowHyliExplorer] = useState(false);
 
   // Surveiller les changements de wallet pour détecter la déconnexion
   useEffect(() => {
@@ -368,6 +371,25 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
       case 'new-game':
         startNewGame();
         break;
+      case 'weather':
+        if (toggleWeatherWidget) {
+          toggleWeatherWidget();
+        }
+        break;
+      case 'adware':
+        // Toggle adware feature
+        window.dispatchEvent(new CustomEvent('toggle-adware'));
+        break;
+      case 'oranj-tokens':
+        setShowBigRedButton(true);
+        break;
+      case 'hyli-explorer':
+        setShowHyliExplorer(true);
+        break;
+      case 'msn-chat':
+        // Toggle MSN Chat
+        window.dispatchEvent(new CustomEvent('toggle-msn-chat'));
+        break;
       case 'shutdown':
         setShowShutdown(true);
         const shutdownSound = new Audio('/sounds/shutdown.mp3');
@@ -387,10 +409,6 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
     const hours = now.getHours().toString().padStart(2, '0');
     const minutes = now.getMinutes().toString().padStart(2, '0');
     return `${hours}:${minutes}`;
-  };
-
-  const toggleBackground = () => {
-    onBackgroundChange(theme === 'day' ? 'night' : 'day');
   };
 
   const renderCustomWalletButton = ({ onClick }: { onClick: () => void }) => (
@@ -437,6 +455,8 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
     <>
       {showAuthLoader && <WindowsLoader message={loaderMessage} />}
       <VisualEffects isWin={showWinEffect} isLose={showLoseEffect} />
+      {showBigRedButton && <BigRedButton onClose={() => setShowBigRedButton(false)} />}
+      {showHyliExplorer && <Hyli onClose={() => setShowHyliExplorer(false)} />}
       {showBSOD ? (
         <div className="bsod" onClick={handleBSODClick}>
           <div className="bsod-content">
@@ -481,14 +501,9 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
         </div>
       ) : (
         <>
-          <DesktopShortcut
-            icon="/background-icon.svg"
-            label="Switch Background"
-            onClick={toggleBackground}
-          />
-          <Cow className="cow1" theme={theme} />
-          <Cow className="cow2" theme={theme} />
-          <Cow className="cow3" theme={theme} />
+          <Cow className="cow1" theme="day" />
+          <Cow className="cow2" theme="day" />
+          <Cow className="cow3" theme="day" />
           <div
             className="win95-window"
             style={{
@@ -631,12 +646,11 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
                               Please send funds to your session key, then claim them
                               <br />
                               <a 
-                                href={`${import.meta.env.VITE_FAUCET_URL}/?wallet=${wallet?.address}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                                href="#"
+                                onClick={() => setShowBigRedButton(true)}
                                 className="faucet-link"
                               >
-                                Get test tokens here
+                                Earn Oranj tokens here
                               </a>
                             </>
                           )}
@@ -707,6 +721,26 @@ const Game: React.FC<GameProps> = ({ onBackgroundChange, theme }) => {
                 <div className="start-menu-item" onClick={() => handleStartMenuItemClick('new-game')}>
                   <img src="/cards-icon.png" alt="New Game" />
                   eZKasino
+                </div>
+                <div className="start-menu-item" onClick={() => handleStartMenuItemClick('weather')}>
+                  <img src="/weather-icon.svg" alt="Weather" />
+                  Mars Weather
+                </div>
+                <div className="start-menu-item" onClick={() => handleStartMenuItemClick('adware')}>
+                  <img src="/adware-icon.svg" alt="Adware" />
+                  Get $1000 FREE
+                </div>
+                <div className="start-menu-item" onClick={() => handleStartMenuItemClick('oranj-tokens')}>
+                  <img src="/button.png" alt="Big Red Button" />
+                  Big Red Button
+                </div>
+                <div className="start-menu-item" onClick={() => handleStartMenuItemClick('hyli-explorer')}>
+                  <img src="/hyli.svg" alt="Hyli Explorer" />
+                  Hyli Explorer
+                </div>
+                <div className="start-menu-item" onClick={() => handleStartMenuItemClick('msn-chat')}>
+                  <img src="/msn-logo.svg" alt="MSN Chat" />
+                  MSN Messenger
                 </div>
                 <div className="start-menu-item" onClick={() => handleStartMenuItemClick('shutdown')}>
                   <img src="/shutdown-icon.png" alt="Shut Down" />

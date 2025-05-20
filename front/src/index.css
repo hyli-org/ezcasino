@@ -1,15 +1,17 @@
 :root {
-  --win95-blue: #000080;
-  --win95-gray: #c0c0c0;
-  --win95-dark-gray: #808080;
-  --win95-light-gray: #ffffff;
-  --win95-border: #808080;
-  --win95-highlight: #ffffff;
-  --win95-shadow: #404040;
-  --win95-green: #008000;
-  --led-red: #ff0000;
-  --led-bg: #300;
-  --win95-sky: #00BFFF;
+  /* Mars-themed sandy color palette */
+  --win95-blue: #8C271E;          /* Metallic red replaces blue */
+  --win95-blue-rgb: 140, 39, 30;  /* RGB version of metallic red */
+  --win95-gray: #D2B48C;          /* Sandy tan replaces gray */
+  --win95-dark-gray: #A67B5B;     /* Darker sand/rust color */
+  --win95-light-gray: #E6DCCF;    /* Pale tan */
+  --win95-border: #A67B5B;        /* Darker sand/rust for borders */
+  --win95-highlight: #F5F1E8;     /* Lighter sand highlight */
+  --win95-shadow: #6D4C41;        /* Darker shadow with rusty undertone */
+  --win95-green: #7D874B;         /* Desert sage green */
+  --win95-led-red: #FF5722;       /* Mars-like orange-red for LED */
+  --win95-led-bg: #3E2723;        /* Darker brown for LED background */
+  --win95-sky: #7AB5D6;           /* Mars atmospheric blue */
 }
 
 * {
@@ -27,26 +29,23 @@ body {
   position: relative;
   overflow: hidden;
   transition: background 1s ease;
+  background-image: url('./assets/wallpaper.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 body.day-theme {
-  background: linear-gradient(
-    180deg,
-    var(--win95-sky) 0%,
-    var(--win95-sky) 60%,
-    #228B22 60%,
-    #228B22 100%
-  );
+  background-image: url('./assets/wallpaper.jpg');
+  background-size: cover;
+  background-position: center;
 }
 
 body.night-theme {
-  background: linear-gradient(
-    180deg,
-    #000033 0%,
-    #000033 60%,
-    #003300 60%,
-    #003300 100%
-  );
+  background-image: url('./assets/wallpaper.jpg');
+  background-size: cover;
+  background-position: center;
+  filter: brightness(0.6);
 }
 
 body.night-theme .sun {
@@ -72,60 +71,31 @@ body.night-theme .cow3 {
   opacity: 0.7;
 }
 
-/* Soleil */
+/* Sun, cows and flowers - hiding as requested */
 .sun {
-  position: fixed;
-  top: 40px;
-  right: 80px;
-  width: 100px;
-  height: 100px;
-  background: #FFD700;
-  border-radius: 50%;
-  box-shadow: 0 0 50px #FFD700;
-  z-index: -2;
+  display: none;
+  visibility: hidden;
+  width: 0;
+  height: 0;
 }
 
-.sun::before {
-  content: '';
-  position: absolute;
-  top: -20px;
-  left: -20px;
-  right: -20px;
-  bottom: -20px;
-  background: radial-gradient(circle, #FFD700 40%, transparent 70%);
-  border-radius: 50%;
+.cow1, .cow2, .cow3,
+.cow1-head, .cow2-head, .cow3-head,
+.cow1-spots, .cow2-spots, .cow3-spots {
+  display: none;
+}
+
+.flower1, .flower2, .flower3, .flower4, .flower5, 
+.flower6, .flower7, .flower8, .flower9, .flower10 {
+  display: none;
 }
 
 /* Fleurs */
-.flower1, .flower2, .flower3, .flower4, .flower5, .flower6, .flower7, .flower8, .flower9, .flower10 {
-  position: fixed;
-  width: 20px;
-  height: 20px;
-  background: #FF69B4;
-  border-radius: 50%;
-  z-index: -1;
-}
-
 .flower1::before, .flower2::before, .flower3::before, .flower4::before, .flower5::before,
-.flower6::before, .flower7::before, .flower8::before, .flower9::before, .flower10::before {
-  content: '';
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  background: #FF69B4;
-  border-radius: 50%;
-}
-
+.flower6::before, .flower7::before, .flower8::before, .flower9::before, .flower10::before,
 .flower1::after, .flower2::after, .flower3::after, .flower4::after, .flower5::after,
 .flower6::after, .flower7::after, .flower8::after, .flower9::after, .flower10::after {
-  content: '';
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  background: yellow;
-  border-radius: 50%;
-  top: 5px;
-  left: 5px;
+  display: none;
 }
 
 .flower1 { bottom: 5vh; left: 5%; transform: rotate(45deg); }
@@ -150,21 +120,9 @@ body.night-theme .cow3 {
 .flower9::before { transform: rotate(72deg); }
 .flower10::before { transform: rotate(72deg); }
 
+/* Remove the green hill overlay since Bliss wallpaper has its own */
 body::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 40vh;
-  background: radial-gradient(
-    ellipse at center,
-    #32CD32 0%,
-    #228B22 100%
-  );
-  transform: skewY(-5deg);
-  transform-origin: bottom;
-  z-index: -1;
+  display: none;
 }
 
 /* Première vache */
@@ -590,8 +548,8 @@ body::before {
 }
 
 .led-display {
-  background-color: var(--led-bg);
-  color: var(--led-red);
+  background-color: var(--win95-led-bg);
+  color: var(--win95-led-red);
   font-family: "Digital", monospace;
   padding: 2px 8px;
   border: inset 2px var(--win95-shadow);
@@ -682,4 +640,13 @@ h2 {
   color: white;
   font-size: 14px;
   margin-bottom: 8px;
+}
+
+/* Selection box */
+.selection-box {
+  position: absolute;
+  border: 1px dotted var(--win95-blue);
+  background-color: rgba(var(--win95-blue-rgb), 0.1);
+  pointer-events: none;
+  z-index: 5;
 }

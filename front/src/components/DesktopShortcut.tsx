@@ -5,13 +5,23 @@ interface DesktopShortcutProps {
   icon: string;
   label: string;
   onClick: () => void;
+  className?: string;
+  labelStyle?: React.CSSProperties;
+  iconStyle?: React.CSSProperties;
 }
 
-const DesktopShortcut: React.FC<DesktopShortcutProps> = ({ icon, label, onClick }) => {
+const DesktopShortcut: React.FC<DesktopShortcutProps> = ({ 
+  icon, 
+  label, 
+  onClick,
+  className = '',
+  labelStyle,
+  iconStyle
+}) => {
   return (
-    <div className="desktop-shortcut" onClick={onClick}>
-      <img src={icon} alt={label} className="shortcut-icon" />
-      <span className="shortcut-label">{label}</span>
+    <div className={`desktop-shortcut ${className}`} onClick={onClick}>
+      <img src={icon} alt={label} className="shortcut-icon" style={iconStyle} />
+      <span className="shortcut-label" style={labelStyle}>{label}</span>
     </div>
   );
 };

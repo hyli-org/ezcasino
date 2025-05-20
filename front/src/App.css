@@ -5,6 +5,15 @@
   text-align: center;
 }
 
+.desktop-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;
