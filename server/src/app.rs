@@ -9,8 +9,8 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use blackjack::{BlackJack, BlackJackAction, Table, TableState};
 use client_sdk::rest_client::{IndexerApiHttpClient, NodeApiHttpClient};
-use contract::{BlackJack, BlackJackAction, Table, TableState};
 use hyle_hyllar::{erc20::ERC20, Hyllar, HyllarAction};
 
 use hyle_modules::{

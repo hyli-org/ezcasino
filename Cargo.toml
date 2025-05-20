@@ -1,11 +1,6 @@
 [workspace]
 resolver = "2"
-members = [
-  "contracts/blackjack/host",
-  "contracts/blackjack/contract",
-  "contracts/blackjack/methods",
-  "server",
-]
+members = ["contracts", "contracts/blackjack", "server"]
 
 [workspace.dependencies]
 # don't forget to update methods/guest/Cargo.toml 
@@ -14,7 +9,8 @@ client-sdk = { git = "https://github.com/hyle-org/hyle", default-features = fals
 hyle_modules = { git = "https://github.com/hyle-org/hyle", package = "hyle-modules", branch = "main" }
 hyle_hyllar = { git = "https://github.com/Hyle-org/hyle", package = "hyle-hyllar", branch = "main" }
 
-contract = { path = "contracts/blackjack/contract", package = "contract" }
+contracts = { path = "contracts", default-features = false, package = "contracts" }
+blackjack = { path = "contracts/blackjack", package = "blackjack" }
 
 [workspace.package]
 version = "0.4.1"

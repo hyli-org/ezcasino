@@ -1,13 +1,13 @@
 use anyhow::{Context, Result};
 use app::{AppModule, AppModuleCtx};
 use axum::Router;
+use blackjack::BlackJack;
 use clap::Parser;
 use client_sdk::{
     helpers::risc0::Risc0Prover,
     rest_client::{IndexerApiHttpClient, NodeApiHttpClient},
 };
 use conf::Conf;
-use contract::BlackJack;
 use hyle_modules::{
     bus::{metrics::BusMetrics, SharedMessageBus},
     modules::{
@@ -105,7 +105,7 @@ async fn main() -> Result<()> {
             AutoProverCtx {
                 start_height,
                 data_directory: config.data_directory.clone(),
-                prover: Arc::new(Risc0Prover::new(contract::client::metadata::ELF)),
+                prover: Arc::new(Risc0Prover::new(blackjack::client::metadata::BLACKJACK_ELF)),
                 contract_name: app_ctx.blackjack_cn.clone(),
                 node: app_ctx.node_client.clone(),
                 default_state: BlackJack::default(),
