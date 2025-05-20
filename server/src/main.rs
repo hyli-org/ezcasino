@@ -1,13 +1,13 @@
 use anyhow::{Context, Result};
 use app::{AppModule, AppModuleCtx};
 use axum::Router;
+use blackjack::BlackJack;
 use clap::Parser;
 use client_sdk::{
     helpers::risc0::Risc0Prover,
     rest_client::{IndexerApiHttpClient, NodeApiHttpClient},
 };
 use conf::Conf;
-use contract::BlackJack;
 use hyle_modules::{
     bus::{metrics::BusMetrics, SharedMessageBus},
     modules::{
@@ -21,7 +21,7 @@ use hyle_modules::{
 };
 use prometheus::Registry;
 use sdk::api::NodeInfo;
-use std::{env, sync::Arc};
+use std::sync::Arc;
 use tracing::{error, info, warn};
 
 mod app;
@@ -53,13 +53,11 @@ async fn main() -> Result<()> {
 
     info!("Starting app with config: {:?}", &config);
 
-    let node_url = env::var("NODE_URL").unwrap_or_else(|_| "http://localhost:4321".to_string());
-    let indexer_url =
-        env::var("INDEXER_URL").unwrap_or_else(|_| "http://localhost:4321".to_string());
-    let node_client = Arc::new(NodeApiHttpClient::new(node_url).context("build node client")?);
-    let indexer_client =
-        Arc::new(IndexerApiHttpClient::new(indexer_url).context("build indexer client")?);
-
+    let node_client =
+        Arc::new(NodeApiHttpClient::new(config.node_url.clone()).context("build node client")?);
+    let indexer_client = Arc::new(
+        IndexerApiHttpClient::new(config.indexer_url.clone()).context("build indexer client")?,
+    );
     match init::init_node(
         node_client.clone(),
         indexer_client.clone(),
@@ -107,7 +105,7 @@ async fn main() -> Result<()> {
             AutoProverCtx {
                 start_height,
                 data_directory: config.data_directory.clone(),
-                prover: Arc::new(Risc0Prover::new(contract::client::metadata::ELF)),
+                prover: Arc::new(Risc0Prover::new(blackjack::client::metadata::BLACKJACK_ELF)),
                 contract_name: app_ctx.blackjack_cn.clone(),
                 node: app_ctx.node_client.clone(),
                 default_state: BlackJack::default(),

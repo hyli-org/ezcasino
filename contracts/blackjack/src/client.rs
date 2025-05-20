@@ -2,7 +2,7 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use client_sdk::contract_indexer::{
     axum::{extract::State, http::StatusCode, response::IntoResponse, Json, Router},
     utoipa::openapi::OpenApi,
@@ -10,7 +10,7 @@ use client_sdk::contract_indexer::{
     AppError, ContractHandler, ContractHandlerStore,
 };
 use client_sdk::transaction_builder::TxExecutorHandler;
-use sdk::{utils::as_hyle_output, Blob, Calldata, ZkContract};
+use sdk::{utils::as_hyle_output, Blob, Calldata, RegisterContractEffect, ZkContract};
 use serde::Serialize;
 
 use client_sdk::contract_indexer::axum;
@@ -19,20 +19,20 @@ use client_sdk::contract_indexer::utoipa;
 use crate::*;
 
 pub mod metadata {
-    pub const ELF: &[u8] = include_bytes!("../../methods/guest/guest.img");
-    pub const PROGRAM_ID: [u8; 32] = sdk::str_to_u8(include_str!("../../methods/guest/guest.txt"));
+    pub const BLACKJACK_ELF: &[u8] = include_bytes!("../blackjack.img");
+    pub const PROGRAM_ID: [u8; 32] = sdk::str_to_u8(include_str!("../blackjack.txt"));
 }
 
 impl TxExecutorHandler for BlackJack {
-    fn build_commitment_metadata(&self, _blob: &Blob) -> Result<Vec<u8>, String> {
-        borsh::to_vec(self).map_err(|e| e.to_string())
+    fn build_commitment_metadata(&self, _blob: &Blob) -> anyhow::Result<Vec<u8>> {
+        borsh::to_vec(self).context("Failed to serialize BlackJack")
     }
 
-    fn handle(&mut self, calldata: &Calldata) -> Result<sdk::HyleOutput, String> {
+    fn handle(&mut self, calldata: &Calldata) -> anyhow::Result<sdk::HyleOutput> {
         let initial_state_commitment = <Self as ZkContract>::commit(self);
         let mut res = <Self as ZkContract>::execute(self, calldata);
         if res.is_err() {
-            return Err(res.err().unwrap());
+            return Err(anyhow!(res.err().unwrap()));
         }
         let next_state_commitment = <Self as ZkContract>::commit(self);
         Ok(as_hyle_output(
@@ -41,6 +41,13 @@ impl TxExecutorHandler for BlackJack {
             calldata,
             &mut res,
         ))
+    }
+
+    fn construct_state(
+        _register_blob: &RegisterContractEffect,
+        _metadata: &Option<Vec<u8>>,
+    ) -> anyhow::Result<Self> {
+        Ok(Self::default())
     }
 }
 

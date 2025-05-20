@@ -1,6 +1,6 @@
 #![no_main]
 
-use contract::BlackJack;
+use blackjack::BlackJack;
 use sdk::{
     guest::{execute, GuestEnv, Risc0Env},
     Calldata,

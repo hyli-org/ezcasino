@@ -1,0 +1,50 @@
+[package]
+name = "blackjack"
+edition = { workspace = true }
+rust-version = "1.81"
+
+[[bin]]
+name = "blackjack"
+path = "src/main.rs"
+required-features = ["risc0"]
+test = false
+
+[dependencies]
+anyhow = "1.0.96"
+rand = { version = "0.9.0", default-features = false }
+rand_seeder = { version = "0.4.0", default-features = false }
+sha2 = { version = "0.10.8", default-features = false }
+
+sdk = { workspace = true, features = ["tracing"] }
+serde = { version = "1.0", default-features = false, features = [
+  "derive",
+  "alloc",
+] }
+borsh = { version = "1.5.7" }
+hex = { version = "0.4.3" }
+hyle_hyllar = { workspace = true }
+
+risc0-zkvm = { version = "2.0.2", default-features = false, optional = true, features = [
+  'std',
+] }
+client-sdk = { workspace = true, default-features = false, features = [
+  "risc0",
+  "indexer",
+  "rest",
+], optional = true }
+
+[dev-dependencies]
+# Active client feature for tests
+blackjack = { path = ".", features = ["client"] }
+clap = { version = "4.5.23", features = ["derive"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tokio = { version = "1.44.2", features = ["full", "tracing"] }
+risc0-zkvm = { version = "2.0.2", default-features = false, features = [
+  'std',
+  'prove',
+] }
+
+[features]
+default = []
+client = ["dep:client-sdk"]
+risc0 = ["dep:risc0-zkvm", "sdk/risc0"]
