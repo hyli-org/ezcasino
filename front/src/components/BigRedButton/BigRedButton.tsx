@@ -3,7 +3,7 @@ import './BigRedButton.css';
 import { useWallet } from 'hyli-wallet';
 import { blob_click } from '../../types/faucet';
 import { nodeService } from '../../services/nodeService';
-import { BlobTransaction, blob_builder } from 'hyle';
+import { BlobTransaction, blob_builder } from 'hyli';
 
 interface BigRedButtonProps {
   onClose: () => void;

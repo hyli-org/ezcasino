@@ -14,7 +14,7 @@ export interface Transaction {
   }
   
   import { borshSerialize, BorshSchema, borshDeserialize } from "borsher";
-  import { Blob, StructuredBlobData, structuredBlobDataSchema } from "hyle";
+  import { Blob, StructuredBlobData, structuredBlobDataSchema } from 'hyli';
   
   export let faucetContractName = "faucet"; // Default value that will be updated
   

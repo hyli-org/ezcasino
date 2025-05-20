@@ -3,7 +3,7 @@ import {
     BlobTransaction,
     NodeApiHttpClient,
     TxHash,
-  } from "hyle";
+  } from 'hyli';
   
   class NodeService {
     client: NodeApiHttpClient;
