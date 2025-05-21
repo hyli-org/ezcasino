@@ -38,7 +38,7 @@ interface GameProps {
 }
 
 const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
-  const { wallet, logout, stage, registerSessionKey, createIdentityBlobs, cleanExpiredSessionKey } = useWallet();
+  const { wallet, logout, registerSessionKey, createIdentityBlobs, cleanExpiredSessionKey } = useWallet();
   const [playerHand, setPlayerHand] = useState<CardType[]>([]);
   const [dealerHand, setDealerHand] = useState<CardType[]>([]);
   const [gameOver, setGameOver] = useState(false);
@@ -62,6 +62,8 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   const [currentFunnyMessage, setCurrentFunnyMessage] = useState("");
   const [showBigRedButton, setShowBigRedButton] = useState(false);
   const [showHyliExplorer, setShowHyliExplorer] = useState(false);
+  const [showAuthLoader, setShowAuthLoader] = useState(false);
+
 
   // Surveiller les changements de wallet pour détecter la déconnexion
   useEffect(() => {
@@ -325,6 +327,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       return;
     }
     try {
+      setShowAuthLoader(true);
       setIsLoading(true);
       setError(null);
       gameService.clearSession();
@@ -334,6 +337,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
 
       const { sessionKey } = await registerSessionKey(password, expiration, whitelist);
 
+      setShowAuthLoader(false);
       gameService.setSessionPrivateKey(sessionKey.privateKey);
       
       await startNewGame();
@@ -341,9 +345,11 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to create new session key.';
       setError(formatErrorMessage(errorMessage));
+      setShowAuthLoader(false);
       console.error('Error creating new session key:', err);
     } finally {
       setIsLoading(false);
+      setShowAuthLoader(false);
     }
   };
 
@@ -417,7 +423,6 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
     </button>
   );
 
-  const showAuthLoader = stage === 'submitting' || stage === 'blobSent';
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined = undefined;
