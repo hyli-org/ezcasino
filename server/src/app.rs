@@ -171,6 +171,12 @@ struct ConfigResponse {
     contract_name: String,
 }
 
+#[derive(serde::Deserialize)]
+struct WithdrawRequest {
+    wallet_blobs: [Blob; 2],
+    balance: u128,
+}
+
 // --------------------------------------------------------
 //     Routes
 // --------------------------------------------------------
@@ -178,10 +184,16 @@ struct ConfigResponse {
 async fn withdraw(
     State(ctx): State<RouterCtx>,
     headers: HeaderMap,
-    Json(wallet_blobs): Json<[Blob; 2]>,
+    Json(request): Json<WithdrawRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
-    send(ctx, BlackJackAction::Withdraw, auth, wallet_blobs).await
+    send(
+        ctx,
+        BlackJackAction::Withdraw(request.balance),
+        auth,
+        request.wallet_blobs,
+    )
+    .await
 }
 
 async fn claim(
@@ -248,8 +260,8 @@ async fn send(
         BlackJackAction::Claim => {
             handle_claim_action(&ctx, &identity, &mut blobs).await?;
         }
-        BlackJackAction::Withdraw => {
-            handle_withdraw_action(&ctx, &identity, &mut blobs).await?;
+        BlackJackAction::Withdraw(amount) => {
+            handle_withdraw_action(amount, &ctx, &identity, &mut blobs).await?;
         }
         _ => {
             blobs.push(action.as_blob(ctx.blackjack_cn.clone(), None, None));
@@ -264,7 +276,7 @@ async fn handle_claim_action(
     identity: &Identity,
     blobs: &mut Vec<Blob>,
 ) -> Result<(), AppError> {
-    let balance = get_user_balance(ctx, identity).await?;
+    let balance = get_user_token_balance(ctx, identity).await?;
 
     if balance < 10 {
         return Err(AppError(
@@ -280,45 +292,34 @@ async fn handle_claim_action(
     };
 
     blobs.push(BlackJackAction::Claim.as_blob(ctx.blackjack_cn.clone(), None, None));
-    blobs.insert(1, transfer_action.as_blob("oranj".into(), None, None));
+    blobs.push(transfer_action.as_blob("oranj".into(), None, None));
 
     Ok(())
 }
 
 async fn handle_withdraw_action(
+    amount: u128,
     ctx: &RouterCtx,
     identity: &Identity,
     blobs: &mut Vec<Blob>,
 ) -> Result<(), AppError> {
-    let balance = get_user_balance(ctx, identity).await?;
-
-    if balance > 0 {
-        return Err(AppError(
-            StatusCode::BAD_REQUEST,
-            anyhow::anyhow!("Cannot withdraw from non-empty account"),
-        ));
-    }
-
     let transfer_action = SmtTokenAction::Transfer {
         sender: ctx.blackjack_cn.0.clone().into(),
         recipient: identity.clone(),
-        amount: balance,
+        amount,
     };
 
-    blobs.push(BlackJackAction::Withdraw.as_blob(
+    blobs.push(BlackJackAction::Withdraw(amount).as_blob(
         ctx.blackjack_cn.clone(),
         None,
         Some(vec![BlobIndex(3)]),
     ));
-    blobs.insert(
-        1,
-        transfer_action.as_blob("oranj".into(), Some(BlobIndex(2)), None),
-    );
+    blobs.push(transfer_action.as_blob("oranj".into(), Some(BlobIndex(2)), None));
 
     Ok(())
 }
 
-async fn get_user_balance(ctx: &RouterCtx, identity: &Identity) -> Result<u128, AppError> {
+async fn get_user_token_balance(ctx: &RouterCtx, identity: &Identity) -> Result<u128, AppError> {
     let oranj: HashMap<Identity, Account> = ctx
         .indexer_client
         .fetch_current_state(&"oranj".into())

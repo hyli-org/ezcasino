@@ -106,6 +106,8 @@ async fn main() -> Result<()> {
                 prover: Arc::new(Risc0Prover::new(blackjack::client::metadata::BLACKJACK_ELF)),
                 contract_name: app_ctx.blackjack_cn.clone(),
                 node: app_ctx.node_client.clone(),
+                buffer_blocks: 1,
+                buffer_max_txs: 5,
                 default_state: BlackJack::default(),
             }
             .into(),

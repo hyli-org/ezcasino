@@ -40,7 +40,7 @@ impl sdk::ZkContract for BlackJack {
             BlackJackAction::Stand => self.stand(user)?,
             BlackJackAction::DoubleDown => self.double_down(user)?,
             BlackJackAction::Claim => self.claim(user, calldata, &ctx)?,
-            BlackJackAction::Withdraw => self.withdraw(user, &mut ctx)?,
+            BlackJackAction::Withdraw(amount) => self.withdraw(amount, user, &mut ctx)?,
         };
 
         Ok((res.into(), ctx, alloc::vec![]))
@@ -88,7 +88,7 @@ pub enum BlackJackAction {
     Stand,
     DoubleDown,
     Claim,
-    Withdraw,
+    Withdraw(u128),
 }
 
 impl ContractAction for BlackJackAction {
@@ -483,26 +483,27 @@ impl BlackJack {
 
     pub fn withdraw(
         &mut self,
+        amount: u128,
         user: &Identity,
         ctx: &mut ExecutionContext,
     ) -> Result<String, String> {
         let Some(current_balance) = self.balances.get(user).cloned() else {
             return Err("Unkown user, can't withdraw".to_string());
         };
+        if amount > current_balance as u128 {
+            return Err("Insufficient balance to withdraw".to_string());
+        }
         ctx.is_in_callee_blobs(
             &"oranj".into(),
             SmtTokenAction::Transfer {
                 sender: "blackjack".into(),
                 recipient: user.clone(),
-                amount: current_balance as u128,
+                amount,
             },
         )?;
 
         self.balances.insert(user.clone(), 0);
-        Ok(format!(
-            "Withdrawed {} to {}'s balance",
-            current_balance, user
-        ))
+        Ok(format!("Withdrawed {} to {}'s balance", amount, user))
     }
 }
 

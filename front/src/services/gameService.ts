@@ -31,27 +31,40 @@ class GameService {
   }
 
   async initGame(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
-    return this.makeRequest('/init', 'POST', wallet_blobs, identity);
+    return this.makeRequest('/api/init', 'POST', wallet_blobs, identity);
   }
 
   async hit(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
-    return this.makeRequest('/hit', 'POST', wallet_blobs, identity);
+    return this.makeRequest('/api/hit', 'POST', wallet_blobs, identity);
   }
 
   async stand(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
-    return this.makeRequest('/stand', 'POST', wallet_blobs, identity);
+    return this.makeRequest('/api/stand', 'POST', wallet_blobs, identity);
   }
 
   async doubleDown(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
-    return this.makeRequest('/double_down', 'POST', wallet_blobs, identity);
+    return this.makeRequest('/api/double_down', 'POST', wallet_blobs, identity);
   }
 
   async claim(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
-    return this.makeRequest('/claim', 'POST', wallet_blobs, identity);
+    return this.makeRequest('/api/claim', 'POST', wallet_blobs, identity);
+  }
+
+  async withdraw(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
+    let balance = await this.getBalance(identity);
+    const body = {
+      wallet_blobs,
+      balance
+    };
+    return this.makeRequest('/api/withdraw', 'POST', body, identity);
+  }
+
+  async getBalance(identity: string): Promise<number> {
+    return this.makeRequest(`/v1/indexer/contract/blackjack/user/${identity}/balance`, 'GET');
   }
 
   async getConfig(): Promise<{ contract_name: string }> {
-    return this.makeRequest('/config', 'GET');
+    return this.makeRequest('/api/config', 'GET');
   }
 }
 
