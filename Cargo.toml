@@ -7,7 +7,7 @@ members = ["contracts", "contracts/blackjack", "server"]
 sdk = { git = "https://github.com/hyle-org/hyle", package = "hyle-contract-sdk", branch = "main" }
 client-sdk = { git = "https://github.com/hyle-org/hyle", default-features = false, package = "hyle-client-sdk", branch = "main" }
 hyle_modules = { git = "https://github.com/hyle-org/hyle", package = "hyle-modules", branch = "main" }
-hyle_hyllar = { git = "https://github.com/Hyle-org/hyle", package = "hyle-hyllar", branch = "main" }
+hyle-smt-token = { git = "https://github.com/Hyle-org/hyle.git", branch = "main", default-features = false, package = "hyle-smt-token" }
 
 contracts = { path = "contracts", default-features = false, package = "contracts" }
 blackjack = { path = "contracts/blackjack", package = "blackjack" }

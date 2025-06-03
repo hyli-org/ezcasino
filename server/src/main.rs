@@ -89,7 +89,6 @@ async fn main() -> Result<()> {
         indexer_client,
         blackjack_cn: args.contract_name.into(),
     });
-    let start_height = app_ctx.node_client.get_block_height().await?;
 
     handler.build_module::<AppModule>(app_ctx.clone()).await?;
     handler
@@ -103,7 +102,6 @@ async fn main() -> Result<()> {
     handler
         .build_module::<AutoProver<BlackJack>>(
             AutoProverCtx {
-                start_height,
                 data_directory: config.data_directory.clone(),
                 prover: Arc::new(Risc0Prover::new(blackjack::client::metadata::BLACKJACK_ELF)),
                 contract_name: app_ctx.blackjack_cn.clone(),

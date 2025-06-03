@@ -7,7 +7,7 @@ sdk = { workspace = true, features = ["tracing"] }
 client-sdk = { workspace = true, features = ["risc0", "rest"] }
 hyle_modules = { workspace = true }
 blackjack = { workspace = true, features = ["client"] }
-hyle_hyllar = { workspace = true }
+hyle-smt-token = { workspace = true }
 
 risc0-zkvm = { version = "2.0.2", features = ["prove"] }
 

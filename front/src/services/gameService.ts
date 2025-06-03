@@ -2,30 +2,8 @@ import { GameState } from '../types/game';
 import { Blob } from 'hyli';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const SESSION_PRIVATE_KEY_STORAGE_KEY = 'ezcasino_private_key';
 
-class GameService {  
-  private privateKey: string | null = null;
-
-  setSessionPrivateKey(privateKey: string): void {
-    this.privateKey = privateKey;
-    localStorage.setItem(SESSION_PRIVATE_KEY_STORAGE_KEY, privateKey);
-  }
-
-  getPrivateKey(): string | null {
-    if (!this.privateKey) {
-      const storedPrivateKey = localStorage.getItem(SESSION_PRIVATE_KEY_STORAGE_KEY);
-      if (storedPrivateKey) {
-        this.privateKey = storedPrivateKey;
-      }
-    }
-    return this.privateKey;
-  }
-
-  clearSession() {
-    localStorage.removeItem(SESSION_PRIVATE_KEY_STORAGE_KEY);
-    this.privateKey = null;
-  }
+class GameService {
 
   private async makeRequest(endpoint: string, method: string = 'GET', body?: any, identity?: string) {
     const headers: HeadersInit = {

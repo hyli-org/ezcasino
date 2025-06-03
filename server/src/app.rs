@@ -10,15 +10,17 @@ use axum::{
     Router,
 };
 use blackjack::{BlackJack, BlackJackAction, Table, TableState};
+use client_sdk::rest_client::NodeApiClient;
 use client_sdk::rest_client::{IndexerApiHttpClient, NodeApiHttpClient};
-use hyle_hyllar::{erc20::ERC20, Hyllar, HyllarAction};
+use hyle_smt_token::{account::Account, SmtTokenAction};
+use std::collections::HashMap;
 
 use hyle_modules::{
     bus::{BusClientReceiver, SharedMessageBus},
     module_bus_client, module_handle_messages,
     modules::{prover::AutoProverEvent, BuildApiContextInner, Module},
 };
-use sdk::{Blob, BlobTransaction, ContractAction, ContractName, Identity};
+use sdk::{Blob, BlobIndex, BlobTransaction, ContractAction, ContractName, Identity};
 use serde::Serialize;
 use tokio::sync::Mutex;
 use tower_http::cors::{Any, CorsLayer};
@@ -63,6 +65,7 @@ impl Module for AppModule {
         let api = Router::new()
             .route("/_health", get(health))
             .route("/api/claim", post(claim))
+            .route("/api/withdraw", post(withdraw))
             .route("/api/init", post(init))
             .route("/api/hit", post(hit))
             .route("/api/stand", post(stand))
@@ -172,6 +175,15 @@ struct ConfigResponse {
 //     Routes
 // --------------------------------------------------------
 
+async fn withdraw(
+    State(ctx): State<RouterCtx>,
+    headers: HeaderMap,
+    Json(wallet_blobs): Json<[Blob; 2]>,
+) -> Result<impl IntoResponse, AppError> {
+    let auth = AuthHeaders::from_headers(&headers)?;
+    send(ctx, BlackJackAction::Withdraw, auth, wallet_blobs).await
+}
+
 async fn claim(
     State(ctx): State<RouterCtx>,
     headers: HeaderMap,
@@ -229,41 +241,108 @@ async fn send(
     auth: AuthHeaders,
     wallet_blobs: [Blob; 2],
 ) -> Result<impl IntoResponse, AppError> {
-    let is_claim = matches!(action, BlackJackAction::Claim);
-
     let identity = Identity(auth.identity);
-
     let mut blobs = wallet_blobs.into_iter().collect::<Vec<_>>();
-    blobs.push(action.as_blob(ctx.blackjack_cn.clone()));
 
-    // Add Hyllar transfer blob for claim action
-    if is_claim {
-        let hyllar: Hyllar = ctx
-            .indexer_client
-            .fetch_current_state(&"hyllar".into())
-            .await?;
-        let balance = hyllar
-            .balance_of(&identity.0)
-            .map_err(|e| AppError(StatusCode::BAD_REQUEST, anyhow::anyhow!(e)))?;
-
-        // Check if balance is sufficient for minimum bet
-        if balance < 10 {
-            return Err(AppError(
-                StatusCode::BAD_REQUEST,
-                anyhow::anyhow!("Insufficient balance. Minimum claim is 10"),
-            ));
+    match action {
+        BlackJackAction::Claim => {
+            handle_claim_action(&ctx, &identity, &mut blobs).await?;
         }
-
-        let transfer_action = HyllarAction::Transfer {
-            recipient: ctx.blackjack_cn.0.clone(),
-            amount: balance,
-        };
-        blobs.insert(1, transfer_action.as_blob("hyllar".into(), None, None));
+        BlackJackAction::Withdraw => {
+            handle_withdraw_action(&ctx, &identity, &mut blobs).await?;
+        }
+        _ => {
+            blobs.push(action.as_blob(ctx.blackjack_cn.clone(), None, None));
+        }
     }
 
+    execute_transaction(ctx, identity, blobs).await
+}
+
+async fn handle_claim_action(
+    ctx: &RouterCtx,
+    identity: &Identity,
+    blobs: &mut Vec<Blob>,
+) -> Result<(), AppError> {
+    let balance = get_user_balance(ctx, identity).await?;
+
+    if balance < 10 {
+        return Err(AppError(
+            StatusCode::BAD_REQUEST,
+            anyhow::anyhow!("Insufficient balance. Minimum claim is 10"),
+        ));
+    }
+
+    let transfer_action = SmtTokenAction::Transfer {
+        sender: identity.clone(),
+        recipient: ctx.blackjack_cn.0.clone().into(),
+        amount: balance,
+    };
+
+    blobs.push(BlackJackAction::Claim.as_blob(ctx.blackjack_cn.clone(), None, None));
+    blobs.insert(1, transfer_action.as_blob("oranj".into(), None, None));
+
+    Ok(())
+}
+
+async fn handle_withdraw_action(
+    ctx: &RouterCtx,
+    identity: &Identity,
+    blobs: &mut Vec<Blob>,
+) -> Result<(), AppError> {
+    let balance = get_user_balance(ctx, identity).await?;
+
+    if balance > 0 {
+        return Err(AppError(
+            StatusCode::BAD_REQUEST,
+            anyhow::anyhow!("Cannot withdraw from non-empty account"),
+        ));
+    }
+
+    let transfer_action = SmtTokenAction::Transfer {
+        sender: ctx.blackjack_cn.0.clone().into(),
+        recipient: identity.clone(),
+        amount: balance,
+    };
+
+    blobs.push(BlackJackAction::Withdraw.as_blob(
+        ctx.blackjack_cn.clone(),
+        None,
+        Some(vec![BlobIndex(3)]),
+    ));
+    blobs.insert(
+        1,
+        transfer_action.as_blob("oranj".into(), Some(BlobIndex(2)), None),
+    );
+
+    Ok(())
+}
+
+async fn get_user_balance(ctx: &RouterCtx, identity: &Identity) -> Result<u128, AppError> {
+    let oranj: HashMap<Identity, Account> = ctx
+        .indexer_client
+        .fetch_current_state(&"oranj".into())
+        .await?;
+
+    Ok(oranj
+        .get(&identity)
+        .ok_or_else(|| {
+            AppError(
+                StatusCode::BAD_REQUEST,
+                anyhow::anyhow!("Could not find account for identity: {}", identity),
+            )
+        })?
+        .balance)
+}
+
+async fn execute_transaction(
+    ctx: RouterCtx,
+    identity: Identity,
+    blobs: Vec<Blob>,
+) -> Result<impl IntoResponse, AppError> {
     let tx_hash = ctx
         .client
-        .send_tx_blob(&BlobTransaction::new(identity.clone(), blobs))
+        .send_tx_blob(BlobTransaction::new(identity.clone(), blobs))
         .await?;
 
     let mut bus = {
@@ -273,8 +352,8 @@ async fn send(
 
     tokio::time::timeout(Duration::from_secs(5), async {
         loop {
-            let a = bus.recv().await?;
-            match a {
+            let event = bus.recv().await?;
+            match event {
                 AutoProverEvent::SuccessTx(sequenced_tx_hash, state) => {
                     if sequenced_tx_hash == tx_hash {
                         let balance = state.balances.get(&identity).copied().unwrap_or(0);
