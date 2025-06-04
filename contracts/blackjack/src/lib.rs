@@ -19,6 +19,9 @@ use hyle_smt_token::SmtTokenAction;
 use sdk::{BlockHash, ContractName, Identity, RunResult};
 
 #[cfg(feature = "client")]
+use crate::client::OptimisticBlackJack;
+
+#[cfg(feature = "client")]
 pub mod client;
 
 impl sdk::ZkContract for BlackJack {
@@ -78,6 +81,10 @@ pub struct Table {
 pub struct BlackJack {
     pub tables: BTreeMap<Identity, Table>,
     pub balances: BTreeMap<Identity, u32>,
+    #[cfg(feature = "client")]
+    #[serde(skip)]
+    #[borsh(skip)]
+    pub optimistic_state: OptimisticBlackJack,
 }
 
 /// Enum representing possible calls to the contract functions.

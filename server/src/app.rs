@@ -18,9 +18,11 @@ use std::collections::HashMap;
 use hyle_modules::{
     bus::{BusClientReceiver, SharedMessageBus},
     module_bus_client, module_handle_messages,
-    modules::{prover::AutoProverEvent, BuildApiContextInner, Module},
+    modules::{
+        contract_state_indexer::CSIBusEvent, prover::AutoProverEvent, BuildApiContextInner, Module,
+    },
 };
-use sdk::{Blob, BlobIndex, BlobTransaction, ContractAction, ContractName, Identity};
+use sdk::{Blob, BlobIndex, BlobTransaction, ContractAction, ContractName, Identity, TxHash};
 use serde::Serialize;
 use tokio::sync::Mutex;
 use tower_http::cors::{Any, CorsLayer};
@@ -40,6 +42,7 @@ module_bus_client! {
 #[derive(Debug)]
 pub struct AppModuleBusClient {
     receiver(AutoProverEvent<BlackJack>),
+    receiver(CSIBusEvent<AutoProverEvent<BlackJack>>),
 }
 }
 
@@ -324,9 +327,9 @@ async fn get_user_token_balance(ctx: &RouterCtx, identity: &Identity) -> Result<
         .indexer_client
         .fetch_current_state(&"oranj".into())
         .await?;
-
+    return Ok(1000);
     Ok(oranj
-        .get(&identity)
+        .get(identity)
         .ok_or_else(|| {
             AppError(
                 StatusCode::BAD_REQUEST,
@@ -355,7 +358,9 @@ async fn execute_transaction(
         loop {
             let event = bus.recv().await?;
             match event {
-                AutoProverEvent::SuccessTx(sequenced_tx_hash, state) => {
+                CSIBusEvent {
+                    event: AutoProverEvent::SuccessTx(sequenced_tx_hash, state),
+                } => {
                     if sequenced_tx_hash == tx_hash {
                         let balance = state.balances.get(&identity).copied().unwrap_or(0);
                         let mut table: ApiTable = state
@@ -368,7 +373,9 @@ async fn execute_transaction(
                         return Ok(Json(table));
                     }
                 }
-                AutoProverEvent::FailedTx(sequenced_tx_hash, error) => {
+                CSIBusEvent {
+                    event: AutoProverEvent::FailedTx(sequenced_tx_hash, error),
+                } => {
                     if sequenced_tx_hash == tx_hash {
                         return Err(AppError(StatusCode::BAD_REQUEST, anyhow::anyhow!(error)));
                     }
