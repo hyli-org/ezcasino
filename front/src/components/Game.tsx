@@ -73,16 +73,22 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
     }
   }, [wallet, cleanExpiredSessionKey]);
 
-  // Charge user balance and update GameState
-  const loadUserBalanceAndUpdateGameState = async () => {
+  // Charge user balance and update GameState, and check for existing game
+  const loadUserBalanceAndCheckExistingGame = async () => {
     if (!wallet?.address) return;
     
     try {
-      const realBalance = await gameService.getBalance(wallet.address);
+      // First, check if there's an ongoing game
+      const existingGameState = await gameService.getCurrentGameState(wallet.address);
       
-      if (gameState) {
-        setGameState(prevState => prevState ? { ...prevState, balance: realBalance } : null);
+      if (existingGameState) {
+        // Resume existing game
+        console.log('Found existing game, resuming...', existingGameState);
+        updateGameState(existingGameState);
+        setShowStartGame(false);
       } else {
+        // No existing game, just load balance for new game
+        const realBalance = await gameService.getBalance(wallet.address);
         setGameState({
           bank: [],
           bank_count: 0,
@@ -94,16 +100,43 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
         });
       }
     } catch (err) {
-      console.error('Error loading user balance:', err);
+      console.error('Error loading user balance or checking existing game:', err);
+      // Fallback to just loading balance
+      try {
+        const realBalance = await gameService.getBalance(wallet.address);
+        setGameState({
+          bank: [],
+          bank_count: 0,
+          user: [],
+          user_count: 0,
+          bet: 10,
+          state: 'Ongoing',
+          balance: realBalance
+        });
+      } catch (balanceErr) {
+        console.error('Error loading user balance:', balanceErr);
+      }
     }
   };
 
-  // Charger le solde au chargement de la page et quand le wallet change
+  // Load balance and check for existing game on wallet connection
   useEffect(() => {
     if (wallet?.address) {
-      loadUserBalanceAndUpdateGameState();
+      loadUserBalanceAndCheckExistingGame();
     }
-  }, [wallet?.address]); // On recharge seulement quand le wallet change
+  }, [wallet?.address]); // Reload when wallet changes
+
+  // Helper function to reload just the balance
+  const loadUserBalance = async () => {
+    if (!wallet?.address) return;
+
+    try {
+      const realBalance = await gameService.getBalance(wallet.address);
+      setGameState(prevState => prevState ? { ...prevState, balance: realBalance } : null);
+    } catch (err) {
+      console.error('Error loading user balance:', err);
+    }
+  };
 
   const convertToCard = (value: number): CardType => {
     const suits: Suit[] = ['♠', '♣', '♥', '♦'];
@@ -162,8 +195,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       updateGameState(gameStateResult);
       setShowStartGame(false);
       setError(null);
-      // Charger le vrai solde après avoir initialisé le jeu
-      setTimeout(() => loadUserBalanceAndUpdateGameState(), 100);
+      setTimeout(() => loadUserBalance(), 100);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to initialize game. Please try again.';
       setError(errorMessage);
@@ -189,6 +221,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       const wallet_blobs = createIdentityBlobs();
       const gameStateResult = await gameService.hit(wallet_blobs, wallet.address);
       updateGameState(gameStateResult);
+      setTimeout(() => loadUserBalance(), 2000);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to hit. Please try again.';
       setError(errorMessage);
@@ -257,8 +290,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       updateGameState(gameStateResult, true);
       setShowClaimButton(false);
       setGameOver(true);
-      // Recharger le vrai solde après claim avec un petit délai
-      setTimeout(() => loadUserBalanceAndUpdateGameState(), 500);
+      setTimeout(() => loadUserBalance(), 2000);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to claim. Please try again.';
       setError(errorMessage);
@@ -281,8 +313,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       const wallet_blobs = createIdentityBlobs();
       const gameStateResult = await gameService.withdraw(wallet_blobs, wallet.address);
       updateGameState(gameStateResult, true);
-      // Recharger le vrai solde après withdraw avec un petit délai
-      setTimeout(() => loadUserBalanceAndUpdateGameState(), 500);
+      setTimeout(() => loadUserBalance(), 2000);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to withdraw. Please try again.';
       setError(errorMessage);
