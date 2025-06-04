@@ -1,17 +1,17 @@
 :root {
   /* Mars-themed sandy color palette */
-  --win95-blue: #8C271E;          /* Metallic red replaces blue */
-  --win95-blue-rgb: 140, 39, 30;  /* RGB version of metallic red */
-  --win95-gray: #D2B48C;          /* Sandy tan replaces gray */
-  --win95-dark-gray: #A67B5B;     /* Darker sand/rust color */
-  --win95-light-gray: #E6DCCF;    /* Pale tan */
-  --win95-border: #A67B5B;        /* Darker sand/rust for borders */
-  --win95-highlight: #F5F1E8;     /* Lighter sand highlight */
-  --win95-shadow: #6D4C41;        /* Darker shadow with rusty undertone */
-  --win95-green: #7D874B;         /* Desert sage green */
-  --win95-led-red: #FF5722;       /* Mars-like orange-red for LED */
-  --win95-led-bg: #3E2723;        /* Darker brown for LED background */
-  --win95-sky: #7AB5D6;           /* Mars atmospheric blue */
+  --win95-blue: #8c271e; /* Metallic red replaces blue */
+  --win95-blue-rgb: 140, 39, 30; /* RGB version of metallic red */
+  --win95-gray: #d2b48c; /* Sandy tan replaces gray */
+  --win95-dark-gray: #a67b5b; /* Darker sand/rust color */
+  --win95-light-gray: #e6dccf; /* Pale tan */
+  --win95-border: #a67b5b; /* Darker sand/rust for borders */
+  --win95-highlight: #f5f1e8; /* Lighter sand highlight */
+  --win95-shadow: #6d4c41; /* Darker shadow with rusty undertone */
+  --win95-green: #7d874b; /* Desert sage green */
+  --win95-led-red: #ff5722; /* Mars-like orange-red for LED */
+  --win95-led-bg: #3e2723; /* Darker brown for LED background */
+  --win95-sky: #7ab5d6; /* Mars atmospheric blue */
 }
 
 * {
@@ -29,20 +29,20 @@ body {
   position: relative;
   overflow: hidden;
   transition: background 1s ease;
-  background-image: url('./assets/wallpaper.jpg');
+  background-image: url("./assets/wallpaper.jpg");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
 }
 
 body.day-theme {
-  background-image: url('./assets/wallpaper.jpg');
+  background-image: url("./assets/wallpaper.jpg");
   background-size: cover;
   background-position: center;
 }
 
 body.night-theme {
-  background-image: url('./assets/wallpaper.jpg');
+  background-image: url("./assets/wallpaper.jpg");
   background-size: cover;
   background-position: center;
   filter: brightness(0.6);
@@ -79,46 +79,141 @@ body.night-theme .cow3 {
   height: 0;
 }
 
-.cow1, .cow2, .cow3,
-.cow1-head, .cow2-head, .cow3-head,
-.cow1-spots, .cow2-spots, .cow3-spots {
+.cow1,
+.cow2,
+.cow3,
+.cow1-head,
+.cow2-head,
+.cow3-head,
+.cow1-spots,
+.cow2-spots,
+.cow3-spots {
   display: none;
 }
 
-.flower1, .flower2, .flower3, .flower4, .flower5, 
-.flower6, .flower7, .flower8, .flower9, .flower10 {
+.flower1,
+.flower2,
+.flower3,
+.flower4,
+.flower5,
+.flower6,
+.flower7,
+.flower8,
+.flower9,
+.flower10 {
   display: none;
 }
 
 /* Fleurs */
-.flower1::before, .flower2::before, .flower3::before, .flower4::before, .flower5::before,
-.flower6::before, .flower7::before, .flower8::before, .flower9::before, .flower10::before,
-.flower1::after, .flower2::after, .flower3::after, .flower4::after, .flower5::after,
-.flower6::after, .flower7::after, .flower8::after, .flower9::after, .flower10::after {
+.flower1::before,
+.flower2::before,
+.flower3::before,
+.flower4::before,
+.flower5::before,
+.flower6::before,
+.flower7::before,
+.flower8::before,
+.flower9::before,
+.flower10::before,
+.flower1::after,
+.flower2::after,
+.flower3::after,
+.flower4::after,
+.flower5::after,
+.flower6::after,
+.flower7::after,
+.flower8::after,
+.flower9::after,
+.flower10::after {
   display: none;
 }
 
-.flower1 { bottom: 5vh; left: 5%; transform: rotate(45deg); }
-.flower2 { bottom: 8vh; left: 25%; transform: rotate(30deg); }
-.flower3 { bottom: 12vh; left: 45%; transform: rotate(60deg); }
-.flower4 { bottom: 6vh; left: 75%; transform: rotate(20deg); }
-.flower5 { bottom: 10vh; left: 95%; transform: rotate(45deg); }
-.flower6 { bottom: 15vh; left: 8%; transform: rotate(15deg); scale: 0.8; }
-.flower7 { bottom: 18vh; left: 35%; transform: rotate(75deg); scale: 0.9; }
-.flower8 { bottom: 14vh; left: 55%; transform: rotate(25deg); scale: 0.85; }
-.flower9 { bottom: 20vh; left: 95%; transform: rotate(40deg); scale: 0.75; }
-.flower10 { bottom: 16vh; left: 15%; transform: rotate(55deg); scale: 0.95; }
+.flower1 {
+  bottom: 5vh;
+  left: 5%;
+  transform: rotate(45deg);
+}
+.flower2 {
+  bottom: 8vh;
+  left: 25%;
+  transform: rotate(30deg);
+}
+.flower3 {
+  bottom: 12vh;
+  left: 45%;
+  transform: rotate(60deg);
+}
+.flower4 {
+  bottom: 6vh;
+  left: 75%;
+  transform: rotate(20deg);
+}
+.flower5 {
+  bottom: 10vh;
+  left: 95%;
+  transform: rotate(45deg);
+}
+.flower6 {
+  bottom: 15vh;
+  left: 8%;
+  transform: rotate(15deg);
+  scale: 0.8;
+}
+.flower7 {
+  bottom: 18vh;
+  left: 35%;
+  transform: rotate(75deg);
+  scale: 0.9;
+}
+.flower8 {
+  bottom: 14vh;
+  left: 55%;
+  transform: rotate(25deg);
+  scale: 0.85;
+}
+.flower9 {
+  bottom: 20vh;
+  left: 95%;
+  transform: rotate(40deg);
+  scale: 0.75;
+}
+.flower10 {
+  bottom: 16vh;
+  left: 15%;
+  transform: rotate(55deg);
+  scale: 0.95;
+}
 
-.flower1::before { transform: rotate(72deg); }
-.flower2::before { transform: rotate(72deg); }
-.flower3::before { transform: rotate(72deg); }
-.flower4::before { transform: rotate(72deg); }
-.flower5::before { transform: rotate(72deg); }
-.flower6::before { transform: rotate(72deg); }
-.flower7::before { transform: rotate(72deg); }
-.flower8::before { transform: rotate(72deg); }
-.flower9::before { transform: rotate(72deg); }
-.flower10::before { transform: rotate(72deg); }
+.flower1::before {
+  transform: rotate(72deg);
+}
+.flower2::before {
+  transform: rotate(72deg);
+}
+.flower3::before {
+  transform: rotate(72deg);
+}
+.flower4::before {
+  transform: rotate(72deg);
+}
+.flower5::before {
+  transform: rotate(72deg);
+}
+.flower6::before {
+  transform: rotate(72deg);
+}
+.flower7::before {
+  transform: rotate(72deg);
+}
+.flower8::before {
+  transform: rotate(72deg);
+}
+.flower9::before {
+  transform: rotate(72deg);
+}
+.flower10::before {
+  transform: rotate(72deg);
+}
 
 /* Remove the green hill overlay since Bliss wallpaper has its own */
 body::before {
@@ -155,7 +250,7 @@ body::before {
 }
 
 .cow1::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 12px;
   height: 30px;
@@ -213,7 +308,7 @@ body::before {
 }
 
 .cow1-spots::before {
-  content: '';
+  content: "";
   position: absolute;
   width: 48px;
   height: 36px;
@@ -224,7 +319,7 @@ body::before {
 }
 
 .cow1-spots::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 42px;
   height: 30px;
@@ -265,7 +360,7 @@ body::before {
 }
 
 .cow2::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 9px;
   height: 24px;
@@ -323,7 +418,7 @@ body::before {
 }
 
 .cow2-spots::before {
-  content: '';
+  content: "";
   position: absolute;
   width: 36px;
   height: 30px;
@@ -334,7 +429,7 @@ body::before {
 }
 
 .cow2-spots::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 30px;
   height: 24px;
@@ -374,7 +469,7 @@ body::before {
 }
 
 .cow3::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 9px;
   height: 27px;
@@ -432,7 +527,7 @@ body::before {
 }
 
 .cow3-spots::before {
-  content: '';
+  content: "";
   position: absolute;
   width: 42px;
   height: 33px;
@@ -443,7 +538,7 @@ body::before {
 }
 
 .cow3-spots::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 36px;
   height: 27px;
@@ -456,7 +551,8 @@ body::before {
 .win95-window {
   background-color: var(--win95-gray);
   border: 2px solid;
-  border-color: var(--win95-highlight) var(--win95-shadow) var(--win95-shadow) var(--win95-highlight);
+  border-color: var(--win95-highlight) var(--win95-shadow) var(--win95-shadow)
+    var(--win95-highlight);
   padding: 2px;
   box-shadow: 2px 2px 0 var(--win95-border);
   position: fixed;
@@ -465,7 +561,7 @@ body::before {
   transform: translate(0, 0);
   user-select: none;
   z-index: 1000;
-  width: 400px;
+  width: 500px;
   will-change: transform;
 }
 
@@ -513,7 +609,8 @@ body::before {
   width: 20px;
   height: 20px;
   border: 1px solid;
-  border-color: var(--win95-highlight) var(--win95-shadow) var(--win95-shadow) var(--win95-highlight);
+  border-color: var(--win95-highlight) var(--win95-shadow) var(--win95-shadow)
+    var(--win95-highlight);
   background: var(--win95-gray);
   font-size: 12px;
   display: flex;
@@ -524,7 +621,8 @@ body::before {
 }
 
 .window-controls button:active {
-  border-color: var(--win95-shadow) var(--win95-highlight) var(--win95-highlight) var(--win95-shadow);
+  border-color: var(--win95-shadow) var(--win95-highlight)
+    var(--win95-highlight) var(--win95-shadow);
 }
 
 .counters {
@@ -561,7 +659,8 @@ body::before {
 .win95-button {
   background-color: var(--win95-gray);
   border: 1px solid;
-  border-color: var(--win95-highlight) var(--win95-shadow) var(--win95-shadow) var(--win95-highlight);
+  border-color: var(--win95-highlight) var(--win95-shadow) var(--win95-shadow)
+    var(--win95-highlight);
   padding: 2px 8px;
   cursor: pointer;
   font-weight: normal;
@@ -571,7 +670,8 @@ body::before {
 }
 
 .win95-button:active {
-  border-color: var(--win95-shadow) var(--win95-highlight) var(--win95-highlight) var(--win95-shadow);
+  border-color: var(--win95-shadow) var(--win95-highlight)
+    var(--win95-highlight) var(--win95-shadow);
 }
 
 .win95-button:disabled {

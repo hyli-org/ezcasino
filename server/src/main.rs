@@ -86,7 +86,7 @@ async fn main() -> Result<()> {
     let app_ctx = Arc::new(AppModuleCtx {
         api: build_api_ctx.clone(),
         node_client,
-        indexer_client,
+        wallet_indexer_url: Arc::new(config.indexer_url.clone()),
         blackjack_cn: args.contract_name.into(),
     });
 

@@ -41,10 +41,18 @@
 }
 
 @keyframes fadeInOut {
-  0% { opacity: 0; }
-  20% { opacity: 1; }
-  80% { opacity: 1; }
-  100% { opacity: 0; }
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 .menu-item {
@@ -183,7 +191,7 @@
 }
 
 .faucet-link:hover {
-  color: #C44536; /* A brighter rusty red */
+  color: #c44536; /* A brighter rusty red */
 }
 
 .faucet-link:active {
@@ -268,7 +276,8 @@
   gap: 0.5rem;
 }
 
-.dealer-score, .player-score {
+.dealer-score,
+.player-score {
   color: white;
   font-size: 1.2rem;
   text-align: center;
@@ -334,13 +343,15 @@
 }
 
 .bsod-footer::after {
-  content: '_';
+  content: "_";
   position: absolute;
   animation: blink 1s step-start infinite;
 }
 
 @keyframes blink {
-  50% { opacity: 0; }
+  50% {
+    opacity: 0;
+  }
 }
 
 .taskbar {
@@ -376,7 +387,7 @@
   border-right: 1px solid var(--win95-dark-gray);
   border-bottom: 1px solid var(--win95-dark-gray);
   margin-right: 6px;
-  font-family: 'MS Sans Serif', sans-serif;
+  font-family: "MS Sans Serif", sans-serif;
   font-size: 13px;
   cursor: pointer;
   user-select: none;
@@ -424,7 +435,7 @@
 }
 
 .start-button span {
-  font-family: 'MS Sans Serif', sans-serif;
+  font-family: "MS Sans Serif", sans-serif;
   font-size: 14px;
   font-weight: bold;
   margin-right: 6px;
@@ -437,7 +448,7 @@
   border-left: 1px solid var(--win95-dark-gray);
   border-right: 1px solid var(--win95-highlight);
   border-bottom: 1px solid var(--win95-highlight);
-  font-family: 'MS Sans Serif', sans-serif;
+  font-family: "MS Sans Serif", sans-serif;
   font-size: 14px;
   height: 35px;
   display: flex;
@@ -463,12 +474,16 @@
 
 .start-menu-left {
   width: 20px;
-  background: linear-gradient(to bottom, var(--win95-dark-gray), var(--win95-gray));
+  background: linear-gradient(
+    to bottom,
+    var(--win95-dark-gray),
+    var(--win95-gray)
+  );
   writing-mode: vertical-lr;
   text-orientation: mixed;
   transform: rotate(180deg);
   padding: 6px 0;
-  font-family: 'MS Sans Serif', sans-serif;
+  font-family: "MS Sans Serif", sans-serif;
   font-size: 11px;
   font-weight: bold;
   color: var(--win95-highlight);
@@ -487,7 +502,7 @@
   display: flex;
   align-items: center;
   padding: 4px 6px;
-  font-family: 'MS Sans Serif', sans-serif;
+  font-family: "MS Sans Serif", sans-serif;
   font-size: 11px;
   cursor: pointer;
 }
@@ -515,7 +530,7 @@
   align-items: center;
   z-index: 9999;
   color: var(--win95-light-gray);
-  font-family: 'MS Sans Serif', sans-serif;
+  font-family: "MS Sans Serif", sans-serif;
 }
 
 .shutdown-content {
@@ -565,7 +580,8 @@
   background-color: var(--win95-gray);
   border: 2px solid var(--win95-dark-gray);
   margin: 20px;
-  box-shadow: inset 1px 1px var(--win95-highlight), inset -1px -1px var(--win95-shadow);
+  box-shadow: inset 1px 1px var(--win95-highlight),
+    inset -1px -1px var(--win95-shadow);
 }
 
 .welcome-message h2 {
@@ -602,15 +618,15 @@
 
 /* Thèmes jour/nuit */
 .day-theme {
-  --theme-bg: #FFFFFF;
+  --theme-bg: #ffffff;
   --theme-text: #000000;
   --theme-shadow: rgba(0, 0, 0, 0.2);
-  --theme-highlight: #FFFFFF;
+  --theme-highlight: #ffffff;
 }
 
 .night-theme {
   --theme-bg: #1a1a1a;
-  --theme-text: #FFFFFF;
+  --theme-text: #ffffff;
   --theme-shadow: rgba(255, 255, 255, 0.1);
   --theme-highlight: #333333;
 }
