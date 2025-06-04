@@ -2,30 +2,8 @@ import { GameState } from '../types/game';
 import { Blob } from 'hyli';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const SESSION_PRIVATE_KEY_STORAGE_KEY = 'ezcasino_private_key';
 
-class GameService {  
-  private privateKey: string | null = null;
-
-  setSessionPrivateKey(privateKey: string): void {
-    this.privateKey = privateKey;
-    localStorage.setItem(SESSION_PRIVATE_KEY_STORAGE_KEY, privateKey);
-  }
-
-  getPrivateKey(): string | null {
-    if (!this.privateKey) {
-      const storedPrivateKey = localStorage.getItem(SESSION_PRIVATE_KEY_STORAGE_KEY);
-      if (storedPrivateKey) {
-        this.privateKey = storedPrivateKey;
-      }
-    }
-    return this.privateKey;
-  }
-
-  clearSession() {
-    localStorage.removeItem(SESSION_PRIVATE_KEY_STORAGE_KEY);
-    this.privateKey = null;
-  }
+class GameService {
 
   private async makeRequest(endpoint: string, method: string = 'GET', body?: any, identity?: string) {
     const headers: HeadersInit = {
@@ -53,28 +31,99 @@ class GameService {
   }
 
   async initGame(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
-    return this.makeRequest('/init', 'POST', wallet_blobs, identity);
+    return this.makeRequest('/api/init', 'POST', wallet_blobs, identity);
   }
 
   async hit(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
-    return this.makeRequest('/hit', 'POST', wallet_blobs, identity);
+    return this.makeRequest('/api/hit', 'POST', wallet_blobs, identity);
   }
 
   async stand(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
-    return this.makeRequest('/stand', 'POST', wallet_blobs, identity);
+    return this.makeRequest('/api/stand', 'POST', wallet_blobs, identity);
   }
 
   async doubleDown(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
-    return this.makeRequest('/double_down', 'POST', wallet_blobs, identity);
+    return this.makeRequest('/api/double_down', 'POST', wallet_blobs, identity);
   }
 
   async claim(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
-    return this.makeRequest('/claim', 'POST', wallet_blobs, identity);
+    return this.makeRequest('/api/claim', 'POST', wallet_blobs, identity);
+  }
+
+  async withdraw(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
+    let balance = await this.getBalance(identity);
+    const body = {
+      wallet_blobs,
+      balance
+    };
+    return this.makeRequest('/api/withdraw', 'POST', body, identity);
+  }
+
+  async getBalance(identity: string): Promise<number> {
+    return this.makeRequest(`/v1/indexer/contract/blackjack/user/${identity}/balance`, 'GET');
   }
 
   async getConfig(): Promise<{ contract_name: string }> {
-    return this.makeRequest('/config', 'GET');
+    return this.makeRequest('/api/config', 'GET');
+  }
+
+  async getCurrentGameState(identity: string): Promise<GameState | null> {
+    try {
+      // Get the full contract state
+      const contractState = await this.makeRequest('/v1/indexer/contract/blackjack/state', 'GET');
+
+      // Check if the user has an ongoing table
+      const userTable = contractState.tables[identity];
+      if (!userTable) {
+        return null; // No ongoing game
+      }
+
+      // Get user balance
+      const balance = await this.getBalance(identity);
+
+      // Convert the table state to GameState format
+      const gameState: GameState = {
+        bank: userTable.bank,
+        bank_count: this.calculateHandValue(userTable.bank),
+        user: userTable.user,
+        user_count: this.calculateHandValue(userTable.user),
+        bet: userTable.bet,
+        state: userTable.state === 'Lost' ? 'Lost' :
+               userTable.state === 'Won' ? 'Won' : 'Ongoing',
+        balance: balance
+      };
+
+      return gameState;
+    } catch (error) {
+      console.error('Error fetching current game state:', error);
+      return null;
+    }
+  }
+
+  private calculateHandValue(cards: number[]): number {
+    let value = 0;
+    let aces = 0;
+
+    for (const card of cards) {
+      if (card === 1) {
+        aces++;
+        value += 1; // Start with Ace as 1
+      } else if (card >= 11 && card <= 13) {
+        value += 10; // J, Q, K are worth 10
+      } else {
+        value += card;
+      }
+    }
+
+    // Try to use Aces as 11 if it doesn't bust
+    for (let i = 0; i < aces; i++) {
+      if (value + 10 <= 21) {
+        value += 10; // Convert Ace from 1 to 11
+      }
+    }
+
+    return value;
   }
 }
 
-export const gameService = new GameService(); 
+export const gameService = new GameService();

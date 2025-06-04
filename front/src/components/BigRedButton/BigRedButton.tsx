@@ -135,7 +135,8 @@ const BigRedButton: React.FC<BigRedButtonProps> = ({ onClose }) => {
     
     // Send blob tx
     if (wallet?.address) {
-    const blobTransfer = blob_builder.token.transfer(wallet.address, "hyllar", 1, 1);
+    const blobTransfer = blob_builder.smt_token.transfer("faucet", wallet.address, "oranj", BigInt(1), 1);
+        
     const blobClick = blob_click(0);
     const identity = `${wallet.address}@${blobClick.contract_name}`;
     const blobTx: BlobTransaction = {

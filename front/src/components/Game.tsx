@@ -49,7 +49,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [showWinEffect, setShowWinEffect] = useState(false);
   const [showLoseEffect, setShowLoseEffect] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [showGameMenu, setShowGameMenu] = useState(false);
@@ -73,6 +73,71 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
     }
   }, [wallet, cleanExpiredSessionKey]);
 
+  // Charge user balance and update GameState, and check for existing game
+  const loadUserBalanceAndCheckExistingGame = async () => {
+    if (!wallet?.address) return;
+    
+    try {
+      // First, check if there's an ongoing game
+      const existingGameState = await gameService.getCurrentGameState(wallet.address);
+      
+      if (existingGameState) {
+        // Resume existing game
+        console.log('Found existing game, resuming...', existingGameState);
+        updateGameState(existingGameState);
+        setShowStartGame(false);
+      } else {
+        // No existing game, just load balance for new game
+        const realBalance = await gameService.getBalance(wallet.address);
+        setGameState({
+          bank: [],
+          bank_count: 0,
+          user: [],
+          user_count: 0,
+          bet: 10,
+          state: 'Ongoing',
+          balance: realBalance
+        });
+      }
+    } catch (err) {
+      console.error('Error loading user balance or checking existing game:', err);
+      // Fallback to just loading balance
+      try {
+        const realBalance = await gameService.getBalance(wallet.address);
+        setGameState({
+          bank: [],
+          bank_count: 0,
+          user: [],
+          user_count: 0,
+          bet: 10,
+          state: 'Ongoing',
+          balance: realBalance
+        });
+      } catch (balanceErr) {
+        console.error('Error loading user balance:', balanceErr);
+      }
+    }
+  };
+
+  // Load balance and check for existing game on wallet connection
+  useEffect(() => {
+    if (wallet?.address) {
+      loadUserBalanceAndCheckExistingGame();
+    }
+  }, [wallet?.address]); // Reload when wallet changes
+
+  // Helper function to reload just the balance
+  const loadUserBalance = async () => {
+    if (!wallet?.address) return;
+
+    try {
+      const realBalance = await gameService.getBalance(wallet.address);
+      setGameState(prevState => prevState ? { ...prevState, balance: realBalance } : null);
+    } catch (err) {
+      console.error('Error loading user balance:', err);
+    }
+  };
+
   const convertToCard = (value: number): CardType => {
     const suits: Suit[] = ['♠', '♣', '♥', '♦'];
     const suit = suits[Math.floor(Math.random() * suits.length)];
@@ -95,7 +160,12 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
     setDealerHand(dealerCards);
     setCurrentBet(newGameState.bet);
     setGameOver(newGameState.state !== 'Ongoing');
-    setGameState(newGameState);
+    
+    // Préserver la balance réelle si elle existe déjà dans gameState
+    setGameState(prevState => ({
+      ...newGameState,
+      balance: prevState?.balance ?? newGameState.balance
+    }));
 
     // Ne pas déclencher les effets visuels lors d'un claim
     if (!isClaiming) {
@@ -114,8 +184,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       if (!wallet) {
         throw new Error('Wallet not connected');
       }
-      const privateKey = gameService.getPrivateKey();
-      if (!privateKey) {
+      if (!wallet.sessionKey?.privateKey) {
         throw new Error('No session key found. Please create one via the game menu.');
       }
       setIsLoading(true);
@@ -126,10 +195,11 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       updateGameState(gameStateResult);
       setShowStartGame(false);
       setError(null);
+      setTimeout(() => loadUserBalance(), 100);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to initialize game. Please try again.';
+      setError(errorMessage);
       if (errorMessage.includes('Insufficient balance')) {
-        setError(errorMessage);
         setShowClaimButton(true);
       }
       console.error('Error initializing game:', err);
@@ -143,8 +213,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       if (!wallet) {
         throw new Error('Wallet not connected');
       }
-      const privateKey = gameService.getPrivateKey();
-      if (!privateKey) {
+      if (!wallet.sessionKey?.privateKey) {
         throw new Error('No session key found');
       }
       setIsLoading(true);
@@ -152,6 +221,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       const wallet_blobs = createIdentityBlobs();
       const gameStateResult = await gameService.hit(wallet_blobs, wallet.address);
       updateGameState(gameStateResult);
+      setTimeout(() => loadUserBalance(), 2000);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to hit. Please try again.';
       setError(errorMessage);
@@ -166,8 +236,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       if (!wallet) {
         throw new Error('Wallet not connected');
       }
-      const privateKey = gameService.getPrivateKey();
-      if (!privateKey) {
+      if (!wallet.sessionKey?.privateKey) {
         throw new Error('No session key found');
       }
       setIsLoading(true);
@@ -189,8 +258,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       if (!wallet) {
         throw new Error('Wallet not connected');
       }
-      const privateKey = gameService.getPrivateKey();
-      if (!privateKey) {
+      if (!wallet.sessionKey?.privateKey) {
         throw new Error('No session key found');
       }
       setIsLoading(true);
@@ -212,8 +280,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       if (!wallet) {
         throw new Error('Wallet not connected');
       }
-      const privateKey = gameService.getPrivateKey();
-      if (!privateKey) {
+      if (!wallet.sessionKey?.privateKey) {
         throw new Error('No session key found');
       }
       setIsLoading(true);
@@ -223,10 +290,34 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       updateGameState(gameStateResult, true);
       setShowClaimButton(false);
       setGameOver(true);
+      setTimeout(() => loadUserBalance(), 2000);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to claim. Please try again.';
       setError(errorMessage);
       console.error('Error claiming:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleWithdraw = async () => {
+    try {
+      if (!wallet) {
+        throw new Error('Wallet not connected');
+      }
+      if (!wallet.sessionKey?.privateKey) {
+        throw new Error('No session key found');
+      }
+      setIsLoading(true);
+      setError(null);
+      const wallet_blobs = createIdentityBlobs();
+      const gameStateResult = await gameService.withdraw(wallet_blobs, wallet.address);
+      updateGameState(gameStateResult, true);
+      setTimeout(() => loadUserBalance(), 2000);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to withdraw. Please try again.';
+      setError(errorMessage);
+      console.error('Error withdrawing:', err);
     } finally {
       setIsLoading(false);
     }
@@ -330,15 +421,13 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       setShowAuthLoader(true);
       setIsLoading(true);
       setError(null);
-      gameService.clearSession();
 
       const expiration = Date.now() + (7 * 24 * 60 * 60 * 1000); // 7 days
-      const whitelist = ["blackjack", "hyllar"]; // Example whitelist
+      const whitelist = ["blackjack", "oranj"]; // Example whitelist
 
-      const { sessionKey } = await registerSessionKey(password, expiration, whitelist);
+      await registerSessionKey(password, expiration, whitelist);
 
       setShowAuthLoader(false);
-      gameService.setSessionPrivateKey(sessionKey.privateKey);
       
       await startNewGame();
       setShowGameMenu(false);
@@ -356,7 +445,6 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   const handleDisconnect = () => {
     logout();
     setShowGameMenu(false);
-    gameService.clearSession();
   };
 
   const handleErrorClose = () => {
@@ -614,7 +702,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                 </div>
               )}
 
-              {wallet && !gameService.getPrivateKey() && !error && !showAuthLoader && (
+              {wallet && !wallet.sessionKey && !error && !showAuthLoader && (
                 <div className="message-overlay">
                   <div className="welcome-message">
                     <h2>Welcome to EZ Casino {wallet.username}!</h2>
@@ -676,11 +764,16 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                 </div>
               )}
 
-              {!error && showStartGame && (
+              {wallet && wallet.sessionKey && showStartGame && (
                 <div className="controls">
                   <button className="win95-button" onClick={startNewGame} disabled={isLoading}>
                     START GAME
                   </button>
+                  {gameState && gameState.balance > 0 && (
+                    <button className="win95-button" onClick={handleWithdraw} disabled={isLoading}>
+                      WITHDRAW
+                    </button>
+                  )}
                 </div>
               )}
               {!error && !showStartGame && !gameOver && gameState && (
@@ -694,12 +787,24 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                   <button className="win95-button" onClick={doubleDown} disabled={isLoading}>
                     DOUBLE
                   </button>
+                  {gameState && gameState.balance > 0 && (
+                    <button className="win95-button" onClick={handleWithdraw} disabled={isLoading}>
+                      WITHDRAW
+                    </button>
+                  )}
                 </div>
               )}
               {!error && !showStartGame && gameOver && (
-                <button className="win95-button" onClick={startNewGame} disabled={isLoading}>
-                  DEAL
-                </button>
+                <div className="controls">
+                  <button className="win95-button" onClick={startNewGame} disabled={isLoading}>
+                    DEAL
+                  </button>
+                  {gameState && gameState.balance > 0 && (
+                    <button className="win95-button" onClick={handleWithdraw} disabled={isLoading}>
+                      WITHDRAW
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>

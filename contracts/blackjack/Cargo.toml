@@ -22,7 +22,7 @@ serde = { version = "1.0", default-features = false, features = [
 ] }
 borsh = { version = "1.5.7" }
 hex = { version = "0.4.3" }
-hyle_hyllar = { workspace = true }
+hyle-smt-token = { workspace = true }
 
 risc0-zkvm = { version = "2.0.2", default-features = false, optional = true, features = [
   'std',

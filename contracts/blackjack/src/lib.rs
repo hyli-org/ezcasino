@@ -11,9 +11,11 @@ use alloc::{
 use borsh::{io::Error, BorshDeserialize, BorshSerialize};
 use rand::Rng;
 use rand_seeder::{SipHasher, SipRng};
+use sdk::caller::ExecutionContext;
+use sdk::{Blob, BlobData, BlobIndex, Calldata, ContractAction, StructuredBlobData};
 use serde::{Deserialize, Serialize};
 
-use hyle_hyllar::HyllarAction;
+use hyle_smt_token::SmtTokenAction;
 use sdk::{BlockHash, ContractName, Identity, RunResult};
 
 #[cfg(feature = "client")]
@@ -23,7 +25,7 @@ impl sdk::ZkContract for BlackJack {
     /// Entry point of the contract's logic
     fn execute(&mut self, calldata: &sdk::Calldata) -> RunResult {
         // Parse contract inputs
-        let (action, ctx) = sdk::utils::parse_raw_calldata::<BlackJackAction>(calldata)?;
+        let (action, mut ctx) = sdk::utils::parse_calldata::<BlackJackAction>(calldata)?;
 
         let user = &calldata.identity;
 
@@ -37,51 +39,11 @@ impl sdk::ZkContract for BlackJack {
             BlackJackAction::Hit => self.hit(user, &tx_ctx.block_hash)?,
             BlackJackAction::Stand => self.stand(user)?,
             BlackJackAction::DoubleDown => self.double_down(user)?,
-            BlackJackAction::Claim => {
-                // Find the Hyllar transfer blob
-                let transfer_blob_index = calldata
-                    .blobs
-                    .iter()
-                    .position(|(_, b)| b.contract_name == ContractName("hyllar".to_string()))
-                    .ok_or_else(|| "Missing Hyllar transfer blob".to_string())?;
-
-                let transfer_action = sdk::utils::parse_structured_blob::<HyllarAction>(
-                    &calldata.blobs,
-                    &sdk::BlobIndex(transfer_blob_index),
-                )
-                .ok_or_else(|| "Failed to decode Hyllar transfer action".to_string())?
-                .data
-                .parameters;
-
-                // Verify the transfer is for this contract and extract amount
-                match transfer_action {
-                    HyllarAction::Transfer { recipient, amount } => {
-                        if recipient != ctx.contract_name.0 {
-                            return Err("Transfer is not for the blackjack contract".to_string());
-                        }
-
-                        // Add to existing balance or create new balance
-                        let new_balance = if let Some(current_balance) = self.balances.get(user) {
-                            current_balance
-                                .checked_add(amount as u32)
-                                .ok_or_else(|| "Balance overflow".to_string())?
-                        } else {
-                            amount as u32
-                        };
-
-                        self.balances.insert(user.clone(), new_balance);
-
-                        Ok(format!(
-                            "Added {} to balance, new balance is {} for user {}",
-                            amount, new_balance, user
-                        ))
-                    }
-                    _ => Err("Invalid Hyllar action type, expected Transfer".to_string()),
-                }
-            }?,
+            BlackJackAction::Claim => self.claim(user, calldata, &ctx)?,
+            BlackJackAction::Withdraw(amount) => self.withdraw(amount, user, &mut ctx)?,
         };
 
-        Ok((res, ctx, alloc::vec![]))
+        Ok((res.into(), ctx, alloc::vec![]))
     }
 
     /// In this example, we serialize the full state on-chain.
@@ -126,13 +88,23 @@ pub enum BlackJackAction {
     Stand,
     DoubleDown,
     Claim,
+    Withdraw(u128),
 }
 
-impl BlackJackAction {
-    pub fn as_blob(&self, contract_name: sdk::ContractName) -> sdk::Blob {
-        sdk::Blob {
+impl ContractAction for BlackJackAction {
+    fn as_blob(
+        &self,
+        contract_name: ContractName,
+        caller: Option<BlobIndex>,
+        callees: Option<Vec<BlobIndex>>,
+    ) -> Blob {
+        Blob {
             contract_name,
-            data: sdk::BlobData(borsh::to_vec(self).expect("Failed to encode BlackJackAction")),
+            data: BlobData::from(StructuredBlobData {
+                caller,
+                callees,
+                parameters: self.clone(),
+            }),
         }
     }
 }
@@ -453,12 +425,92 @@ impl BlackJack {
             }
         }
     }
+
+    pub fn claim(
+        &mut self,
+        user: &Identity,
+        calldata: &Calldata,
+        ctx: &ExecutionContext,
+    ) -> Result<String, String> {
+        // Find the oranj transfer blob
+        let transfer_blob_index = calldata
+            .blobs
+            .iter()
+            .position(|(_, b)| b.contract_name == ContractName("oranj".to_string()))
+            .ok_or_else(|| "Missing Oranj transfer blob".to_string())?;
+
+        let transfer_action = sdk::utils::parse_structured_blob::<SmtTokenAction>(
+            &calldata.blobs,
+            &sdk::BlobIndex(transfer_blob_index),
+        )
+        .ok_or_else(|| "Failed to decode Oranj transfer action".to_string())?
+        .data
+        .parameters;
+
+        // Verify the transfer is for this contract and extract amount
+        match transfer_action {
+            SmtTokenAction::Transfer {
+                sender,
+                recipient,
+                amount,
+            } => {
+                if &sender != user {
+                    return Err("Transfer is not from the user".to_string());
+                }
+                if recipient.0 != ctx.contract_name.0 {
+                    return Err("Transfer is not for the blackjack contract".to_string());
+                }
+
+                // Add to existing balance or create new balance
+                let new_balance = if let Some(current_balance) = self.balances.get(user) {
+                    current_balance
+                        .checked_add(amount as u32)
+                        .ok_or_else(|| "Balance overflow".to_string())?
+                } else {
+                    amount as u32
+                };
+
+                self.balances.insert(user.clone(), new_balance);
+
+                Ok(format!(
+                    "Added {} to balance, new balance is {} for user {}",
+                    amount, new_balance, user
+                ))
+            }
+            _ => Err("Invalid Oranj action type, expected Transfer".to_string()),
+        }
+    }
+
+    pub fn withdraw(
+        &mut self,
+        amount: u128,
+        user: &Identity,
+        ctx: &mut ExecutionContext,
+    ) -> Result<String, String> {
+        let Some(current_balance) = self.balances.get(user).cloned() else {
+            return Err("Unkown user, can't withdraw".to_string());
+        };
+        if amount > current_balance as u128 {
+            return Err("Insufficient balance to withdraw".to_string());
+        }
+        ctx.is_in_callee_blobs(
+            &"oranj".into(),
+            SmtTokenAction::Transfer {
+                sender: "blackjack".into(),
+                recipient: user.clone(),
+                amount,
+            },
+        )?;
+
+        self.balances.insert(user.clone(), 0);
+        Ok(format!("Withdrawed {} to {}'s balance", amount, user))
+    }
 }
 
 impl From<sdk::StateCommitment> for BlackJack {
     fn from(state: sdk::StateCommitment) -> Self {
         borsh::from_slice(&state.0)
-            .map_err(|_| "Could not decode hyllar state".to_string())
+            .map_err(|_| "Could not decode oranj state".to_string())
             .unwrap()
     }
 }
