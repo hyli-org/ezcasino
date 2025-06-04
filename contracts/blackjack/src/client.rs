@@ -10,8 +10,13 @@ use client_sdk::contract_indexer::{
     AppError, ContractHandler, ContractHandlerStore,
 };
 use client_sdk::transaction_builder::TxExecutorHandler;
-use sdk::{utils::as_hyle_output, Blob, Calldata, Identity, RegisterContractEffect, ZkContract};
-use serde::Serialize;
+use hyle_modules::modules::prover::AutoProverEvent;
+use sdk::{
+    tracing::{debug, info},
+    utils::as_hyle_output,
+    Blob, BlobTransaction, Calldata, Hashed, Identity, RegisterContractEffect, TxContext,
+    ZkContract,
+};
 
 use client_sdk::contract_indexer::axum;
 use client_sdk::contract_indexer::utoipa;
@@ -51,7 +56,68 @@ impl TxExecutorHandler for BlackJack {
     }
 }
 
-impl ContractHandler for BlackJack {
+#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, Clone, Default)]
+pub struct OptimisticBlackJack {
+    pub unsettled_txs: Vec<(BlobTransaction, BlobIndex, TxContext)>,
+}
+
+fn apply_tx_to_state(
+    state: &mut BlackJack,
+    tx: &BlobTransaction,
+    index: BlobIndex,
+    tx_context: TxContext,
+) -> Result<()> {
+    let Blob {
+        contract_name,
+        data: _,
+    } = tx.blobs.get(index.0).context("Failed to get blob")?;
+
+    let calldata = Calldata {
+        identity: tx.identity.clone(),
+        index,
+        blobs: tx.blobs.clone().into(),
+        tx_blob_count: tx.blobs.len(),
+        tx_hash: tx.hashed(),
+        tx_ctx: Some(tx_context),
+        private_input: vec![],
+    };
+
+    let hyle_output = state.handle(&calldata)?;
+    let program_outputs = str::from_utf8(&hyle_output.program_outputs).unwrap_or("no output");
+
+    info!("🚀 Executed {contract_name}: {}", program_outputs);
+    debug!(
+        handler = %contract_name,
+        "hyle_output: {:?}", hyle_output
+    );
+    Ok(())
+}
+
+impl OptimisticBlackJack {
+    fn compute_optimistic_state(
+        &mut self,
+        mut state: BlackJack,
+        new_unsettled_tx: Option<(BlobTransaction, BlobIndex, TxContext)>,
+    ) -> Result<BlackJack> {
+        for (tx, index, tx_context) in &self.unsettled_txs {
+            let _ = apply_tx_to_state(&mut state, tx, *index, tx_context.clone())
+                .context("Failed to apply transaction to optimistic state");
+        }
+
+        if let Some(new_unsettled_tx) = new_unsettled_tx {
+            apply_tx_to_state(
+                &mut state,
+                &new_unsettled_tx.0,
+                new_unsettled_tx.1,
+                new_unsettled_tx.2.clone(),
+            )?;
+            self.unsettled_txs.push(new_unsettled_tx);
+        }
+        Ok(state)
+    }
+}
+
+impl ContractHandler<AutoProverEvent<BlackJack>> for BlackJack {
     async fn api(store: ContractHandlerStore<BlackJack>) -> (Router<()>, OpenApi) {
         let (router, api) = OpenApiRouter::default()
             .routes(routes!(get_state))
@@ -59,6 +125,59 @@ impl ContractHandler for BlackJack {
             .split_for_parts();
 
         (router.with_state(store), api)
+    }
+
+    fn handle_transaction_success(
+        &mut self,
+        tx: &BlobTransaction,
+        index: BlobIndex,
+        tx_context: TxContext,
+    ) -> Result<Option<AutoProverEvent<BlackJack>>> {
+        apply_tx_to_state(self, tx, index, tx_context)
+            .context("Failed to apply transaction to state")?;
+        self.optimistic_state
+            .unsettled_txs
+            .retain(|(t, i, _)| t != tx || *i != index);
+        Ok(None)
+    }
+
+    fn handle_transaction_failed(
+        &mut self,
+        tx: &BlobTransaction,
+        index: BlobIndex,
+        _tx_context: TxContext,
+    ) -> Result<Option<AutoProverEvent<BlackJack>>> {
+        self.optimistic_state
+            .unsettled_txs
+            .retain(|(t, i, _)| t != tx || *i != index);
+        Ok(None)
+    }
+
+    fn handle_transaction_timeout(
+        &mut self,
+        tx: &BlobTransaction,
+        index: BlobIndex,
+        _tx_context: TxContext,
+    ) -> Result<Option<AutoProverEvent<BlackJack>>> {
+        self.optimistic_state
+            .unsettled_txs
+            .retain(|(t, i, _)| t != tx || *i != index);
+        Ok(None)
+    }
+
+    fn handle_transaction_sequenced(
+        &mut self,
+        tx: &BlobTransaction,
+        index: BlobIndex,
+        tx_context: TxContext,
+    ) -> Result<Option<AutoProverEvent<BlackJack>>> {
+        match self
+            .optimistic_state
+            .compute_optimistic_state(self.clone(), Some((tx.clone(), index, tx_context)))
+        {
+            Ok(state) => Ok(Some(AutoProverEvent::SuccessTx(tx.hashed(), state))),
+            Err(e) => Ok(Some(AutoProverEvent::FailedTx(tx.hashed(), e.to_string()))),
+        }
     }
 }
 
@@ -70,8 +189,8 @@ impl ContractHandler for BlackJack {
         (status = OK, description = "Get json state of contract")
     )
 )]
-pub async fn get_state<S: Serialize + Clone + 'static>(
-    State(state): State<ContractHandlerStore<S>>,
+pub async fn get_state(
+    State(state): State<ContractHandlerStore<BlackJack>>,
 ) -> Result<impl IntoResponse, AppError> {
     let store = state.read().await;
     store.state.clone().map(Json).ok_or(AppError(
@@ -96,18 +215,18 @@ pub async fn get_user_balance(
     State(state): State<ContractHandlerStore<BlackJack>>,
     axum::extract::Path(user_id): axum::extract::Path<String>,
 ) -> Result<impl IntoResponse, AppError> {
-    let store = state.read().await;
-    let blackjack_state = store.state.as_ref().ok_or(AppError(
+    let mut store = state.write().await;
+    let cn = store.contract_name.clone();
+    let blackjack_state = store.state.as_mut().ok_or(AppError(
         StatusCode::NOT_FOUND,
-        anyhow!("No state found for contract '{}'", store.contract_name),
+        anyhow!("No state found for contract '{}'", cn),
     ))?;
+    let state = blackjack_state
+        .optimistic_state
+        .compute_optimistic_state(blackjack_state.clone(), None)?;
 
     let user_identity = Identity(user_id);
-    let balance = blackjack_state
-        .balances
-        .get(&user_identity)
-        .copied()
-        .unwrap_or(0);
+    let balance = state.balances.get(&user_identity).copied().unwrap_or(0);
 
     Ok(Json(balance))
 }

@@ -11,17 +11,18 @@ use axum::{
 };
 use blackjack::{BlackJack, BlackJackAction, Table, TableState};
 use client_sdk::rest_client::NodeApiClient;
-use client_sdk::rest_client::{IndexerApiHttpClient, NodeApiHttpClient};
-use hyle_smt_token::{account::Account, SmtTokenAction};
-use std::collections::HashMap;
+use client_sdk::rest_client::NodeApiHttpClient;
+use hyle_smt_token::SmtTokenAction;
 
 use hyle_modules::{
     bus::{BusClientReceiver, SharedMessageBus},
     module_bus_client, module_handle_messages,
-    modules::{prover::AutoProverEvent, BuildApiContextInner, Module},
+    modules::{
+        contract_state_indexer::CSIBusEvent, prover::AutoProverEvent, BuildApiContextInner, Module,
+    },
 };
 use sdk::{Blob, BlobIndex, BlobTransaction, ContractAction, ContractName, Identity};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 use tower_http::cors::{Any, CorsLayer};
 
@@ -32,7 +33,7 @@ pub struct AppModule {
 pub struct AppModuleCtx {
     pub api: Arc<BuildApiContextInner>,
     pub node_client: Arc<NodeApiHttpClient>,
-    pub indexer_client: Arc<IndexerApiHttpClient>,
+    pub wallet_indexer_url: Arc<String>,
     pub blackjack_cn: ContractName,
 }
 
@@ -40,6 +41,7 @@ module_bus_client! {
 #[derive(Debug)]
 pub struct AppModuleBusClient {
     receiver(AutoProverEvent<BlackJack>),
+    receiver(CSIBusEvent<AutoProverEvent<BlackJack>>),
 }
 }
 
@@ -53,7 +55,7 @@ impl Module for AppModule {
                 bus: bus.new_handle(),
             })),
             client: ctx.node_client.clone(),
-            indexer_client: ctx.indexer_client.clone(),
+            wallet_indexer_url: ctx.wallet_indexer_url.clone(),
         };
 
         // Créer un middleware CORS
@@ -97,7 +99,7 @@ impl Module for AppModule {
 struct RouterCtx {
     pub app: Arc<Mutex<HyleOofCtx>>,
     pub client: Arc<NodeApiHttpClient>,
-    pub indexer_client: Arc<IndexerApiHttpClient>,
+    pub wallet_indexer_url: Arc<String>,
     pub blackjack_cn: ContractName,
 }
 
@@ -319,21 +321,29 @@ async fn handle_withdraw_action(
     Ok(())
 }
 
-async fn get_user_token_balance(ctx: &RouterCtx, identity: &Identity) -> Result<u128, AppError> {
-    let oranj: HashMap<Identity, Account> = ctx
-        .indexer_client
-        .fetch_current_state(&"oranj".into())
-        .await?;
+#[derive(Deserialize)]
+struct Balance {
+    #[allow(dead_code)]
+    pub address: String,
+    pub balance: u128,
+}
 
-    Ok(oranj
-        .get(&identity)
-        .ok_or_else(|| {
-            AppError(
-                StatusCode::BAD_REQUEST,
-                anyhow::anyhow!("Could not find account for identity: {}", identity),
-            )
-        })?
-        .balance)
+async fn get_user_token_balance(ctx: &RouterCtx, identity: &Identity) -> Result<u128, AppError> {
+    tracing::warn!(
+        "{}/v1/indexer/contract/oranj/balance/{}",
+        ctx.wallet_indexer_url,
+        &identity.0,
+    );
+    let balance = reqwest::get(&format!(
+        "{}/v1/indexer/contract/oranj/balance/{}",
+        ctx.wallet_indexer_url, &identity.0
+    ))
+    .await
+    .map_err(|e| AppError(StatusCode::INTERNAL_SERVER_ERROR, anyhow::anyhow!(e)))?
+    .json::<Balance>()
+    .await?;
+
+    Ok(balance.balance)
 }
 
 async fn execute_transaction(
@@ -355,7 +365,9 @@ async fn execute_transaction(
         loop {
             let event = bus.recv().await?;
             match event {
-                AutoProverEvent::SuccessTx(sequenced_tx_hash, state) => {
+                CSIBusEvent {
+                    event: AutoProverEvent::SuccessTx(sequenced_tx_hash, state),
+                } => {
                     if sequenced_tx_hash == tx_hash {
                         let balance = state.balances.get(&identity).copied().unwrap_or(0);
                         let mut table: ApiTable = state
@@ -368,7 +380,9 @@ async fn execute_transaction(
                         return Ok(Json(table));
                     }
                 }
-                AutoProverEvent::FailedTx(sequenced_tx_hash, error) => {
+                CSIBusEvent {
+                    event: AutoProverEvent::FailedTx(sequenced_tx_hash, error),
+                } => {
                     if sequenced_tx_hash == tx_hash {
                         return Err(AppError(StatusCode::BAD_REQUEST, anyhow::anyhow!(error)));
                     }

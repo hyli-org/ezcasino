@@ -13,7 +13,7 @@ use hyle_modules::{
     modules::{
         contract_state_indexer::{ContractStateIndexer, ContractStateIndexerCtx},
         da_listener::{DAListener, DAListenerConf},
-        prover::{AutoProver, AutoProverCtx},
+        prover::{AutoProver, AutoProverCtx, AutoProverEvent},
         rest::{RestApi, RestApiRunContext},
         BuildApiContextInner, ModulesHandler,
     },
@@ -86,17 +86,19 @@ async fn main() -> Result<()> {
     let app_ctx = Arc::new(AppModuleCtx {
         api: build_api_ctx.clone(),
         node_client,
-        indexer_client,
+        wallet_indexer_url: Arc::new(config.indexer_url.clone()),
         blackjack_cn: args.contract_name.into(),
     });
 
     handler.build_module::<AppModule>(app_ctx.clone()).await?;
     handler
-        .build_module::<ContractStateIndexer<BlackJack>>(ContractStateIndexerCtx {
-            contract_name: app_ctx.blackjack_cn.clone(),
-            data_directory: config.data_directory.clone(),
-            api: build_api_ctx.clone(),
-        })
+        .build_module::<ContractStateIndexer<BlackJack, AutoProverEvent<BlackJack>>>(
+            ContractStateIndexerCtx {
+                contract_name: app_ctx.blackjack_cn.clone(),
+                data_directory: config.data_directory.clone(),
+                api: build_api_ctx.clone(),
+            },
+        )
         .await?;
 
     handler

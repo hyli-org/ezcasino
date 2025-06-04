@@ -1,7 +1,6 @@
 [package]
 name = "blackjack"
 edition = { workspace = true }
-rust-version = "1.81"
 
 [[bin]]
 name = "blackjack"
@@ -32,6 +31,7 @@ client-sdk = { workspace = true, default-features = false, features = [
   "indexer",
   "rest",
 ], optional = true }
+hyle_modules = { workspace = true, optional = true }
 
 [dev-dependencies]
 # Active client feature for tests
@@ -46,5 +46,5 @@ risc0-zkvm = { version = "2.0.2", default-features = false, features = [
 
 [features]
 default = []
-client = ["dep:client-sdk"]
+client = ["dep:client-sdk", "dep:hyle_modules"]
 risc0 = ["dep:risc0-zkvm", "sdk/risc0"]
