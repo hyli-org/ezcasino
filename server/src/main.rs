@@ -107,7 +107,7 @@ async fn main() -> Result<()> {
                 contract_name: app_ctx.blackjack_cn.clone(),
                 node: app_ctx.node_client.clone(),
                 buffer_blocks: 1,
-                buffer_max_txs: 5,
+                max_txs_per_proof: 5,
                 default_state: BlackJack::default(),
             }
             .into(),
