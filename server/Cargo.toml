@@ -9,7 +9,7 @@ hyle_modules = { workspace = true }
 blackjack = { workspace = true, features = ["client"] }
 hyle-smt-token = { workspace = true }
 
-risc0-zkvm = { version = "2.0.2", features = ["prove"] }
+risc0-zkvm = { version = "2.1.0", features = ["prove"] }
 
 axum = "0.8.1"
 tokio = { version = "1", features = ["full"] }
