@@ -856,14 +856,16 @@ h2 {
   .win95-title-bar {
     padding: 4px 6px;
     font-size: 12px;
-    min-height: 32px;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
   }
 
   .window-controls button {
-    width: 24px;
-    height: 24px;
-    font-size: 12px;
-    min-height: 24px;
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+    min-height: 32px;
     touch-action: manipulation;
   }
 }
@@ -922,13 +924,16 @@ h2 {
   .win95-title-bar {
     font-size: 11px;
     padding: 2px 4px;
-    min-height: 28px;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
   }
 
   .window-controls button {
-    width: 20px;
-    height: 20px;
-    font-size: 10px;
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+    min-height: 28px;
   }
 
   .menu-item {
@@ -992,6 +997,13 @@ h2 {
     padding: 2px 4px;
     min-width: 50px;
   }
+
+  .window-controls button {
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+    min-height: 24px;
+  }
 }
 
 /* Landscape orientation optimizations */
@@ -1033,8 +1045,23 @@ h2 {
     touch-action: manipulation;
   }
 
+  /* Window control buttons - ensure minimum touch target */
+  .window-controls button {
+    min-width: 36px !important;
+    min-height: 36px !important;
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 14px !important;
+    touch-action: manipulation;
+  }
+
   /* Improve button contrast on touch devices */
   .win95-button:active {
+    background-color: var(--win95-blue);
+    color: white;
+  }
+
+  .window-controls button:active {
     background-color: var(--win95-blue);
     color: white;
   }

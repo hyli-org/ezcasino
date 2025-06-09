@@ -676,7 +676,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
             onMouseDown={handleMouseDown}
           >
             <div className="win95-title-bar">
-              <span>eZKasino</span>
+              <span>Ezcasino</span>
               <div className="window-controls">
                 <button className="minimize">-</button>
                 <button className="maximize">□</button>
@@ -974,7 +974,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
             <div className="taskbar-divider" />
             <div className="taskbar-button active">
               <img src="/cards-icon.png" alt="Blackjack" />
-              eZKasino
+              Ezcasino
             </div>
             <div className="taskbar-time">
               {getFormattedTime()}
@@ -988,7 +988,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
               <div className="start-menu-items">
                 <div className="start-menu-item" onClick={() => handleStartMenuItemClick('new-game')}>
                   <img src="/cards-icon.png" alt="New Game" />
-                  eZKasino
+                  Ezcasino
                 </div>
                 <div className="start-menu-item" onClick={() => handleStartMenuItemClick('weather')}>
                   <img src="/weather-icon.svg" alt="Weather" />

@@ -96,4 +96,212 @@
   100% {
     transform: rotate(360deg);
   }
+}
+
+/* ==== MOBILE & TABLET RESPONSIVE STYLES ==== */
+
+/* Tablet styles (768px and below) */
+@media screen and (max-width: 768px) {
+  .button-area {
+    min-height: calc(100vh - 150px);
+    padding: 15px;
+    margin: 8px;
+  }
+
+  .red-button {
+    width: 90%;
+    height: 90%;
+    max-width: 300px;
+    max-height: 300px;
+  }
+
+  .button-image {
+    width: 100%;
+    height: 100%;
+  }
+
+  .copy-message {
+    font-size: 14px;
+    padding: 4px 8px;
+    right: 10px;
+  }
+
+  .orange-pop {
+    width: 90px;
+    height: 90px;
+  }
+}
+
+/* Mobile styles (480px and below) */
+@media screen and (max-width: 480px) {
+  .button-area {
+    min-height: calc(100vh - 120px);
+    padding: 10px;
+    margin: 4px;
+  }
+
+  .red-button {
+    width: 85%;
+    height: 85%;
+    max-width: 250px;
+    max-height: 250px;
+  }
+
+  .button-image {
+    width: 100%;
+    height: 100%;
+  }
+
+  .copy-message {
+    font-size: 12px;
+    padding: 3px 6px;
+    right: 8px;
+    white-space: nowrap;
+  }
+
+  .orange-pop {
+    width: 60px;
+    height: 60px;
+  }
+
+  /* Ensure button is easily tappable */
+  .red-button {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Very small screens (320px and below) */
+@media screen and (max-width: 320px) {
+  .button-area {
+    min-height: calc(100vh - 100px);
+    padding: 8px;
+    margin: 2px;
+  }
+
+  .red-button {
+    width: 80%;
+    height: 80%;
+    max-width: 200px;
+    max-height: 200px;
+  }
+
+  .copy-message {
+    font-size: 11px;
+    padding: 2px 5px;
+    right: 6px;
+  }
+
+  .orange-pop {
+    width: 50px;
+    height: 50px;
+  }
+}
+
+/* Landscape mode adjustments */
+@media screen and (max-height: 600px) and (orientation: landscape) {
+  .button-area {
+    min-height: calc(100vh - 80px);
+    padding: 8px;
+  }
+
+  .red-button {
+    width: 70%;
+    height: 70%;
+    max-width: 200px;
+    max-height: 200px;
+  }
+
+  .orange-pop {
+    width: 45px;
+    height: 45px;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .red-button {
+    touch-action: manipulation;
+    min-width: 150px;
+    min-height: 150px;
+    /* Prevent text selection */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    /* Improve tap response */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .red-button:active,
+  .red-button.pressed {
+    transform: scale(0.92);
+    transition: transform 0.1s ease;
+  }
+
+  /* Ensure the button provides tactile feedback */
+  .button-image {
+    pointer-events: none; /* Prevent image from interfering with touch events */
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .button-area {
+    border-width: 1px;
+  }
+
+  .orange-pop {
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
+  }
+}
+
+/* Ensure proper button sizing on all mobile devices */
+@media screen and (max-width: 768px) {
+  .red-button {
+    /* Ensure minimum touch target size */
+    min-width: 120px;
+    min-height: 120px;
+    /* Center the button properly */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .button-image {
+    /* Ensure image scales properly */
+    object-fit: contain;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Improve animation performance on mobile */
+  .orange-pop {
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  .orange-pop img {
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+}
+
+/* Accessibility improvements for mobile */
+@media screen and (max-width: 768px) {
+  .red-button {
+    /* Add focus styles for keyboard navigation */
+    outline: none;
+  }
+
+  .red-button:focus {
+    box-shadow: 0 0 0 3px rgba(140, 39, 30, 0.5);
+  }
+
+  /* Improve button feedback */
+  .red-button:active {
+    transition: transform 0.05s ease-out;
+  }
 } 

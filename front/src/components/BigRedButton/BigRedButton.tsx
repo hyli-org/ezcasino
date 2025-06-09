@@ -63,6 +63,11 @@ const BigRedButton: React.FC<BigRedButtonProps> = ({ onClose }) => {
   }, [orangePops]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    // Désactiver le drag sur mobile et tablette
+    if (window.innerWidth <= 768) {
+      return;
+    }
+    
     if (e.target instanceof HTMLElement && e.target.closest('.win95-title-bar')) {
       setIsDragging(true);
       const rect = e.currentTarget.getBoundingClientRect();
