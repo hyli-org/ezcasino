@@ -186,4 +186,384 @@
   20% { opacity: 1; }
   80% { opacity: 1; }
   100% { opacity: 0; }
+}
+
+/* ==== MOBILE & TABLET RESPONSIVE STYLES ==== */
+
+/* Tablet styles (768px and below) */
+@media screen and (max-width: 768px) {
+  .hyli-window {
+    width: 100vw !important;
+    height: calc(100vh - 45px) !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    transform: none !important;
+    border-radius: 0;
+    z-index: 1000;
+  }
+
+  .hyli-window .win95-title-bar {
+    padding: 6px 8px;
+    font-size: 12px;
+    min-height: 32px;
+  }
+
+  .title-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+  }
+
+  .title-icon-img {
+    width: 18px;
+    height: 18px;
+  }
+
+  .window-controls button {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+    margin-left: 4px;
+    min-height: 24px;
+    touch-action: manipulation;
+  }
+
+  .address-bar {
+    padding: 8px;
+    font-size: 12px;
+  }
+
+  .address-label {
+    margin-right: 12px;
+    font-size: 12px;
+  }
+
+  .address-input {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+
+  .address-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+  }
+
+  .go-button {
+    height: 32px;
+    padding: 4px 12px;
+    margin-left: 8px;
+    font-size: 12px;
+    min-height: 32px;
+    touch-action: manipulation;
+  }
+
+  .transaction-container {
+    height: calc(100vh - 180px); /* Account for title bar, address bar, and status bar */
+    margin: 6px;
+  }
+
+  .transaction-header {
+    font-size: 12px;
+    min-height: 32px;
+  }
+
+  .transaction-cell {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+
+  .time-cell {
+    width: 90px;
+  }
+
+  .hash-cell {
+    width: 140px;
+  }
+
+  .identity-cell {
+    width: 140px;
+  }
+
+  .contract-cell {
+    width: 150px;
+  }
+
+  .status-bar {
+    padding: 6px 10px;
+    font-size: 11px;
+    min-height: 28px;
+  }
+
+  .status-section {
+    margin-right: 20px;
+  }
+
+  .status-icon {
+    width: 18px;
+    height: 18px;
+    margin-right: 8px;
+  }
+}
+
+/* Mobile styles (480px and below) */
+@media screen and (max-width: 480px) {
+  .hyli-window {
+    height: calc(100vh - 35px) !important;
+  }
+
+  .hyli-window .win95-title-bar {
+    padding: 4px 6px;
+    font-size: 11px;
+    min-height: 28px;
+  }
+
+  .title-icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
+  }
+
+  .title-icon-img {
+    width: 14px;
+    height: 14px;
+  }
+
+  .window-controls button {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+    margin-left: 2px;
+    min-height: 20px;
+  }
+
+  .address-bar {
+    padding: 6px;
+    font-size: 11px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .address-label {
+    margin-right: 8px;
+    font-size: 11px;
+    width: 100%;
+    margin-bottom: 4px;
+  }
+
+  .address-input {
+    padding: 4px 6px;
+    font-size: 11px;
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .address-icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
+  }
+
+  .go-button {
+    height: 28px;
+    padding: 2px 10px;
+    margin-left: 4px;
+    font-size: 11px;
+    min-height: 28px;
+  }
+
+  .transaction-container {
+    height: calc(100vh - 160px);
+    margin: 4px;
+    overflow-x: auto;
+  }
+
+  .transaction-header {
+    font-size: 11px;
+    min-height: 28px;
+  }
+
+  .transaction-cell {
+    padding: 6px 8px;
+    font-size: 10px;
+    white-space: nowrap;
+  }
+
+  .time-cell {
+    width: 70px;
+    font-size: 9px;
+  }
+
+  .hash-cell {
+    width: 100px;
+    font-size: 9px;
+  }
+
+  .identity-cell {
+    width: 100px;
+    font-size: 9px;
+  }
+
+  .contract-cell {
+    width: 110px;
+    font-size: 9px;
+  }
+
+  .status-bar {
+    padding: 4px 8px;
+    font-size: 10px;
+    min-height: 24px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .status-section {
+    margin-right: 12px;
+    font-size: 10px;
+  }
+
+  .status-icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
+  }
+
+  .copy-message {
+    right: 4px;
+    padding: 1px 4px;
+    font-size: 10px;
+  }
+}
+
+/* Very small screens (320px and below) */
+@media screen and (max-width: 320px) {
+  .address-bar {
+    padding: 4px;
+    flex-direction: column;
+  }
+
+  .address-label {
+    margin-right: 0;
+    margin-bottom: 2px;
+    width: 100%;
+  }
+
+  .address-input {
+    width: 100%;
+    margin-bottom: 4px;
+    min-width: auto;
+  }
+
+  .go-button {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 4px;
+  }
+
+  .transaction-container {
+    height: calc(100vh - 180px);
+    margin: 2px;
+  }
+
+  .transaction-cell {
+    padding: 4px 6px;
+    font-size: 9px;
+  }
+
+  .time-cell {
+    width: 60px;
+    font-size: 8px;
+  }
+
+  .hash-cell {
+    width: 80px;
+    font-size: 8px;
+  }
+
+  .identity-cell {
+    width: 80px;
+    font-size: 8px;
+  }
+
+  .contract-cell {
+    width: 90px;
+    font-size: 8px;
+  }
+
+  .status-section {
+    margin-right: 8px;
+    font-size: 9px;
+  }
+
+  .status-icon {
+    width: 14px;
+    height: 14px;
+    margin-right: 4px;
+  }
+}
+
+/* Landscape mode adjustments */
+@media screen and (max-height: 600px) and (orientation: landscape) {
+  .transaction-container {
+    height: calc(100vh - 120px);
+  }
+
+  .address-bar {
+    padding: 4px;
+  }
+
+  .status-bar {
+    padding: 3px 8px;
+    min-height: 20px;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .clickable,
+  .go-button,
+  .window-controls button {
+    touch-action: manipulation;
+    min-height: 44px; /* Apple's recommended minimum touch target */
+  }
+
+  .transaction-row.clickable {
+    min-height: 36px;
+  }
+
+  /* Improve touch feedback */
+  .clickable:active {
+    background-color: var(--win95-blue);
+    color: white;
+  }
+
+  .go-button:active {
+    background-color: var(--win95-blue);
+    color: white;
+  }
+
+  /* Disable hover effects on touch devices */
+  .clickable:hover {
+    background-color: initial;
+    color: initial;
+  }
+
+  .clickable:active,
+  .clickable:focus {
+    background-color: var(--win95-blue);
+    color: white;
+  }
+}
+
+/* Improve table scrolling on mobile */
+@media screen and (max-width: 480px) {
+  .transaction-container {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .transaction-header,
+  .transaction-row {
+    min-width: 400px; /* Ensure horizontal scrolling works well */
+  }
 } 

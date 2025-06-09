@@ -750,3 +750,322 @@ h2 {
   pointer-events: none;
   z-index: 5;
 }
+
+/* ==== MOBILE & TABLET RESPONSIVE STYLES ==== */
+
+/* Add viewport meta for proper mobile rendering */
+@media screen and (max-width: 768px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
+
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 100vh;
+    /* Improve touch scrolling */
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .win95-window {
+    width: 100vw !important;
+    height: calc(100vh - 45px) !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    transform: none !important;
+    max-width: none !important;
+    max-height: none !important;
+    border-radius: 0;
+    overflow-y: auto;
+  }
+
+  .game-container {
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .counters {
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .counter {
+    width: 100%;
+    text-align: center;
+  }
+
+  .led-display {
+    font-size: 14px;
+    padding: 4px 8px;
+    min-width: 80px;
+    margin: 0 auto;
+  }
+
+  .card {
+    width: 60px;
+    height: 80px;
+    font-size: 1em;
+    margin: 2px;
+  }
+
+  .play-area {
+    min-height: 250px;
+    margin: 10px 4px;
+    padding: 10px;
+  }
+
+  .hand {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    min-height: 70px;
+  }
+
+  .controls {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .win95-button {
+    min-width: 80px;
+    padding: 8px 12px;
+    font-size: 12px;
+    touch-action: manipulation;
+    /* Improve button tap targets */
+    min-height: 36px;
+  }
+
+  .menu-bar {
+    padding: 4px 0;
+  }
+
+  .menu-item {
+    padding: 6px 12px;
+    font-size: 12px;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+  }
+
+  .win95-title-bar {
+    padding: 4px 6px;
+    font-size: 12px;
+    min-height: 32px;
+  }
+
+  .window-controls button {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+    min-height: 24px;
+    touch-action: manipulation;
+  }
+}
+
+/* Mobile styles (480px and below) */
+@media screen and (max-width: 480px) {
+  .win95-window {
+    height: calc(100vh - 35px) !important;
+  }
+
+  .counters {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .counter-label {
+    font-size: 10px;
+  }
+
+  .led-display {
+    font-size: 12px;
+    padding: 3px 6px;
+    min-width: 60px;
+  }
+
+  .card {
+    width: 50px;
+    height: 68px;
+    font-size: 0.9em;
+    margin: 1px;
+  }
+
+  .play-area {
+    min-height: 200px;
+    margin: 5px 2px;
+    padding: 8px;
+  }
+
+  .hand {
+    gap: 2px;
+    min-height: 60px;
+  }
+
+  .controls {
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .win95-button {
+    min-width: 70px;
+    padding: 6px 10px;
+    font-size: 11px;
+    min-height: 32px;
+  }
+
+  .win95-title-bar {
+    font-size: 11px;
+    padding: 2px 4px;
+    min-height: 28px;
+  }
+
+  .window-controls button {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+  }
+
+  .menu-item {
+    padding: 4px 8px;
+    font-size: 11px;
+    min-height: 28px;
+  }
+
+  /* Improve input accessibility on mobile */
+  input, select, textarea {
+    font-size: 16px; /* Prevent zoom on focus */
+    min-height: 32px;
+    touch-action: manipulation;
+  }
+
+  /* Better scrolling for content */
+  .game-container {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+  }
+}
+
+/* Very small screens (320px and below) */
+@media screen and (max-width: 320px) {
+  .card {
+    width: 45px;
+    height: 60px;
+    font-size: 0.8em;
+    margin: 1px;
+  }
+
+  .play-area {
+    min-height: 180px;
+    padding: 6px;
+  }
+
+  .hand {
+    gap: 1px;
+    min-height: 50px;
+  }
+
+  .controls {
+    gap: 4px;
+    padding: 6px;
+  }
+
+  .win95-button {
+    min-width: 60px;
+    padding: 4px 8px;
+    font-size: 10px;
+    min-height: 28px;
+  }
+
+  .counters {
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .led-display {
+    font-size: 11px;
+    padding: 2px 4px;
+    min-width: 50px;
+  }
+}
+
+/* Landscape orientation optimizations */
+@media screen and (max-height: 600px) and (orientation: landscape) {
+  .play-area {
+    min-height: 150px;
+    padding: 6px;
+  }
+
+  .hand {
+    min-height: 50px;
+  }
+
+  .card {
+    width: 45px;
+    height: 60px;
+    font-size: 0.8em;
+  }
+
+  .counters {
+    flex-direction: row;
+    justify-content: space-around;
+    gap: 5px;
+    padding: 5px;
+  }
+
+  .counter {
+    width: auto;
+    flex: 1;
+  }
+}
+
+/* Ensure proper touch targets and prevent unwanted interactions */
+@media (hover: none) and (pointer: coarse) {
+  /* Touch devices */
+  button, .clickable {
+    min-height: 44px; /* Apple's recommended minimum touch target */
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+
+  /* Improve button contrast on touch devices */
+  .win95-button:active {
+    background-color: var(--win95-blue);
+    color: white;
+  }
+
+  /* Disable hover effects on touch devices */
+  .menu-item:hover {
+    background-color: initial;
+    color: initial;
+  }
+
+  .menu-item:active,
+  .menu-item:focus {
+    background-color: var(--win95-blue);
+    color: white;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .card {
+    border-width: 0.5px;
+  }
+
+  .win95-window {
+    border-width: 1px;
+  }
+}
+
+/* Dark mode support for mobile */
+@media (prefers-color-scheme: dark) and (max-width: 768px) {
+  body.night-theme {
+    filter: brightness(0.8);
+  }
+}

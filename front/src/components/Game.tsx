@@ -413,10 +413,15 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       const gameWidth = 400; // Largeur de la fenêtre
       const gameHeight = 600; // Hauteur approximative de la fenêtre
 
-      setWindowPosition({
-        x: (windowWidth - gameWidth) / 2,
-        y: (windowHeight - gameHeight) / 2
-      });
+      // Sur mobile (768px et moins), ne pas centrer car la fenêtre occupe tout l'écran
+      if (windowWidth <= 768) {
+        setWindowPosition({ x: 0, y: 0 });
+      } else {
+        setWindowPosition({
+          x: (windowWidth - gameWidth) / 2,
+          y: (windowHeight - gameHeight) / 2
+        });
+      }
     };
 
     centerWindow();
@@ -428,6 +433,11 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   }, []);
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    // Désactiver le drag sur mobile et tablette
+    if (window.innerWidth <= 768) {
+      return;
+    }
+    
     if (e.target instanceof HTMLElement && e.target.closest('.win95-title-bar')) {
       setIsDragging(true);
       const rect = e.currentTarget.getBoundingClientRect();

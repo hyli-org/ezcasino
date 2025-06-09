@@ -867,4 +867,319 @@
   width: 60px;
   margin-left: 5px;
   align-self: flex-end;
+}
+
+/* ==== MOBILE & TABLET RESPONSIVE STYLES ==== */
+
+/* Tablet styles (768px and below) */
+@media screen and (max-width: 768px) {
+  .msn-chat {
+    width: 100vw !important;
+    height: calc(100vh - 45px) !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    transform: none !important;
+    border-radius: 0;
+    z-index: 1000;
+  }
+
+  .msn-chat-window-container {
+    width: 100vw !important;
+    height: calc(100vh - 45px) !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    transform: none !important;
+    border-radius: 0;
+  }
+
+  .win95-title-bar.msn-title-bar {
+    height: 32px;
+    padding: 0 8px;
+    font-size: 12px;
+  }
+
+  .msn-logo {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+  }
+
+  .win95-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+    margin-left: 4px;
+    min-height: 24px;
+    touch-action: manipulation;
+  }
+
+  .msn-menu-bar {
+    height: 28px;
+    padding: 0 4px;
+  }
+
+  .msn-menu-item {
+    padding: 0 8px;
+    font-size: 12px;
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+  }
+
+  .msn-content {
+    height: calc(100vh - 105px); /* Account for title bar and menu */
+  }
+
+  .contact-list {
+    width: 100%;
+    min-width: 200px;
+  }
+
+  .contact-item {
+    padding: 8px 12px;
+    font-size: 12px;
+    min-height: 36px;
+    touch-action: manipulation;
+  }
+
+  .contact-avatar {
+    width: 28px;
+    height: 28px;
+    margin-right: 8px;
+  }
+
+  .input-area {
+    padding: 8px;
+  }
+
+  .message-input {
+    height: 60px;
+    font-size: 14px;
+    padding: 8px;
+  }
+
+  .send-button, .search-button {
+    width: 70px;
+    padding: 6px 0;
+    font-size: 12px;
+    min-height: 32px;
+    touch-action: manipulation;
+  }
+
+  .input-buttons {
+    gap: 8px;
+  }
+
+  .msn-taskbar {
+    height: 32px;
+    padding: 2px 6px;
+  }
+
+  .msn-taskbar-item {
+    padding: 2px 10px;
+    height: 26px;
+    min-width: 120px;
+    max-width: 180px;
+    font-size: 11px;
+  }
+
+  .msn-logo-small {
+    width: 18px;
+    height: 18px;
+    margin-right: 6px;
+  }
+}
+
+/* Mobile styles (480px and below) */
+@media screen and (max-width: 480px) {
+  .msn-chat {
+    height: calc(100vh - 35px) !important;
+  }
+
+  .msn-chat-window-container {
+    height: calc(100vh - 35px) !important;
+  }
+
+  .win95-title-bar.msn-title-bar {
+    height: 28px;
+    padding: 0 6px;
+    font-size: 11px;
+  }
+
+  .msn-logo {
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
+  }
+
+  .win95-btn {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+    margin-left: 2px;
+    min-height: 20px;
+  }
+
+  .msn-menu-bar {
+    height: 24px;
+    padding: 0 2px;
+  }
+
+  .msn-menu-item {
+    padding: 0 6px;
+    font-size: 11px;
+    min-height: 24px;
+  }
+
+  .msn-content {
+    height: calc(100vh - 87px); /* Account for smaller title bar and menu */
+  }
+
+  .contact-item {
+    padding: 6px 10px;
+    font-size: 11px;
+    min-height: 32px;
+  }
+
+  .contact-avatar {
+    width: 24px;
+    height: 24px;
+    margin-right: 6px;
+  }
+
+  .input-area {
+    padding: 6px;
+  }
+
+  .message-input {
+    height: 50px;
+    font-size: 12px;
+    padding: 6px;
+  }
+
+  .send-button, .search-button {
+    width: 60px;
+    padding: 4px 0;
+    font-size: 11px;
+    min-height: 28px;
+  }
+
+  .input-buttons {
+    gap: 6px;
+  }
+
+  .message-item {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .message-time {
+    font-size: 9px;
+  }
+
+  .display-pic-container {
+    height: 80px;
+    padding: 4px;
+  }
+
+  .msn-taskbar {
+    height: 28px;
+    padding: 1px 4px;
+  }
+
+  .msn-taskbar-item {
+    padding: 1px 8px;
+    height: 22px;
+    min-width: 100px;
+    max-width: 150px;
+    font-size: 10px;
+  }
+
+  .msn-logo-small {
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+  }
+
+  .taskbar-item-name {
+    font-size: 10px;
+  }
+}
+
+/* Very small screens (320px and below) */
+@media screen and (max-width: 320px) {
+  .contact-item {
+    padding: 4px 8px;
+    font-size: 10px;
+    min-height: 28px;
+  }
+
+  .contact-avatar {
+    width: 20px;
+    height: 20px;
+    margin-right: 4px;
+  }
+
+  .message-input {
+    height: 40px;
+    font-size: 11px;
+    padding: 4px;
+  }
+
+  .send-button, .search-button {
+    width: 50px;
+    padding: 2px 0;
+    font-size: 10px;
+    min-height: 24px;
+  }
+
+  .msn-taskbar-item {
+    min-width: 80px;
+    max-width: 120px;
+    font-size: 9px;
+  }
+
+  .display-pic-container {
+    height: 60px;
+    padding: 3px;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .contact-item,
+  .msn-menu-item,
+  .win95-btn,
+  .send-button,
+  .search-button {
+    touch-action: manipulation;
+  }
+
+  /* Improve touch feedback */
+  .contact-item:active {
+    background-color: var(--win95-blue);
+    color: white;
+  }
+
+  .win95-btn:active {
+    background-color: var(--win95-blue);
+    color: white;
+  }
+
+  /* Disable hover effects on touch devices */
+  .contact-item:hover,
+  .msn-menu-item:hover {
+    background-color: initial;
+    color: initial;
+  }
+
+  .contact-item:active,
+  .contact-item:focus,
+  .msn-menu-item:active,
+  .msn-menu-item:focus {
+    background-color: var(--win95-blue);
+    color: white;
+  }
 } 
