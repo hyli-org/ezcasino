@@ -53,7 +53,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [tokenBalances, setTokenBalances] = useState<TokenBalances | null>(null);
   const [showGameMenu, setShowGameMenu] = useState(false);
-  const [showClaimButton, setShowClaimButton] = useState(false);
+  const [showDepositButton, setShowDepositButton] = useState(false);
   const [showBSOD, setShowBSOD] = useState(false);
   const [showStartMenu, setShowStartMenu] = useState(false);
   const [showShutdown, setShowShutdown] = useState(false);
@@ -64,6 +64,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   const [showHyliExplorer, setShowHyliExplorer] = useState(false);
   const [showAuthLoader, setShowAuthLoader] = useState(false);
   const [selectedBet, setSelectedBet] = useState(10);
+  const [selectedDeposit, setSelectedDeposit] = useState(10);
 
 
   // Surveiller les changements de wallet pour détecter la déconnexion
@@ -202,7 +203,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
     return { suit, value: cardValue };
   };
 
-  const updateGameState = (newGameState: GameState, isClaiming: boolean = false) => {
+  const updateGameState = (newGameState: GameState, isDepositing: boolean = false) => {
     const playerCards = newGameState.user.map(convertToCard);
     const dealerCards = newGameState.bank.map(convertToCard);
 
@@ -217,8 +218,8 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       balance: prevState?.balance ?? newGameState.balance
     }));
 
-    // Ne pas déclencher les effets visuels lors d'un claim
-    if (!isClaiming) {
+    // Ne pas déclencher les effets visuels lors d'un deposit
+    if (!isDepositing) {
       if (newGameState.state === 'Won') {
         setShowWinEffect(true);
         setTimeout(() => setShowWinEffect(false), 4000);
@@ -245,7 +246,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
 
       setIsLoading(true);
       setError(null);
-      setShowClaimButton(false);
+      setShowDepositButton(false);
       const wallet_blobs = createIdentityBlobs();
       const gameStateResult = await gameService.initGame(wallet_blobs, wallet.address, selectedBet);
       updateGameState(gameStateResult);
@@ -256,7 +257,9 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to initialize game. Please try again.';
       setError(errorMessage);
       if (errorMessage.includes('Insufficient balance')) {
-        setShowClaimButton(true);
+        setShowDepositButton(true);
+        // Set default deposit amount to the selected bet
+        setSelectedDeposit(selectedBet);
       }
       console.error('Error initializing game:', err);
     } finally {
@@ -333,7 +336,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
     }
   };
 
-  const handleClaim = async () => {
+  const handleDeposit = async () => {
     try {
       if (!wallet) {
         throw new Error('Wallet not connected');
@@ -341,18 +344,29 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       if (!wallet.sessionKey?.privateKey) {
         throw new Error('No session key found');
       }
+      
+      // Validate deposit amount
+      if (selectedDeposit < 1) {
+        setError('Deposit amount must be at least $1');
+        return;
+      }
+      if (selectedDeposit > 10000) {
+        setError('Deposit amount cannot exceed $10,000');
+        return;
+      }
+      
       setIsLoading(true);
       setError(null);
       const wallet_blobs = createIdentityBlobs();
-      const gameStateResult = await gameService.claim(wallet_blobs, wallet.address);
+      const gameStateResult = await gameService.deposit(wallet_blobs, wallet.address, selectedDeposit);
       updateGameState(gameStateResult, true);
-      setShowClaimButton(false);
+      setShowDepositButton(false);
       setGameOver(true);
       setTimeout(() => loadAllBalances(), 2000);
     } catch (err: any) {
-      const errorMessage = err.response?.data?.error || err.message || 'Failed to claim. Please try again.';
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to deposit. Please try again.';
       setError(errorMessage);
-      console.error('Error claiming:', err);
+      console.error('Error depositing:', err);
     } finally {
       setIsLoading(false);
     }
@@ -831,10 +845,10 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                         <img src="/error-icon.png" alt="Error" className="error-icon" />
                         <p className="error-message">
                           {error ? formatErrorMessage(error) : ''}
-                          {showClaimButton && (
+                          {showDepositButton && (
                             <>
                               <br />
-                              Please send funds to your session key, then claim them
+                              Please send funds to your account, then deposit them here
                               <br />
                               <a
                                 href="#"
@@ -844,14 +858,57 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                                 Earn Oranj tokens here
                               </a>
                             </>
-                          )}
-                        </p>
+                                                )}
+                    </p>
+                  </div>
+                  {showDepositButton && (
+                    <div className="deposit-section">
+                      <div className="counter-label">Choose Deposit Amount</div>
+                      <div className="bet-buttons">
+                        {[10, 25, 50, 100, 250].map(amount => {
+                          return (
+                            <button
+                              key={amount}
+                              className={`win95-button bet-button ${selectedDeposit === amount ? 'active' : ''}`}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setSelectedDeposit(amount);
+                              }}
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }}
+                            >
+                              ${amount}
+                            </button>
+                          );
+                        })}
                       </div>
-                      {showClaimButton && (
-                        <button className="claim-button" onClick={handleClaim} disabled={isLoading}>
-                          Deposit
-                        </button>
-                      )}
+                      <div className="selected-deposit-display">
+                        <span>Selected: $</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max="10000"
+                          value={selectedDeposit || ''}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value) || 0;
+                            setSelectedDeposit(value);
+                          }}
+                          className="led-display-input"
+                          placeholder="0"
+                        />
+                      </div>
+                      <button 
+                        className="deposit-button" 
+                        onClick={handleDeposit} 
+                        disabled={isLoading || selectedDeposit < 1 || selectedDeposit > 10000}
+                      >
+                        Deposit ${selectedDeposit || 0}
+                      </button>
+                    </div>
+                  )}
                       {error && error.includes("finished game") && (
                         <button className="win95-button" onClick={startNewGame} disabled={isLoading}>
                           NEW GAME

@@ -221,7 +221,7 @@
   border-bottom-color: var(--win95-highlight);
 }
 
-.claim-button {
+.deposit-button {
   min-width: 75px;
   padding: 4px 25px;
   background-color: var(--win95-gray);
@@ -238,16 +238,99 @@
   margin-top: 8px;
 }
 
-.claim-button:active {
+.deposit-button:active {
   border-top-color: var(--win95-dark-gray);
   border-left-color: var(--win95-dark-gray);
   border-right-color: var(--win95-highlight);
   border-bottom-color: var(--win95-highlight);
 }
 
-.claim-button:disabled {
+.deposit-button:disabled {
   color: var(--win95-dark-gray);
   cursor: not-allowed;
+}
+
+.deposit-section {
+  margin-top: 12px;
+  padding: 10px;
+  background-color: var(--win95-gray);
+  border: 1px inset var(--win95-gray);
+  border-radius: 2px;
+}
+
+.deposit-section .counter-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--win95-text);
+  text-align: center;
+}
+
+.deposit-section .bet-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.deposit-section .bet-button {
+  min-width: 40px;
+  padding: 3px 6px;
+  font-size: 10px;
+}
+
+.deposit-section .selected-bet-display {
+  margin-bottom: 10px;
+  font-size: 11px;
+}
+
+.deposit-section .selected-bet-display .led-display {
+  font-size: 12px;
+  min-width: 50px;
+  padding: 1px 4px;
+}
+
+.selected-deposit-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: bold;
+  margin: 8px 0;
+}
+
+.selected-deposit-display span {
+  color: var(--win95-text);
+}
+
+.led-display-input {
+  background-color: var(--win95-led-bg);
+  color: var(--win95-led-red);
+  border: inset 2px var(--win95-shadow);
+  padding: 2px 8px;
+  font-size: 16px;
+  font-family: "Digital", monospace;
+  min-width: 60px;
+  text-align: right;
+}
+
+.led-display-input:focus {
+  outline: none;
+  background-color: var(--win95-led-bg);
+  color: var(--win95-led-red);
+}
+
+.led-display-input::-webkit-outer-spin-button,
+.led-display-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.led-display-input[type=number] {
+  -moz-appearance: textfield;
 }
 
 .play-area {

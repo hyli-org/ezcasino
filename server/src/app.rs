@@ -66,7 +66,7 @@ impl Module for AppModule {
 
         let api = Router::new()
             .route("/_health", get(health))
-            .route("/api/claim", post(claim))
+            .route("/api/deposit", post(deposit))
             .route("/api/withdraw", post(withdraw))
             .route("/api/init", post(init))
             .route("/api/hit", post(hit))
@@ -176,13 +176,19 @@ struct ConfigResponse {
 #[derive(serde::Deserialize)]
 struct WithdrawRequest {
     wallet_blobs: [Blob; 2],
-    balance: u128,
+    balance: u32,
 }
 
 #[derive(serde::Deserialize)]
 struct InitRequest {
     wallet_blobs: [Blob; 2],
     bet: u32,
+}
+
+#[derive(serde::Deserialize)]
+struct DepositRequest {
+    wallet_blobs: [Blob; 2],
+    deposit: u32,
 }
 
 // --------------------------------------------------------
@@ -204,13 +210,19 @@ async fn withdraw(
     .await
 }
 
-async fn claim(
+async fn deposit(
     State(ctx): State<RouterCtx>,
     headers: HeaderMap,
-    Json(wallet_blobs): Json<[Blob; 2]>,
+    Json(request): Json<DepositRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
-    send(ctx, BlackJackAction::Claim, auth, wallet_blobs).await
+    send(
+        ctx,
+        BlackJackAction::Deposit(request.deposit),
+        auth,
+        request.wallet_blobs,
+    )
+    .await
 }
 
 async fn init(
@@ -271,8 +283,8 @@ async fn send(
     let mut blobs = wallet_blobs.into_iter().collect::<Vec<_>>();
 
     match action {
-        BlackJackAction::Claim => {
-            handle_claim_action(&ctx, &identity, &mut blobs).await?;
+        BlackJackAction::Deposit(amount) => {
+            handle_deposit_action(amount, &ctx, &identity, &mut blobs).await?;
         }
         BlackJackAction::Withdraw(amount) => {
             handle_withdraw_action(amount, &ctx, &identity, &mut blobs).await?;
@@ -285,34 +297,39 @@ async fn send(
     execute_transaction(ctx, identity, blobs).await
 }
 
-async fn handle_claim_action(
+async fn handle_deposit_action(
+    amount: u32,
     ctx: &RouterCtx,
     identity: &Identity,
     blobs: &mut Vec<Blob>,
 ) -> Result<(), AppError> {
     let balance = get_user_token_balance(ctx, identity).await?;
 
-    if balance < 10 {
+    if balance < amount as u128 {
         return Err(AppError(
             StatusCode::BAD_REQUEST,
-            anyhow::anyhow!("Insufficient balance. Minimum claim is 10"),
+            anyhow::anyhow!(
+                "Insufficient balance. Current balance is {} while deposit is {}",
+                balance,
+                amount
+            ),
         ));
     }
 
     let transfer_action = SmtTokenAction::Transfer {
         sender: identity.clone(),
         recipient: ctx.blackjack_cn.0.clone().into(),
-        amount: balance,
+        amount: amount as u128,
     };
 
-    blobs.push(BlackJackAction::Claim.as_blob(ctx.blackjack_cn.clone(), None, None));
+    blobs.push(BlackJackAction::Deposit(amount).as_blob(ctx.blackjack_cn.clone(), None, None));
     blobs.push(transfer_action.as_blob("oranj".into(), None, None));
 
     Ok(())
 }
 
 async fn handle_withdraw_action(
-    amount: u128,
+    amount: u32,
     ctx: &RouterCtx,
     identity: &Identity,
     blobs: &mut Vec<Blob>,
@@ -320,7 +337,7 @@ async fn handle_withdraw_action(
     let transfer_action = SmtTokenAction::Transfer {
         sender: ctx.blackjack_cn.0.clone().into(),
         recipient: identity.clone(),
-        amount,
+        amount: amount as u128,
     };
 
     blobs.push(BlackJackAction::Withdraw(amount).as_blob(

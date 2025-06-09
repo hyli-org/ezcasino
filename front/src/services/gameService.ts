@@ -51,8 +51,12 @@ class GameService {
     return this.makeRequest('/api/double_down', 'POST', wallet_blobs, identity);
   }
 
-  async claim(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
-    return this.makeRequest('/api/claim', 'POST', wallet_blobs, identity);
+  async deposit(wallet_blobs: [Blob, Blob], identity: string, deposit: number): Promise<GameState> {
+    const body = {
+      wallet_blobs,
+      deposit
+    };
+    return this.makeRequest('/api/deposit', 'POST', body, identity);
   }
 
   async withdraw(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {

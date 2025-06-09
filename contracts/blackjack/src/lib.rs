@@ -42,7 +42,7 @@ impl sdk::ZkContract for BlackJack {
             BlackJackAction::Hit => self.hit(user, &tx_ctx.block_hash)?,
             BlackJackAction::Stand => self.stand(user)?,
             BlackJackAction::DoubleDown => self.double_down(user)?,
-            BlackJackAction::Claim => self.claim(user, calldata, &ctx)?,
+            BlackJackAction::Deposit(amount) => self.claim(amount, user, calldata, &ctx)?,
             BlackJackAction::Withdraw(amount) => self.withdraw(amount, user, &mut ctx)?,
         };
 
@@ -94,8 +94,8 @@ pub enum BlackJackAction {
     Hit,
     Stand,
     DoubleDown,
-    Claim,
-    Withdraw(u128),
+    Deposit(u32),
+    Withdraw(u32),
 }
 
 impl ContractAction for BlackJackAction {
@@ -447,6 +447,7 @@ impl BlackJack {
 
     pub fn claim(
         &mut self,
+        amount: u32,
         user: &Identity,
         calldata: &Calldata,
         ctx: &ExecutionContext,
@@ -471,8 +472,11 @@ impl BlackJack {
             SmtTokenAction::Transfer {
                 sender,
                 recipient,
-                amount,
+                amount: transfer_amount,
             } => {
+                if amount as u128 != transfer_amount {
+                    return Err("Transfer amount is not the same as the deposit amount".to_string());
+                }
                 if &sender != user {
                     return Err("Transfer is not from the user".to_string());
                 }
@@ -483,10 +487,10 @@ impl BlackJack {
                 // Add to existing balance or create new balance
                 let new_balance = if let Some(current_balance) = self.balances.get(user) {
                     current_balance
-                        .checked_add(amount as u32)
+                        .checked_add(amount)
                         .ok_or_else(|| "Balance overflow".to_string())?
                 } else {
-                    amount as u32
+                    amount
                 };
 
                 self.balances.insert(user.clone(), new_balance);
@@ -502,7 +506,7 @@ impl BlackJack {
 
     pub fn withdraw(
         &mut self,
-        amount: u128,
+        amount: u32,
         user: &Identity,
         ctx: &mut ExecutionContext,
     ) -> Result<String, String> {
@@ -516,7 +520,7 @@ impl BlackJack {
         let Some(current_balance) = self.balances.get(user).cloned() else {
             return Err("Unkown user, can't withdraw".to_string());
         };
-        if amount > current_balance as u128 {
+        if amount > current_balance {
             return Err("Insufficient balance to withdraw".to_string());
         }
         ctx.is_in_callee_blobs(
@@ -524,7 +528,7 @@ impl BlackJack {
             SmtTokenAction::Transfer {
                 sender: "blackjack".into(),
                 recipient: user.clone(),
-                amount,
+                amount: amount as u128,
             },
         )?;
 
