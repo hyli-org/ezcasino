@@ -2,7 +2,7 @@ import { GameState, TokenBalances } from '../types/game';
 import { Blob } from 'hyli';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const NODE_BASE_URL = import.meta.env.VITE_NODE_BASE_URL;
+const INDEXER_BASE_URL = import.meta.env.VITE_NODE_BASE_URL;
 
 class GameService {
 
@@ -140,7 +140,7 @@ class GameService {
   // Nouvelles méthodes pour les balances des tokens
   async getOranjBalanceFromNode(identity: string): Promise<number> {
     try {
-      const contractState = await this.makeRequest('/v1/indexer/contract/oranj/state', 'GET', undefined, undefined, NODE_BASE_URL);
+      const contractState = await this.makeRequest('/v1/indexer/contract/oranj/state', 'GET', undefined, undefined, INDEXER_BASE_URL);
       const userState = contractState[identity];
       console.log('Oranj balance from node:', userState?.balance || 0);
       return userState?.balance || 0;
@@ -151,7 +151,7 @@ class GameService {
 
   async getVitBalanceFromNode(identity: string): Promise<number> {
     try {
-      const contractState = await this.makeRequest('/v1/indexer/contract/vitamin/state', 'GET', undefined, undefined, NODE_BASE_URL);
+      const contractState = await this.makeRequest('/v1/indexer/contract/vitamin/state', 'GET', undefined, undefined, INDEXER_BASE_URL);
       const userState = contractState[identity];
       return userState?.balance || 0;
     } catch (error) {
