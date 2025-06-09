@@ -8,6 +8,12 @@ export interface GameState {
   balance: number;
 }
 
+export interface TokenBalances {
+  oranjBalance: number;
+  oranjDeposited: number;
+  vitBalance: number;
+}
+
 export interface InitGameRequest {
   account: string;
 } 

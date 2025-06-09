@@ -1,11 +1,12 @@
-import { GameState } from '../types/game';
+import { GameState, TokenBalances } from '../types/game';
 import { Blob } from 'hyli';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const NODE_BASE_URL = import.meta.env.VITE_NODE_BASE_URL;
 
 class GameService {
 
-  private async makeRequest(endpoint: string, method: string = 'GET', body?: any, identity?: string) {
+  private async makeRequest(endpoint: string, method: string = 'GET', body?: any, identity?: string, baseUrl: string = API_BASE_URL) {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       'X-Identity': identity || '',
@@ -19,8 +20,8 @@ class GameService {
     if (body !== undefined) {
       fetchOptions.body = JSON.stringify(body);
     }
-    console.log('Making request to:', `${API_BASE_URL}${endpoint}`, fetchOptions);
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, fetchOptions);
+    console.log('Making request to:', `${baseUrl}${endpoint}`, fetchOptions);
+    const response = await fetch(`${baseUrl}${endpoint}`, fetchOptions);
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -85,6 +86,10 @@ class GameService {
       // Get user balance
       const balance = await this.getBalance(identity);
 
+      if (userTable.state === 'Lost' || userTable.state === 'Won') {
+        return null;
+      }
+
       // Convert the table state to GameState format
       const gameState: GameState = {
         bank: userTable.bank,
@@ -92,9 +97,8 @@ class GameService {
         user: userTable.user,
         user_count: this.calculateHandValue(userTable.user),
         bet: userTable.bet,
-        state: userTable.state === 'Lost' ? 'Lost' :
-               userTable.state === 'Won' ? 'Won' : 'Ongoing',
-        balance: balance
+        state: userTable.state,
+        balance: balance,
       };
 
       return gameState;
@@ -127,6 +131,55 @@ class GameService {
     }
 
     return value;
+  }
+
+  // Nouvelles méthodes pour les balances des tokens
+  async getOranjBalanceFromNode(identity: string): Promise<number> {
+    try {
+      const contractState = await this.makeRequest('/v1/indexer/contract/oranj/state', 'GET', undefined, undefined, NODE_BASE_URL);
+      const userState = contractState[identity];
+      console.log('Oranj balance from node:', userState?.balance || 0);
+      return userState?.balance || 0;
+    } catch (error) {
+      return 0;
+    }
+  }
+
+  async getVitBalanceFromNode(identity: string): Promise<number> {
+    try {
+      const contractState = await this.makeRequest('/v1/indexer/contract/vitamin/state', 'GET', undefined, undefined, NODE_BASE_URL);
+      const userState = contractState[identity];
+      return userState?.balance || 0;
+    } catch (error) {
+      console.error('Error fetching VIT balance from node:', error);
+      return 0;
+    }
+  }
+
+  async getTokenBalances(identity: string): Promise<TokenBalances> {
+    try {
+      const [oranjBalance, vitBalance, oranjDeposited] = await Promise.all([
+        this.getOranjBalanceFromNode(identity),
+        this.getVitBalanceFromNode(identity),
+        this.getBalance(identity).catch(error => {
+          console.error('Error fetching deposited balance:', error);
+          return 0;
+        })
+      ]);
+      
+      return {
+        oranjBalance,
+        oranjDeposited,
+        vitBalance
+      };
+    } catch (error) {
+      console.error('Error fetching token balances:', error);
+      return {
+        oranjBalance: 0,
+        oranjDeposited: 0,
+        vitBalance: 0
+      };
+    }
   }
 }
 

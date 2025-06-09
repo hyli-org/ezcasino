@@ -3,7 +3,7 @@ import Card from './Card';
 import VisualEffects from './VisualEffects';
 import Cow from '../components/Cow';
 import { gameService } from '../services/gameService';
-import { GameState } from '../types/game';
+import { GameState, TokenBalances } from '../types/game';
 import { HyliWallet, useWallet } from 'hyli-wallet';
 import '../styles/Game.css';
 import { WindowsLoader } from './WindowsLoader';
@@ -51,6 +51,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
+  const [tokenBalances, setTokenBalances] = useState<TokenBalances | null>(null);
   const [showGameMenu, setShowGameMenu] = useState(false);
   const [showClaimButton, setShowClaimButton] = useState(false);
   const [showBSOD, setShowBSOD] = useState(false);
@@ -76,11 +77,11 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   // Charge user balance and update GameState, and check for existing game
   const loadUserBalanceAndCheckExistingGame = async () => {
     if (!wallet?.address) return;
-    
+
     try {
       // First, check if there's an ongoing game
       const existingGameState = await gameService.getCurrentGameState(wallet.address);
-      
+
       if (existingGameState) {
         // Resume existing game
         console.log('Found existing game, resuming...', existingGameState);
@@ -126,15 +127,64 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
     }
   }, [wallet?.address]); // Reload when wallet changes
 
+  // Load token balances avec un délai pour optimiser l'UX
+  useEffect(() => {
+    if (wallet?.address && !tokenBalances) {
+      // Charger les tokens avec un petit délai pour ne pas bloquer l'UI
+      const timer = setTimeout(() => {
+        loadTokenBalances();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [wallet?.address, tokenBalances]);
+
   // Helper function to reload just the balance
   const loadUserBalance = async () => {
     if (!wallet?.address) return;
 
     try {
       const realBalance = await gameService.getBalance(wallet.address);
-      setGameState(prevState => prevState ? { ...prevState, balance: realBalance } : null);
+      setGameState(prevState => prevState ? {
+        ...prevState,
+        balance: realBalance
+      } : null);
     } catch (err) {
       console.error('Error loading user balance:', err);
+    }
+  };
+
+  const loadTokenBalances = async () => {
+    if (!wallet?.address) return;
+
+    try {
+      const balances = await gameService.getTokenBalances(wallet.address);
+      console.log('Token balances:', balances);
+      setTokenBalances(balances);
+      // Mettre à jour aussi le gameState avec la balance déposée
+      setGameState(prevState => prevState ? {
+        ...prevState,
+        balance: balances.oranjDeposited
+      } : null);
+    } catch (err) {
+      console.error('Error loading token balances:', err);
+    }
+  };
+
+  // Fonction consolidée pour charger toutes les balances en une fois
+  const loadAllBalances = async () => {
+    if (!wallet?.address) return;
+
+    try {
+      const balances = await gameService.getTokenBalances(wallet.address);
+      console.log('Token balances:', balances);
+      setTokenBalances(balances);
+      // Mettre à jour le gameState avec la balance déposée (évite l'appel double à getBalance)
+      setGameState(prevState => prevState ? {
+        ...prevState,
+        balance: balances.oranjDeposited
+      } : null);
+    } catch (err) {
+      console.error('Error loading all balances:', err);
     }
   };
 
@@ -160,7 +210,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
     setDealerHand(dealerCards);
     setSelectedBet(newGameState.bet);
     setGameOver(newGameState.state !== 'Ongoing');
-    
+
     // Préserver la balance réelle si elle existe déjà dans gameState
     setGameState(prevState => ({
       ...newGameState,
@@ -201,7 +251,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       updateGameState(gameStateResult);
       setShowStartGame(false);
       setError(null);
-      setTimeout(() => loadUserBalance(), 100);
+      setTimeout(() => loadAllBalances(), 100);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to initialize game. Please try again.';
       setError(errorMessage);
@@ -227,7 +277,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       const wallet_blobs = createIdentityBlobs();
       const gameStateResult = await gameService.hit(wallet_blobs, wallet.address);
       updateGameState(gameStateResult);
-      setTimeout(() => loadUserBalance(), 2000);
+      setTimeout(() => loadAllBalances(), 2000);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to hit. Please try again.';
       setError(errorMessage);
@@ -250,6 +300,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       const wallet_blobs = createIdentityBlobs();
       const gameStateResult = await gameService.stand(wallet_blobs, wallet.address);
       updateGameState(gameStateResult);
+      setTimeout(() => loadAllBalances(), 1000);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to stand. Please try again.';
       setError(errorMessage);
@@ -272,6 +323,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       const wallet_blobs = createIdentityBlobs();
       const gameStateResult = await gameService.doubleDown(wallet_blobs, wallet.address);
       updateGameState(gameStateResult);
+      setTimeout(() => loadAllBalances(), 1000);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to double down. Please try again.';
       setError(errorMessage);
@@ -296,7 +348,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       updateGameState(gameStateResult, true);
       setShowClaimButton(false);
       setGameOver(true);
-      setTimeout(() => loadUserBalance(), 2000);
+      setTimeout(() => loadAllBalances(), 2000);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to claim. Please try again.';
       setError(errorMessage);
@@ -319,7 +371,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       const wallet_blobs = createIdentityBlobs();
       const gameStateResult = await gameService.withdraw(wallet_blobs, wallet.address);
       updateGameState(gameStateResult, true);
-      setTimeout(() => loadUserBalance(), 2000);
+      setTimeout(() => loadAllBalances(), 2000);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to withdraw. Please try again.';
       setError(errorMessage);
@@ -434,7 +486,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       await registerSessionKey(password, expiration, whitelist);
 
       setShowAuthLoader(false);
-      
+
       await startNewGame();
       setShowGameMenu(false);
     } catch (err: any) {
@@ -651,16 +703,24 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                 <div
                   className="led-display"
                   onClick={copyAddress}
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: 'pointer', position: 'relative' }}
                 >
                   {wallet?.address || "Not connected"}
                   {copyMessage && <span className="copy-message">{copyMessage}</span>}
                 </div>
               </div>
               <div className="counters">
-                <div className="counter">
-                  <span className="counter-label">Your Money</span>
-                  <div className="led-display">${gameState?.balance || 0}</div>
+                <div className="counter" onClick={loadTokenBalances} style={{ cursor: 'pointer' }} title="Click to refresh">
+                  <span className="counter-label">$ORANJ Balance</span>
+                  <div className="led-display">${tokenBalances?.oranjBalance || 0}</div>
+                </div>
+                <div className="counter" onClick={loadTokenBalances} style={{ cursor: 'pointer' }} title="Click to refresh">
+                  <span className="counter-label">$ORANJ Deposited</span>
+                  <div className="led-display">${tokenBalances?.oranjDeposited || 0}</div>
+                </div>
+                <div className="counter" onClick={loadTokenBalances} style={{ cursor: 'pointer' }} title="Click to refresh">
+                  <span className="counter-label">$VIT Balance</span>
+                  <div className="led-display">${tokenBalances?.vitBalance || 0}</div>
                 </div>
               </div>
 
@@ -733,7 +793,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                     <div style={{ marginTop: '20px' }}>
                       <HyliWallet
                         providers={['password', 'google', 'github', 'x']}
-                        button={renderCustomWalletButton} 
+                        button={renderCustomWalletButton}
                       />
                     </div>
                   </div>
@@ -776,7 +836,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                               <br />
                               Please send funds to your session key, then claim them
                               <br />
-                              <a 
+                              <a
                                 href="#"
                                 onClick={() => setShowBigRedButton(true)}
                                 className="faucet-link"
