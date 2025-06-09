@@ -506,6 +506,13 @@ impl BlackJack {
         user: &Identity,
         ctx: &mut ExecutionContext,
     ) -> Result<String, String> {
+        // Check if user has an ongoing game
+        if let Some(table) = self.tables.get(user) {
+            if matches!(table.state, TableState::Ongoing) {
+                return Err("Cannot withdraw while a game is in progress".to_string());
+            }
+        }
+
         let Some(current_balance) = self.balances.get(user).cloned() else {
             return Err("Unkown user, can't withdraw".to_string());
         };
