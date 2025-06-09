@@ -410,18 +410,36 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
     const centerWindow = () => {
       const windowWidth = window.innerWidth;
       const windowHeight = window.innerHeight;
-      const gameWidth = 400; // Largeur de la fenêtre
-      const gameHeight = 600; // Hauteur approximative de la fenêtre
 
       // Sur mobile (768px et moins), ne pas centrer car la fenêtre occupe tout l'écran
       if (windowWidth <= 768) {
         setWindowPosition({ x: 0, y: 0 });
-      } else {
-        setWindowPosition({
-          x: (windowWidth - gameWidth) / 2,
-          y: (windowHeight - gameHeight) / 2
-        });
+        return;
       }
+
+      // Attendre que le DOM soit rendu pour obtenir les vraies dimensions
+      setTimeout(() => {
+        const gameWindow = document.querySelector('.win95-window') as HTMLElement;
+        if (gameWindow) {
+          const rect = gameWindow.getBoundingClientRect();
+          const gameWidth = rect.width || 500;
+          const gameHeight = rect.height || 600;
+
+          // Centrer en tenant compte des vraies dimensions
+          const x = Math.max(0, (windowWidth - gameWidth) / 2);
+          const y = Math.max(0, (windowHeight - gameHeight) / 2);
+
+          setWindowPosition({ x, y });
+        } else {
+          // Fallback avec dimensions estimées (correspond au CSS)
+          const gameWidth = 500;
+          const gameHeight = 600;
+          setWindowPosition({
+            x: Math.max(0, (windowWidth - gameWidth) / 2),
+            y: Math.max(0, (windowHeight - gameHeight) / 2)
+          });
+        }
+      }, 50); // Petit délai pour s'assurer que le DOM est rendu
     };
 
     centerWindow();

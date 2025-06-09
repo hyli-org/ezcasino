@@ -562,6 +562,10 @@ body::before {
   user-select: none;
   z-index: 1000;
   width: 500px;
+  max-width: 90vw;
+  height: auto;
+  min-height: 400px;
+  max-height: 90vh;
   will-change: transform;
 }
 
