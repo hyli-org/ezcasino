@@ -2,7 +2,7 @@ import { GameState, TokenBalances } from '../types/game';
 import { Blob } from 'hyli';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const INDEXER_BASE_URL = import.meta.env.VITE_NODE_BASE_URL;
+const INDEXER_BASE_URL = import.meta.env.VITE_INDEXER_BASE_URL;
 
 class GameService {
 
