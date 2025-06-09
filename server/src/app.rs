@@ -179,6 +179,12 @@ struct WithdrawRequest {
     balance: u128,
 }
 
+#[derive(serde::Deserialize)]
+struct InitRequest {
+    wallet_blobs: [Blob; 2],
+    bet: u32,
+}
+
 // --------------------------------------------------------
 //     Routes
 // --------------------------------------------------------
@@ -210,10 +216,16 @@ async fn claim(
 async fn init(
     State(ctx): State<RouterCtx>,
     headers: HeaderMap,
-    Json(wallet_blobs): Json<[Blob; 2]>,
+    Json(request): Json<InitRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
-    send(ctx, BlackJackAction::Init, auth, wallet_blobs).await
+    send(
+        ctx,
+        BlackJackAction::Init(request.bet),
+        auth,
+        request.wallet_blobs,
+    )
+    .await
 }
 
 async fn hit(

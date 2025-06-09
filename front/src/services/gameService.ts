@@ -30,8 +30,12 @@ class GameService {
     return response.json();
   }
 
-  async initGame(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
-    return this.makeRequest('/api/init', 'POST', wallet_blobs, identity);
+  async initGame(wallet_blobs: [Blob, Blob], identity: string, bet: number): Promise<GameState> {
+    const body = {
+      wallet_blobs,
+      bet
+    };
+    return this.makeRequest('/api/init', 'POST', body, identity);
   }
 
   async hit(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {

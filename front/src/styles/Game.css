@@ -635,3 +635,77 @@
   background-color: var(--theme-bg);
   color: var(--theme-text);
 }
+
+/* Betting Section Styles */
+.betting-section {
+  margin: 10px 0;
+  padding: 10px;
+  background-color: var(--win95-gray);
+  border: 2px inset var(--win95-gray);
+  border-radius: 2px;
+  position: relative;
+  z-index: 5;
+  pointer-events: auto;
+}
+
+.betting-section .counter-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--win95-text);
+  text-align: center;
+}
+
+.bet-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.bet-button {
+  min-width: 50px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: bold;
+  transition: all 0.1s ease;
+  pointer-events: auto;
+  cursor: pointer;
+  position: relative;
+  z-index: 10;
+}
+
+.bet-button.active {
+  background-color: var(--win95-blue);
+  color: var(--win95-light-gray);
+  border: 2px inset var(--win95-blue);
+}
+
+.bet-button:disabled {
+  background-color: var(--win95-dark-gray);
+  color: var(--win95-shadow);
+  border: 2px outset var(--win95-dark-gray);
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.selected-bet-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.selected-bet-display span:first-child {
+  color: var(--win95-text);
+}
+
+.selected-bet-display .led-display {
+  font-size: 14px;
+  min-width: 60px;
+  padding: 2px 6px;
+}

@@ -42,7 +42,6 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   const [playerHand, setPlayerHand] = useState<CardType[]>([]);
   const [dealerHand, setDealerHand] = useState<CardType[]>([]);
   const [gameOver, setGameOver] = useState(false);
-  const [currentBet, setCurrentBet] = useState(10);
   const [showStartGame, setShowStartGame] = useState(true);
   const [windowPosition, setWindowPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -63,6 +62,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   const [showBigRedButton, setShowBigRedButton] = useState(false);
   const [showHyliExplorer, setShowHyliExplorer] = useState(false);
   const [showAuthLoader, setShowAuthLoader] = useState(false);
+  const [selectedBet, setSelectedBet] = useState(10);
 
 
   // Surveiller les changements de wallet pour détecter la déconnexion
@@ -158,7 +158,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
 
     setPlayerHand(playerCards);
     setDealerHand(dealerCards);
-    setCurrentBet(newGameState.bet);
+    setSelectedBet(newGameState.bet);
     setGameOver(newGameState.state !== 'Ongoing');
     
     // Préserver la balance réelle si elle existe déjà dans gameState
@@ -187,11 +187,17 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       if (!wallet.sessionKey?.privateKey) {
         throw new Error('No session key found. Please create one via the game menu.');
       }
+      // Validate selectedBet
+      if (selectedBet < 10) {
+        setError("Minimum bet is 10.");
+        return;
+      }
+
       setIsLoading(true);
       setError(null);
       setShowClaimButton(false);
       const wallet_blobs = createIdentityBlobs();
-      const gameStateResult = await gameService.initGame(wallet_blobs, wallet.address);
+      const gameStateResult = await gameService.initGame(wallet_blobs, wallet.address, selectedBet);
       updateGameState(gameStateResult);
       setShowStartGame(false);
       setError(null);
@@ -656,11 +662,43 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                   <span className="counter-label">Your Money</span>
                   <div className="led-display">${gameState?.balance || 0}</div>
                 </div>
-                <div className="counter">
-                  <span className="counter-label">Bet</span>
-                  <div className="led-display">${currentBet}</div>
-                </div>
               </div>
+
+              {wallet && wallet.sessionKey && showStartGame && (
+                <div className="betting-section">
+                  <span className="counter-label">Choose Your Bet</span>
+                  <div className="bet-buttons">
+                    {[10, 25, 50, 100, 250].map(amount => {
+                      return (
+                        <button
+                          key={amount}
+                          className={`win95-button bet-button ${selectedBet === amount ? 'active' : ''}`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSelectedBet(amount);
+                          }}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                          style={{
+                            pointerEvents: 'auto',
+                            zIndex: 20,
+                            position: 'relative'
+                          }}
+                        >
+                          ${amount}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="counter-label">
+                    <span>Selected: </span>
+                    <span className="led-display">${selectedBet}</span>
+                  </div>
+                </div>
+              )}
 
               <div className="play-area">
                 <div className="dealer-score">Dealer: {dealerHand.length > 2 || gameState?.state !== 'Ongoing' ? gameState?.bank_count || 0 : '??'}</div>
@@ -767,7 +805,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
               {wallet && wallet.sessionKey && showStartGame && (
                 <div className="controls">
                   <button className="win95-button" onClick={startNewGame} disabled={isLoading}>
-                    START GAME
+                    START GAME (${selectedBet})
                   </button>
                   {gameState && gameState.balance > 0 && (
                     <button className="win95-button" onClick={handleWithdraw} disabled={isLoading}>

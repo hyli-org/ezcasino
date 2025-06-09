@@ -38,7 +38,7 @@ impl sdk::ZkContract for BlackJack {
 
         // Execute the given action
         let res = match action {
-            BlackJackAction::Init => self.new_game(user, &tx_ctx.block_hash)?,
+            BlackJackAction::Init(bet) => self.new_game(user, &tx_ctx.block_hash, bet)?,
             BlackJackAction::Hit => self.hit(user, &tx_ctx.block_hash)?,
             BlackJackAction::Stand => self.stand(user)?,
             BlackJackAction::DoubleDown => self.double_down(user)?,
@@ -90,7 +90,7 @@ pub struct BlackJack {
 /// Enum representing possible calls to the contract functions.
 #[derive(Serialize, Deserialize, BorshSerialize, BorshDeserialize, Debug, Clone, PartialEq)]
 pub enum BlackJackAction {
-    Init,
+    Init(u32),
     Hit,
     Stand,
     DoubleDown,
@@ -123,17 +123,29 @@ impl BlackJack {
 }
 
 impl BlackJack {
-    pub fn new_game(&mut self, user: &Identity, blockhash: &BlockHash) -> Result<String, String> {
+    pub fn new_game(
+        &mut self,
+        user: &Identity,
+        blockhash: &BlockHash,
+        bet: u32,
+    ) -> Result<String, String> {
         if let Some(table) = self.tables.get(user) {
             if matches!(table.state, TableState::Ongoing) {
                 return Ok(format!("Game already started for user {user}", user = user,));
             }
         }
 
+        if bet < 10 {
+            return Err("Minimum bet is 10".to_string());
+        }
+
         // Check if user has enough balance for a bet
         let balance = self.balances.get(user).copied().unwrap_or(0);
-        if balance < 10 {
-            return Err("Insufficient balance. Minimum bet is 10".to_string());
+        if balance < bet {
+            return Err(format!(
+                "Insufficient balance. You have {} but bet is {}",
+                balance, bet
+            ));
         }
 
         let mut hasher = SipHasher::new();
@@ -146,7 +158,7 @@ impl BlackJack {
         let card_4: u32 = *CARDS.get(rnd.random_range(0..(CARDS.len() - 1))).unwrap();
 
         let mut table = Table {
-            bet: 10, // minimum bet
+            bet,
             ..Default::default()
         };
 
