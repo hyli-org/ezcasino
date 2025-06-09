@@ -100,6 +100,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
           state: 'Ongoing',
           balance: realBalance
         });
+        setShowStartGame(true);
       }
     } catch (err) {
       console.error('Error loading user balance or checking existing game:', err);
@@ -115,6 +116,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
           state: 'Ongoing',
           balance: realBalance
         });
+        setShowStartGame(true);
       } catch (balanceErr) {
         console.error('Error loading user balance:', balanceErr);
       }
@@ -138,21 +140,6 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       return () => clearTimeout(timer);
     }
   }, [wallet?.address, tokenBalances]);
-
-  // Helper function to reload just the balance
-  const loadUserBalance = async () => {
-    if (!wallet?.address) return;
-
-    try {
-      const realBalance = await gameService.getBalance(wallet.address);
-      setGameState(prevState => prevState ? {
-        ...prevState,
-        balance: realBalance
-      } : null);
-    } catch (err) {
-      console.error('Error loading user balance:', err);
-    }
-  };
 
   const loadTokenBalances = async () => {
     if (!wallet?.address) return;
@@ -738,7 +725,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                 </div>
               </div>
 
-              {wallet && wallet.sessionKey && showStartGame && (
+              {wallet && wallet.sessionKey && (showStartGame || (!showStartGame && gameOver)) && (
                 <div className="betting-section">
                   <span className="counter-label">Choose Your Bet</span>
                   <div className="bet-buttons">
@@ -767,9 +754,20 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                       );
                     })}
                   </div>
-                  <div className="counter-label">
-                    <span>Selected: </span>
-                    <span className="led-display">${selectedBet}</span>
+                  <div className="selected-bet-display">
+                    <span>Selected: $</span>
+                    <input
+                      type="number"
+                      min="10"
+                      max="10000"
+                      value={selectedBet || ''}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 0;
+                        setSelectedBet(value);
+                      }}
+                      className="led-display-input"
+                      placeholder="10"
+                    />
                   </div>
                 </div>
               )}
@@ -924,7 +922,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                   <button className="win95-button" onClick={startNewGame} disabled={isLoading}>
                     START GAME (${selectedBet})
                   </button>
-                  {gameState && gameState.balance > 0 && (
+                  {gameState && gameState.balance > 0 && gameState.state !== 'Ongoing' && (
                     <button className="win95-button" onClick={handleWithdraw} disabled={isLoading}>
                       WITHDRAW
                     </button>
@@ -942,17 +940,12 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                   <button className="win95-button" onClick={doubleDown} disabled={isLoading}>
                     DOUBLE
                   </button>
-                  {gameState && gameState.balance > 0 && (
-                    <button className="win95-button" onClick={handleWithdraw} disabled={isLoading}>
-                      WITHDRAW
-                    </button>
-                  )}
                 </div>
               )}
               {!error && !showStartGame && gameOver && (
                 <div className="controls">
                   <button className="win95-button" onClick={startNewGame} disabled={isLoading}>
-                    DEAL
+                    DEAL (${selectedBet})
                   </button>
                   {gameState && gameState.balance > 0 && (
                     <button className="win95-button" onClick={handleWithdraw} disabled={isLoading}>
