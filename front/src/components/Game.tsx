@@ -69,6 +69,8 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
   const [selectedWithdraw, setSelectedWithdraw] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isDepositing, setIsDepositing] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
 
 
   // Surveiller les changements de wallet pour détecter la déconnexion
@@ -366,16 +368,24 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       }
       
       setIsLoading(true);
+      setIsDepositing(true);
       setError(null);
       const wallet_blobs = createIdentityBlobs();
       const gameStateResult = await gameService.deposit(wallet_blobs, wallet.address, selectedDeposit);
       handleGameResponse(gameStateResult, true);
-      setShowDepositButton(false);
+      
+      // Wait a moment to show success before closing modal
+      setTimeout(() => {
+        setShowDepositButton(false);
+        setIsDepositing(false);
+      }, 1500);
+      
       setGameOver(true);
       setTimeout(() => loadAllBalances(), 2000);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to deposit. Please try again.';
       setError(errorMessage);
+      setIsDepositing(false);
       console.error('Error depositing:', err);
     } finally {
       setIsLoading(false);
@@ -385,7 +395,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   const handleWithdraw = async () => {
     // Open the withdraw dialog instead of directly withdrawing
     const maxAmount = tokenBalances?.oranjDeposited || 0;
-    setSelectedWithdraw(Math.min(10, maxAmount)); // Set default amount
+    setSelectedWithdraw(maxAmount); // Set default amount to full deposited amount
     setShowWithdrawDialog(true);
   };
 
@@ -411,15 +421,23 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       }
       
       setIsLoading(true);
+      setIsWithdrawing(true);
       setError(null);
-      setShowWithdrawDialog(false);
       const wallet_blobs = createIdentityBlobs();
       const gameStateResult = await gameService.withdraw(wallet_blobs, wallet.address, selectedWithdraw);
       handleGameResponse(gameStateResult, true);
+      
+      // Wait a moment to show success before closing modal
+      setTimeout(() => {
+        setShowWithdrawDialog(false);
+        setIsWithdrawing(false);
+      }, 1500);
+      
       setTimeout(() => loadAllBalances(), 2000);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to withdraw. Please try again.';
       setError(errorMessage);
+      setIsWithdrawing(false);
       console.error('Error withdrawing:', err);
     } finally {
       setIsLoading(false);
@@ -696,8 +714,18 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
         disabled={isLoading || selectedDeposit < 1 || selectedDeposit > 10000}
         style={{ marginTop: '10px', padding: '10px 20px' }}
       >
-        DEPOSIT ${selectedDeposit || 0}
+        {isDepositing ? 'DEPOSITING...' : `DEPOSIT $${selectedDeposit || 0}`}
       </button>
+      {isDepositing && (
+        <div style={{ marginTop: '10px', textAlign: 'center' }}>
+          <div className="loading-bar">
+            <div className="loading-progress"></div>
+          </div>
+          <div style={{ fontSize: '12px', marginTop: '5px', color: '#008000' }}>
+            Processing deposit transaction...
+          </div>
+        </div>
+      )}
       {showFaucetLink && (
         <div style={{ marginTop: '10px', textAlign: 'center' }}>
           <a
@@ -1073,6 +1101,16 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                             placeholder="10"
                           />
                         </div>
+                        {isWithdrawing && (
+                          <div style={{ marginTop: '10px', textAlign: 'center' }}>
+                            <div className="loading-bar">
+                              <div className="loading-progress"></div>
+                            </div>
+                            <div style={{ fontSize: '12px', marginTop: '5px', color: '#008000' }}>
+                              Processing withdrawal transaction...
+                            </div>
+                          </div>
+                        )}
                         <div className="button-row" style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                           <button 
                             className="deposit-button" 
@@ -1080,12 +1118,13 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                             disabled={isLoading || selectedWithdraw < 1 || selectedWithdraw > (tokenBalances?.oranjDeposited || 0)}
                             style={{ padding: '10px 20px', flex: 1 }}
                           >
-                            WITHDRAW ${selectedWithdraw || 0}
+                            {isWithdrawing ? 'WITHDRAWING...' : `WITHDRAW $${selectedWithdraw || 0}`}
                           </button>
                           <button 
                             className="win95-button" 
                             onClick={() => setShowWithdrawDialog(false)}
                             style={{ padding: '10px 20px' }}
+                            disabled={isWithdrawing}
                           >
                             CANCEL
                           </button>
