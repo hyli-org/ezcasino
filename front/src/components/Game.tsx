@@ -72,6 +72,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   const [isDepositing, setIsDepositing] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [selectedWithdrawToken, setSelectedWithdrawToken] = useState<'oranj' | 'vitamin'>('oranj');
+  const [showDepositDialog, setShowDepositDialog] = useState(false);
 
 
   // Surveiller les changements de wallet pour détecter la déconnexion
@@ -379,6 +380,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       // Wait a moment to show success before closing modal
       setTimeout(() => {
         setShowDepositButton(false);
+        setShowDepositDialog(false);
         setIsDepositing(false);
       }, 1500);
       
@@ -911,9 +913,19 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
               
               {/* Balances déposées dans l'app blackjack */}
               <div className="token-balances-blackjack">
-                <div className="counter" onClick={loadTokenBalances} style={{ cursor: 'pointer' }} title="Click to refresh">
-                  <span className="counter-label">$ORANJ Deposited</span>
-                  <div className="led-display">${tokenBalances?.oranjDeposited || 0}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <button 
+                    className="win95-button" 
+                    onClick={() => setShowDepositDialog(true)}
+                    style={{ padding: '5px 10px', fontSize: '12px' }}
+                    disabled={!wallet || !wallet.sessionKey}
+                  >
+                    DEPOSIT
+                  </button>
+                  <div className="counter" onClick={loadTokenBalances} style={{ cursor: 'pointer' }} title="Click to refresh">
+                    <span className="counter-label">$ORANJ Deposited</span>
+                    <div className="led-display">${tokenBalances?.oranjDeposited || 0}</div>
+                  </div>
                 </div>
                 <div className="counter" onClick={loadTokenBalances} style={{ cursor: 'pointer' }} title="Click to refresh">
                   <span className="counter-label">$VIT Earned</span>
@@ -1184,6 +1196,41 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                             CANCEL
                           </button>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {showDepositDialog && (
+                <div className="message-overlay">
+                  <div className="error">
+                    <div className="error-title-bar">
+                      <div className="error-title-text">Deposit $ORANJ Tokens</div>
+                      <div className="error-close-button" onClick={() => setShowDepositDialog(false)}>×</div>
+                    </div>
+                    <div className="error-content">
+                      <div className="error-message-container">
+                        <p className="error-message">
+                          Deposit $ORANJ tokens to your casino account to start playing.
+                        </p>
+                      </div>
+                      
+                      <DepositSection 
+                        title="Choose Deposit Amount"
+                        showFaucetLink={true}
+                        faucetLinkHandler={() => setShowBigRedButton(true)}
+                      />
+                      
+                      <div className="button-row" style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                        <button 
+                          className="win95-button" 
+                          onClick={() => setShowDepositDialog(false)}
+                          style={{ padding: '10px 20px' }}
+                          disabled={isDepositing}
+                        >
+                          CANCEL
+                        </button>
                       </div>
                     </div>
                   </div>
