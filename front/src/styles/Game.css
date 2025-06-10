@@ -232,7 +232,7 @@
   border-bottom-color: var(--win95-dark-gray);
   font-family: "MS Sans Serif", Arial, sans-serif;
   font-size: 11px;
-  color: var(--win95-shadow);
+  color: black;
   cursor: pointer;
   align-self: center;
   margin-top: 8px;

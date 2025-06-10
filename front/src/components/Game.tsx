@@ -712,7 +712,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       <button 
         className="deposit-button" 
         onClick={handleDeposit} 
-        disabled={isLoading || selectedDeposit < 1 || selectedDeposit > 10000}
+        disabled={isLoading || isDepositing || selectedDeposit < 1 || selectedDeposit > 10000}
         style={{ marginTop: '10px', padding: '10px 20px' }}
       >
         {isDepositing ? 'DEPOSITING...' : `DEPOSIT $${selectedDeposit || 0}`}
@@ -1116,7 +1116,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                           <button 
                             className="deposit-button" 
                             onClick={performWithdraw} 
-                            disabled={isLoading || selectedWithdraw < 1 || selectedWithdraw > (tokenBalances?.oranjDeposited || 0)}
+                            disabled={isLoading || isWithdrawing || selectedWithdraw < 1 || selectedWithdraw > (tokenBalances?.oranjDeposited || 0)}
                             style={{ padding: '10px 20px', flex: 1 }}
                           >
                             {isWithdrawing ? 'WITHDRAWING...' : `WITHDRAW $${selectedWithdraw || 0}`}
