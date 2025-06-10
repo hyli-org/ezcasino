@@ -176,7 +176,7 @@ struct ConfigResponse {
 #[derive(serde::Deserialize)]
 struct WithdrawRequest {
     wallet_blobs: [Blob; 2],
-    balance: u32,
+    withdraw: u32,
 }
 
 #[derive(serde::Deserialize)]
@@ -203,7 +203,7 @@ async fn withdraw(
     let auth = AuthHeaders::from_headers(&headers)?;
     send(
         ctx,
-        BlackJackAction::Withdraw(request.balance),
+        BlackJackAction::Withdraw(request.withdraw),
         auth,
         request.wallet_blobs,
     )

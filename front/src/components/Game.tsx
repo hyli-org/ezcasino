@@ -65,6 +65,8 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   const [showAuthLoader, setShowAuthLoader] = useState(false);
   const [selectedBet, setSelectedBet] = useState(10);
   const [selectedDeposit, setSelectedDeposit] = useState(10);
+  const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
+  const [selectedWithdraw, setSelectedWithdraw] = useState(10);
 
 
   // Surveiller les changements de wallet pour détecter la déconnexion
@@ -360,6 +362,13 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   };
 
   const handleWithdraw = async () => {
+    // Open the withdraw dialog instead of directly withdrawing
+    const maxAmount = tokenBalances?.oranjDeposited || 0;
+    setSelectedWithdraw(Math.min(10, maxAmount)); // Set default amount
+    setShowWithdrawDialog(true);
+  };
+
+  const performWithdraw = async () => {
     try {
       if (!wallet) {
         throw new Error('Wallet not connected');
@@ -367,10 +376,24 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       if (!wallet.sessionKey?.privateKey) {
         throw new Error('No session key found');
       }
+      
+      const maxAmount = tokenBalances?.oranjDeposited || 0;
+      
+      // Validate withdraw amount
+      if (selectedWithdraw < 1) {
+        setError('Withdraw amount must be at least $1');
+        return;
+      }
+      if (selectedWithdraw > maxAmount) {
+        setError(`Withdraw amount cannot exceed your deposited balance of $${maxAmount}`);
+        return;
+      }
+      
       setIsLoading(true);
       setError(null);
+      setShowWithdrawDialog(false);
       const wallet_blobs = createIdentityBlobs();
-      const gameStateResult = await gameService.withdraw(wallet_blobs, wallet.address);
+      const gameStateResult = await gameService.withdraw(wallet_blobs, wallet.address, selectedWithdraw);
       updateGameState(gameStateResult, true);
       setTimeout(() => loadAllBalances(), 2000);
     } catch (err: any) {
@@ -987,6 +1010,61 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                           NEW GAME
                         </button>
                       )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {showWithdrawDialog && (
+                <div className="message-overlay">
+                  <div className="error">
+                    <div className="error-title-bar">
+                      <div className="error-title-text">Withdraw $ORANJ</div>
+                      <div className="error-close-button" onClick={() => setShowWithdrawDialog(false)}>×</div>
+                    </div>
+                    <div className="error-content">
+                      <div className="error-message-container">
+                        <p className="error-message">
+                          Choose how much $ORANJ you want to withdraw from your deposited balance.
+                          <br />
+                          You currently have ${tokenBalances?.oranjDeposited || 0} $ORANJ deposited.
+                        </p>
+                      </div>
+                      <div className="deposit-section">
+                        <div className="counter-label">Choose Withdraw Amount (Available: ${tokenBalances?.oranjDeposited || 0})</div>
+                        <div className="selected-deposit-display">
+                          <span>Withdraw Amount: $</span>
+                          <input
+                            type="number"
+                            min="1"
+                            max={tokenBalances?.oranjDeposited || 0}
+                            value={tokenBalances?.oranjDeposited || 0}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value) || 0;
+                              setSelectedWithdraw(value);
+                            }}
+                            className="led-display-input"
+                            placeholder="10"
+                          />
+                        </div>
+                        <div className="button-row" style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                          <button 
+                            className="deposit-button" 
+                            onClick={performWithdraw} 
+                            disabled={isLoading || selectedWithdraw < 1 || selectedWithdraw > (tokenBalances?.oranjDeposited || 0)}
+                            style={{ padding: '10px 20px', flex: 1 }}
+                          >
+                            WITHDRAW ${selectedWithdraw || 0}
+                          </button>
+                          <button 
+                            className="win95-button" 
+                            onClick={() => setShowWithdrawDialog(false)}
+                            style={{ padding: '10px 20px' }}
+                          >
+                            CANCEL
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

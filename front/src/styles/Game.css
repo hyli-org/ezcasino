@@ -795,11 +795,17 @@
 }
 
 .bet-button:disabled {
-  background-color: var(--win95-dark-gray);
-  color: var(--win95-shadow);
-  border: 2px outset var(--win95-dark-gray);
-  cursor: not-allowed;
-  pointer-events: none;
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  background-color: var(--win95-gray) !important;
+  border-color: var(--win95-shadow) !important;
+}
+
+.bet-button.disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  background-color: var(--win95-gray) !important;
+  border-color: var(--win95-shadow) !important;
 }
 
 .selected-bet-display {

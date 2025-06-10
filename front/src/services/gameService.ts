@@ -59,11 +59,10 @@ class GameService {
     return this.makeRequest('/api/deposit', 'POST', body, identity);
   }
 
-  async withdraw(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
-    let balance = await this.getBalance(identity);
+  async withdraw(wallet_blobs: [Blob, Blob], identity: string, withdraw: number): Promise<GameState> {
     const body = {
       wallet_blobs,
-      balance
+      withdraw
     };
     return this.makeRequest('/api/withdraw', 'POST', body, identity);
   }
