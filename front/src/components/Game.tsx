@@ -914,14 +914,17 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
               {/* Balances déposées dans l'app blackjack */}
               <div className="token-balances-blackjack">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <button 
-                    className="win95-button" 
-                    onClick={() => setShowDepositDialog(true)}
-                    style={{ padding: '5px 10px', fontSize: '12px' }}
-                    disabled={!wallet || !wallet.sessionKey}
-                  >
-                    DEPOSIT
-                  </button>
+                  {/* Afficher le bouton DEPOSIT seulement si on n'affiche pas la section de dépôt initial */}
+                  {Boolean((tokenBalances?.oranjDeposited && tokenBalances.oranjDeposited > 0)) && (
+                    <button 
+                      className="win95-button" 
+                      onClick={() => setShowDepositDialog(true)}
+                      style={{ padding: '5px 10px', fontSize: '12px' }}
+                      disabled={!wallet || !wallet.sessionKey}
+                    >
+                      DEPOSIT
+                    </button>
+                  )}
                   <div className="counter" onClick={loadTokenBalances} style={{ cursor: 'pointer' }} title="Click to refresh">
                     <span className="counter-label">$ORANJ Deposited</span>
                     <div className="led-display">${tokenBalances?.oranjDeposited || 0}</div>
