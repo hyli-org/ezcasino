@@ -1190,12 +1190,12 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                 </div>
               )}
 
-              {wallet && wallet.sessionKey && showStartGame && (tokenBalances?.oranjDeposited || 0) > 0 && (
+              {wallet && wallet.sessionKey && showStartGame && (
                 <div className="controls">
                   <button className="win95-button" onClick={startNewGame} disabled={isLoading}>
                     START GAME (${selectedBet})
                   </button>
-                  {((tokenBalances?.oranjDeposited && tokenBalances.oranjDeposited > 0) || (tokenBalances?.vitEarned && tokenBalances.vitEarned > 0)) && (
+                  {Boolean((tokenBalances?.oranjDeposited && tokenBalances.oranjDeposited > 0) || (tokenBalances?.vitEarned && tokenBalances.vitEarned > 0)) && (
                     <button className="win95-button" onClick={handleWithdraw} disabled={isLoading}>
                       WITHDRAW
                     </button>
@@ -1220,7 +1220,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                   <button className="win95-button" onClick={startNewGame} disabled={isLoading}>
                     DEAL (${selectedBet})
                   </button>
-                  {((tokenBalances?.oranjDeposited && tokenBalances.oranjDeposited > 0) || (tokenBalances?.vitEarned && tokenBalances.vitEarned > 0)) && (
+                  {Boolean((tokenBalances?.oranjDeposited && tokenBalances.oranjDeposited > 0) || (tokenBalances?.vitEarned && tokenBalances.vitEarned > 0)) && (
                     <button className="win95-button" onClick={handleWithdraw} disabled={isLoading}>
                       WITHDRAW
                     </button>
