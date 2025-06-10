@@ -108,6 +108,9 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
         });
         setShowStartGame(true);
       }
+      
+      // Load token balances immediately instead of with delay
+      await loadTokenBalances();
     } catch (err) {
       console.error('Error loading user balance or checking existing game:', err);
       // Fallback to just loading balance
@@ -123,6 +126,8 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
           balance: realBalance
         });
         setShowStartGame(true);
+        // Load token balances even in fallback
+        await loadTokenBalances();
       } catch (balanceErr) {
         console.error('Error loading user balance:', balanceErr);
       }
@@ -136,14 +141,10 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
     }
   }, [wallet?.address]); // Reload when wallet changes
 
-  // Load token balances avec un délai pour optimiser l'UX
+  // Load token balances immédiatement
   useEffect(() => {
     if (wallet?.address && !tokenBalances) {
-      // Charger les tokens avec un petit délai pour ne pas bloquer l'UI
-      const timer = setTimeout(() => {
-        loadTokenBalances();
-      }, 1000);
-      return () => clearTimeout(timer);
+      loadTokenBalances();
     }
   }, [wallet?.address, tokenBalances]);
 
