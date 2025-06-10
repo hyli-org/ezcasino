@@ -89,9 +89,6 @@ class GameService {
       // Get user balance
       const balance = await this.getBalance(identity);
 
-      if (userTable.state === 'Lost' || userTable.state === 'Won') {
-        return null;
-      }
 
       // Convert the table state to GameState format
       const gameState: GameState = {

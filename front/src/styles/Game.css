@@ -371,6 +371,44 @@
   padding: 1rem;
   border-radius: 4px;
   margin-top: 1rem;
+  position: relative;
+  transition: all 0.3s ease-in-out;
+}
+
+.play-area.game-over {
+  background-color: #2a4a2a; /* Darker green */
+  filter: brightness(0.7) saturate(0.5);
+}
+
+.play-area.game-over::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.play-area.game-over .hand,
+.play-area.game-over .dealer-score,
+.play-area.game-over .player-score {
+  position: relative;
+  z-index: 2;
+}
+
+.play-area.game-over .card {
+  opacity: 0.8;
+  transform: scale(0.98);
+  transition: all 0.3s ease-in-out;
+}
+
+.play-area.game-over .dealer-score,
+.play-area.game-over .player-score {
+  opacity: 0.9;
 }
 
 .dealer-area {
@@ -1317,5 +1355,34 @@
   .shutdown-progress {
     width: 80%;
     max-width: 200px;
+  }
+}
+
+.game-status {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+  z-index: 10;
+  border: 2px solid var(--win95-highlight);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  animation: gameStatusFadeIn 0.5s ease-in-out;
+}
+
+@keyframes gameStatusFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
   }
 }

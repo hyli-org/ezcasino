@@ -912,7 +912,12 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                 </>
               )}
 
-              <div className="play-area">
+              <div className={`play-area ${gameOver || (gameState && gameState.state !== 'Ongoing') ? 'game-over' : ''}`}>
+                {gameOver && gameState && gameState.state !== 'Ongoing' && (
+                  <div className="game-status">
+                    {gameState.state === 'Won' ? '🎉 YOU WIN!' : gameState.state === 'Lost' ? '💸 HOUSE WINS' : 'GAME OVER'}
+                  </div>
+                )}
                 <div className="dealer-score">Dealer: {dealerHand.length > 2 || gameState?.state !== 'Ongoing' ? gameState?.bank_count || 0 : '??'}</div>
                 <div className="hand">
                   {dealerHand.map((card, index) => (
