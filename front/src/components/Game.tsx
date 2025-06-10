@@ -94,7 +94,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       if (existingGameState) {
         // Resume existing game
         console.log('Found existing game, resuming...', existingGameState);
-        updateGameState(existingGameState);
+        updateGameState(existingGameState, false, true);
         setShowStartGame(false);
       } else {
         // No existing game, just load balance for new game
@@ -215,10 +215,10 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
 
   const handleGameResponse = (response: GameResponse, isDepositing: boolean = false) => {
     addNotification(response.tx_hash);
-    updateGameState(response.table, isDepositing);
+    updateGameState(response.table, isDepositing, false);
   };
 
-  const updateGameState = (newGameState: GameState, isDepositing: boolean = false) => {
+  const updateGameState = (newGameState: GameState, isDepositing: boolean = false, isLoadingExistingGame: boolean = false) => {
     const playerCards = newGameState.user.map(convertToCard);
     const dealerCards = newGameState.bank.map(convertToCard);
 
@@ -233,8 +233,8 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       balance: prevState?.balance ?? newGameState.balance
     }));
 
-    // Ne pas déclencher les effets visuels lors d'un deposit
-    if (!isDepositing) {
+    // Ne pas déclencher les effets visuels lors d'un deposit ou lors du chargement d'une game existante
+    if (!isDepositing && !isLoadingExistingGame) {
       if (newGameState.state === 'Won') {
         setShowWinEffect(true);
         setTimeout(() => setShowWinEffect(false), 4000);
