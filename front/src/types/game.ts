@@ -8,6 +8,11 @@ export interface GameState {
   balance: number;
 }
 
+export interface GameResponse {
+  tx_hash: string;
+  table: GameState;
+}
+
 export interface TokenBalances {
   oranjBalance: number;
   oranjDeposited: number;

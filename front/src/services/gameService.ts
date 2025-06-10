@@ -1,4 +1,4 @@
-import { GameState, TokenBalances } from '../types/game';
+import { GameState, TokenBalances, GameResponse } from '../types/game';
 import { Blob } from 'hyli';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -31,7 +31,7 @@ class GameService {
     return response.json();
   }
 
-  async initGame(wallet_blobs: [Blob, Blob], identity: string, bet: number): Promise<GameState> {
+  async initGame(wallet_blobs: [Blob, Blob], identity: string, bet: number): Promise<GameResponse> {
     const body = {
       wallet_blobs,
       bet
@@ -39,19 +39,19 @@ class GameService {
     return this.makeRequest('/api/init', 'POST', body, identity);
   }
 
-  async hit(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
+  async hit(wallet_blobs: [Blob, Blob], identity: string): Promise<GameResponse> {
     return this.makeRequest('/api/hit', 'POST', wallet_blobs, identity);
   }
 
-  async stand(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
+  async stand(wallet_blobs: [Blob, Blob], identity: string): Promise<GameResponse> {
     return this.makeRequest('/api/stand', 'POST', wallet_blobs, identity);
   }
 
-  async doubleDown(wallet_blobs: [Blob, Blob], identity: string): Promise<GameState> {
+  async doubleDown(wallet_blobs: [Blob, Blob], identity: string): Promise<GameResponse> {
     return this.makeRequest('/api/double_down', 'POST', wallet_blobs, identity);
   }
 
-  async deposit(wallet_blobs: [Blob, Blob], identity: string, deposit: number): Promise<GameState> {
+  async deposit(wallet_blobs: [Blob, Blob], identity: string, deposit: number): Promise<GameResponse> {
     const body = {
       wallet_blobs,
       deposit
@@ -59,7 +59,7 @@ class GameService {
     return this.makeRequest('/api/deposit', 'POST', body, identity);
   }
 
-  async withdraw(wallet_blobs: [Blob, Blob], identity: string, withdraw: number): Promise<GameState> {
+  async withdraw(wallet_blobs: [Blob, Blob], identity: string, withdraw: number): Promise<GameResponse> {
     const body = {
       wallet_blobs,
       withdraw

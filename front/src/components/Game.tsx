@@ -3,12 +3,13 @@ import Card from './Card';
 import VisualEffects from './VisualEffects';
 import Cow from '../components/Cow';
 import { gameService } from '../services/gameService';
-import { GameState, TokenBalances } from '../types/game';
+import { GameState, TokenBalances, GameResponse } from '../types/game';
 import { HyliWallet, useWallet } from 'hyli-wallet';
 import '../styles/Game.css';
 import { WindowsLoader } from './WindowsLoader';
 import BigRedButton from './BigRedButton';
 import Hyli from './Hyli';
+import TransactionNotification, { Notification } from './TransactionNotification';
 
 const funnyLoadingMessages = [
   "Shuffling the virtual deck...",
@@ -67,6 +68,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   const [selectedDeposit, setSelectedDeposit] = useState(10);
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
   const [selectedWithdraw, setSelectedWithdraw] = useState(0);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
 
   // Surveiller les changements de wallet pour détecter la déconnexion
@@ -192,6 +194,25 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
     return { suit, value: cardValue };
   };
 
+  const addNotification = (txHash: string) => {
+    const newNotification: Notification = {
+      id: `${Date.now()}-${Math.random()}`,
+      tx_hash: txHash,
+      timestamp: Date.now(),
+    };
+
+    setNotifications(prev => [...prev, newNotification]);
+  };
+
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  const handleGameResponse = (response: GameResponse, isDepositing: boolean = false) => {
+    addNotification(response.tx_hash);
+    updateGameState(response.table, isDepositing);
+  };
+
   const updateGameState = (newGameState: GameState, isDepositing: boolean = false) => {
     const playerCards = newGameState.user.map(convertToCard);
     const dealerCards = newGameState.bank.map(convertToCard);
@@ -238,7 +259,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       setShowDepositButton(false);
       const wallet_blobs = createIdentityBlobs();
       const gameStateResult = await gameService.initGame(wallet_blobs, wallet.address, selectedBet);
-      updateGameState(gameStateResult);
+      handleGameResponse(gameStateResult);
       setShowStartGame(false);
       setError(null);
       setTimeout(() => loadAllBalances(), 100);
@@ -268,7 +289,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       setError(null);
       const wallet_blobs = createIdentityBlobs();
       const gameStateResult = await gameService.hit(wallet_blobs, wallet.address);
-      updateGameState(gameStateResult);
+      handleGameResponse(gameStateResult);
       setTimeout(() => loadAllBalances(), 2000);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to hit. Please try again.';
@@ -291,7 +312,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       setError(null);
       const wallet_blobs = createIdentityBlobs();
       const gameStateResult = await gameService.stand(wallet_blobs, wallet.address);
-      updateGameState(gameStateResult);
+      handleGameResponse(gameStateResult);
       setTimeout(() => loadAllBalances(), 1000);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to stand. Please try again.';
@@ -314,7 +335,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       setError(null);
       const wallet_blobs = createIdentityBlobs();
       const gameStateResult = await gameService.doubleDown(wallet_blobs, wallet.address);
-      updateGameState(gameStateResult);
+      handleGameResponse(gameStateResult);
       setTimeout(() => loadAllBalances(), 1000);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to double down. Please try again.';
@@ -348,7 +369,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       setError(null);
       const wallet_blobs = createIdentityBlobs();
       const gameStateResult = await gameService.deposit(wallet_blobs, wallet.address, selectedDeposit);
-      updateGameState(gameStateResult, true);
+      handleGameResponse(gameStateResult, true);
       setShowDepositButton(false);
       setGameOver(true);
       setTimeout(() => loadAllBalances(), 2000);
@@ -394,7 +415,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       setShowWithdrawDialog(false);
       const wallet_blobs = createIdentityBlobs();
       const gameStateResult = await gameService.withdraw(wallet_blobs, wallet.address, selectedWithdraw);
-      updateGameState(gameStateResult, true);
+      handleGameResponse(gameStateResult, true);
       setTimeout(() => loadAllBalances(), 2000);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to withdraw. Please try again.';
@@ -1167,6 +1188,10 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
           )}
         </>
       )}
+      <TransactionNotification 
+        notifications={notifications}
+        onRemoveNotification={removeNotification}
+      />
     </div>
   );
 };

@@ -154,6 +154,12 @@ pub struct ApiTable {
     pub balance: u32,
 }
 
+#[derive(Serialize, Debug, Clone)]
+pub struct Resp {
+    pub tx_hash: String,
+    pub table: ApiTable,
+}
+
 impl From<Table> for ApiTable {
     fn from(table: Table) -> Self {
         ApiTable {
@@ -406,7 +412,10 @@ async fn execute_transaction(
                             .unwrap_or_default()
                             .into();
                         table.balance = balance;
-                        return Ok(Json(table));
+                        return Ok(Json(Resp {
+                            tx_hash: sequenced_tx_hash.to_string(),
+                            table,
+                        }));
                     }
                 }
                 CSIBusEvent {

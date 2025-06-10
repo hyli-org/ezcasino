@@ -1,0 +1,91 @@
+.notification-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+.transaction-notification {
+  position: absolute;
+  right: 0;
+  width: 280px;
+  background: #c0c0c0;
+  border: 2px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  padding: 8px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  pointer-events: all;
+  animation: slideIn 0.3s ease-out;
+  transition: top 0.3s ease-out;
+  font-family: 'MS Sans Serif', sans-serif;
+  font-size: 11px;
+}
+
+.transaction-notification:hover {
+  background: #d4d0c8;
+}
+
+.notification-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.notification-title {
+  font-weight: bold;
+  color: #000;
+  font-size: 12px;
+}
+
+.notification-tx {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #000080;
+}
+
+.tx-hash {
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  cursor: pointer;
+  text-decoration: underline;
+  color: #000080;
+}
+
+.tx-hash:hover {
+  color: #800080;
+}
+
+.notification-close {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #808080;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.notification-close:hover {
+  color: #000;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Animation pour la remontée des notifications */
+.notification-moving {
+  transition: top 0.3s ease-out;
+} 
