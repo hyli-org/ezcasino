@@ -532,7 +532,7 @@ impl BlackJack {
             },
         )?;
 
-        self.balances.insert(user.clone(), 0);
+        self.balances.insert(user.clone(), current_balance - amount);
         Ok(format!("Withdrawed {} to {}'s balance", amount, user))
     }
 }

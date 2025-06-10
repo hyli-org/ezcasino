@@ -66,7 +66,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   const [selectedBet, setSelectedBet] = useState(10);
   const [selectedDeposit, setSelectedDeposit] = useState(10);
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
-  const [selectedWithdraw, setSelectedWithdraw] = useState(10);
+  const [selectedWithdraw, setSelectedWithdraw] = useState(0);
 
 
   // Surveiller les changements de wallet pour détecter la déconnexion
@@ -1043,7 +1043,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                             type="number"
                             min="1"
                             max={tokenBalances?.oranjDeposited || 0}
-                            value={tokenBalances?.oranjDeposited || 0}
+                            value={selectedWithdraw || tokenBalances?.oranjDeposited || 0}
                             onChange={(e) => {
                               const value = parseInt(e.target.value) || 0;
                               setSelectedWithdraw(value);
