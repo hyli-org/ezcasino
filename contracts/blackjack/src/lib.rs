@@ -43,7 +43,9 @@ impl sdk::ZkContract for BlackJack {
             BlackJackAction::Stand => self.stand(user)?,
             BlackJackAction::DoubleDown => self.double_down(user)?,
             BlackJackAction::Deposit(amount) => self.claim(amount, user, calldata, &ctx)?,
-            BlackJackAction::Withdraw(amount) => self.withdraw(amount, user, &mut ctx)?,
+            BlackJackAction::Withdraw(amount, token) => {
+                self.withdraw(amount, user, token, &mut ctx)?
+            }
         };
 
         Ok((res.into(), ctx, alloc::vec![]))
@@ -80,7 +82,8 @@ pub struct Table {
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, Clone, Default)]
 pub struct BlackJack {
     pub tables: BTreeMap<Identity, Table>,
-    pub balances: BTreeMap<Identity, u32>,
+    pub oranj_balances: BTreeMap<Identity, u32>,
+    pub vitamin_balances: BTreeMap<Identity, u32>,
     #[cfg(feature = "client")]
     #[serde(skip)]
     #[borsh(skip)]
@@ -95,7 +98,7 @@ pub enum BlackJackAction {
     Stand,
     DoubleDown,
     Deposit(u32),
-    Withdraw(u32),
+    Withdraw(u32, String), // amount, token ("oranj" or "vitamin")
 }
 
 impl ContractAction for BlackJackAction {
@@ -140,7 +143,7 @@ impl BlackJack {
         }
 
         // Check if user has enough balance for a bet
-        let balance = self.balances.get(user).copied().unwrap_or(0);
+        let balance = self.oranj_balances.get(user).copied().unwrap_or(0);
         if balance < bet {
             return Err(format!(
                 "Insufficient balance. You have {} but bet is {}",
@@ -163,10 +166,11 @@ impl BlackJack {
         };
 
         // Deduct bet from balance
-        if let Some(balance) = self.balances.get_mut(user) {
+        if let Some(balance) = self.oranj_balances.get_mut(user) {
             *balance -= table.bet;
         } else {
-            self.balances.insert(user.clone(), balance - table.bet);
+            self.oranj_balances
+                .insert(user.clone(), balance - table.bet);
         }
 
         table.user.push(card_1);
@@ -178,9 +182,17 @@ impl BlackJack {
 
         if user_score == 21_u32 {
             table.state = TableState::Won;
-            // Add winnings (2x bet for blackjack)
-            if let Some(balance) = self.balances.get_mut(user) {
-                *balance += table.bet * 2;
+            // Return bet in Oranj tokens
+            if let Some(balance) = self.oranj_balances.get_mut(user) {
+                *balance += table.bet;
+            } else {
+                self.oranj_balances.insert(user.clone(), table.bet);
+            }
+            // Award same amount in Vitamin tokens
+            if let Some(balance) = self.vitamin_balances.get_mut(user) {
+                *balance += table.bet;
+            } else {
+                self.vitamin_balances.insert(user.clone(), table.bet);
             }
             self.tables.insert(user.clone(), table);
             Ok(format!(
@@ -267,9 +279,17 @@ impl BlackJack {
         match user_score {
             21 => {
                 table.state = TableState::Won;
-                // Add winnings (2x bet for blackjack)
-                if let Some(balance) = self.balances.get_mut(user) {
-                    *balance += table.bet * 2;
+                // Return bet in Oranj tokens
+                if let Some(balance) = self.oranj_balances.get_mut(user) {
+                    *balance += table.bet;
+                } else {
+                    self.oranj_balances.insert(user.clone(), table.bet);
+                }
+                // Award same amount in Vitamin tokens
+                if let Some(balance) = self.vitamin_balances.get_mut(user) {
+                    *balance += table.bet;
+                } else {
+                    self.vitamin_balances.insert(user.clone(), table.bet);
                 }
                 Ok(format!(
                     "Hit for user {user} with block hash {blockhash}, BLACKJACK!!!!",
@@ -319,19 +339,29 @@ impl BlackJack {
 
         if bank_score > 21_u32 {
             table.state = TableState::Won;
-            // Add winnings (2x bet)
-            if let Some(balance) = self.balances.get_mut(user) {
-                *balance += table.bet * 2;
+            // Return bet in Oranj tokens
+            if let Some(balance) = self.oranj_balances.get_mut(user) {
+                *balance += table.bet;
+            } else {
+                self.oranj_balances.insert(user.clone(), table.bet);
+            }
+            // Award same amount in Vitamin tokens
+            if let Some(balance) = self.vitamin_balances.get_mut(user) {
+                *balance += table.bet;
+            } else {
+                self.vitamin_balances.insert(user.clone(), table.bet);
             }
             Ok(format!(
                 "Stand for user {user}, Bank burst, you win!",
                 user = user,
             ))
         } else if user_score == bank_score {
-            // Push bet back (tie)
+            // Push bet back (tie) - return the bet in Oranj tokens
             table.state = TableState::Won;
-            if let Some(balance) = self.balances.get_mut(user) {
+            if let Some(balance) = self.oranj_balances.get_mut(user) {
                 *balance += table.bet;
+            } else {
+                self.oranj_balances.insert(user.clone(), table.bet);
             }
             Ok(format!(
                 "Stand for user {user}, get back money",
@@ -339,9 +369,17 @@ impl BlackJack {
             ))
         } else if user_score > bank_score {
             table.state = TableState::Won;
-            // Add winnings (2x bet)
-            if let Some(balance) = self.balances.get_mut(user) {
-                *balance += table.bet * 2;
+            // Return bet in Oranj tokens
+            if let Some(balance) = self.oranj_balances.get_mut(user) {
+                *balance += table.bet;
+            } else {
+                self.oranj_balances.insert(user.clone(), table.bet);
+            }
+            // Award same amount in Vitamin tokens
+            if let Some(balance) = self.vitamin_balances.get_mut(user) {
+                *balance += table.bet;
+            } else {
+                self.vitamin_balances.insert(user.clone(), table.bet);
             }
             Ok(format!("Stand for user {user}, you win", user = user,))
         } else {
@@ -359,7 +397,7 @@ impl BlackJack {
         }
 
         // Check if user has enough balance for double down
-        let balance = self.balances.get(user).copied().unwrap_or(0);
+        let balance = self.oranj_balances.get(user).copied().unwrap_or(0);
         if balance < table.bet {
             return Err("Insufficient balance for double down".to_string());
         }
@@ -368,7 +406,7 @@ impl BlackJack {
         table.bet *= 2;
 
         // Deduct additional bet from balance
-        if let Some(balance) = self.balances.get_mut(user) {
+        if let Some(balance) = self.oranj_balances.get_mut(user) {
             *balance -= table.bet / 2;
         }
 
@@ -403,9 +441,17 @@ impl BlackJack {
                 ))
             } else if bank_score > 21_u32 {
                 table.state = TableState::Won;
-                // Add winnings (2x bet)
-                if let Some(balance) = self.balances.get_mut(user) {
-                    *balance += table.bet * 2;
+                // Return bet in Oranj tokens
+                if let Some(balance) = self.oranj_balances.get_mut(user) {
+                    *balance += table.bet;
+                } else {
+                    self.oranj_balances.insert(user.clone(), table.bet);
+                }
+                // Award same amount in Vitamin tokens
+                if let Some(balance) = self.vitamin_balances.get_mut(user) {
+                    *balance += table.bet;
+                } else {
+                    self.vitamin_balances.insert(user.clone(), table.bet);
                 }
                 Ok(format!(
                     "DoubleDown for user {user}, bet doubled to {}, Bank burst, you win!",
@@ -414,9 +460,17 @@ impl BlackJack {
                 ))
             } else if user_score > bank_score {
                 table.state = TableState::Won;
-                // Add winnings (2x bet)
-                if let Some(balance) = self.balances.get_mut(user) {
-                    *balance += table.bet * 2;
+                // Return bet in Oranj tokens
+                if let Some(balance) = self.oranj_balances.get_mut(user) {
+                    *balance += table.bet;
+                } else {
+                    self.oranj_balances.insert(user.clone(), table.bet);
+                }
+                // Award same amount in Vitamin tokens
+                if let Some(balance) = self.vitamin_balances.get_mut(user) {
+                    *balance += table.bet;
+                } else {
+                    self.vitamin_balances.insert(user.clone(), table.bet);
                 }
                 Ok(format!(
                     "DoubleDown for user {user}, bet doubled to {}, you win!",
@@ -424,10 +478,12 @@ impl BlackJack {
                     user = user
                 ))
             } else if user_score == bank_score {
-                // Push bet back (tie)
+                // Push bet back (tie) - return the bet in Oranj tokens
                 table.state = TableState::Won;
-                if let Some(balance) = self.balances.get_mut(user) {
+                if let Some(balance) = self.oranj_balances.get_mut(user) {
                     *balance += table.bet;
+                } else {
+                    self.oranj_balances.insert(user.clone(), table.bet);
                 }
                 Ok(format!(
                     "DoubleDown for user {user}, bet doubled to {}, tie, get back money",
@@ -485,7 +541,7 @@ impl BlackJack {
                 }
 
                 // Add to existing balance or create new balance
-                let new_balance = if let Some(current_balance) = self.balances.get(user) {
+                let new_balance = if let Some(current_balance) = self.oranj_balances.get(user) {
                     current_balance
                         .checked_add(amount)
                         .ok_or_else(|| "Balance overflow".to_string())?
@@ -493,7 +549,7 @@ impl BlackJack {
                     amount
                 };
 
-                self.balances.insert(user.clone(), new_balance);
+                self.oranj_balances.insert(user.clone(), new_balance);
 
                 Ok(format!(
                     "Added {} to balance, new balance is {} for user {}",
@@ -508,6 +564,7 @@ impl BlackJack {
         &mut self,
         amount: u32,
         user: &Identity,
+        token: String,
         ctx: &mut ExecutionContext,
     ) -> Result<String, String> {
         // Check if user has an ongoing game
@@ -517,23 +574,55 @@ impl BlackJack {
             }
         }
 
-        let Some(current_balance) = self.balances.get(user).cloned() else {
-            return Err("Unkown user, can't withdraw".to_string());
-        };
-        if amount > current_balance {
-            return Err("Insufficient balance to withdraw".to_string());
-        }
-        ctx.is_in_callee_blobs(
-            &"oranj".into(),
-            SmtTokenAction::Transfer {
-                sender: "blackjack".into(),
-                recipient: user.clone(),
-                amount: amount as u128,
-            },
-        )?;
+        match token.as_str() {
+            "oranj" => {
+                let Some(current_balance) = self.oranj_balances.get(user).cloned() else {
+                    return Err("Unknown user, can't withdraw Oranj".to_string());
+                };
+                if amount > current_balance {
+                    return Err("Insufficient Oranj balance to withdraw".to_string());
+                }
+                ctx.is_in_callee_blobs(
+                    &"oranj".into(),
+                    SmtTokenAction::Transfer {
+                        sender: "blackjack".into(),
+                        recipient: user.clone(),
+                        amount: amount as u128,
+                    },
+                )?;
 
-        self.balances.insert(user.clone(), current_balance - amount);
-        Ok(format!("Withdrawed {} to {}'s balance", amount, user))
+                self.oranj_balances
+                    .insert(user.clone(), current_balance - amount);
+                Ok(format!(
+                    "Withdrew {} Oranj tokens to {}'s balance",
+                    amount, user
+                ))
+            }
+            "vitamin" => {
+                let Some(current_balance) = self.vitamin_balances.get(user).cloned() else {
+                    return Err("Unknown user, can't withdraw Vitamin".to_string());
+                };
+                if amount > current_balance {
+                    return Err("Insufficient Vitamin balance to withdraw".to_string());
+                }
+                ctx.is_in_callee_blobs(
+                    &"vitamin".into(),
+                    SmtTokenAction::Transfer {
+                        sender: "blackjack".into(),
+                        recipient: user.clone(),
+                        amount: amount as u128,
+                    },
+                )?;
+
+                self.vitamin_balances
+                    .insert(user.clone(), current_balance - amount);
+                Ok(format!(
+                    "Withdrew {} Vitamin tokens to {}'s balance",
+                    amount, user
+                ))
+            }
+            _ => Err("Invalid token type. Use 'oranj' or 'vitamin'".to_string()),
+        }
     }
 }
 

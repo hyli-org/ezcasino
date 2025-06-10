@@ -5,7 +5,7 @@ use alloc::{
 use anyhow::{anyhow, Context, Result};
 use client_sdk::contract_indexer::{
     axum::{extract::State, http::StatusCode, response::IntoResponse, Json, Router},
-    utoipa::openapi::OpenApi,
+    utoipa::{openapi::OpenApi, ToSchema},
     utoipa_axum::{router::OpenApiRouter, routes},
     AppError, ContractHandler, ContractHandlerStore,
 };
@@ -199,15 +199,21 @@ pub async fn get_state(
     ))
 }
 
+#[derive(Serialize, ToSchema)]
+struct UserBalances {
+    oranj: u32,
+    vitamin: u32,
+}
+
 #[utoipa::path(
     get,
-    path = "/user/{user_id}/balance",
+    path = "/user/{user_id}/balances",
     tag = "Contract",
     params(
         ("user_id" = String, Path, description = "User identity")
     ),
     responses(
-        (status = OK, description = "Get user balance", body = u32),
+        (status = OK, description = "Get user balances", body = UserBalances),
         (status = NOT_FOUND, description = "User not found")
     )
 )]
@@ -226,7 +232,19 @@ pub async fn get_user_balance(
         .compute_optimistic_state(blackjack_state.clone(), None)?;
 
     let user_identity = Identity(user_id);
-    let balance = state.balances.get(&user_identity).copied().unwrap_or(0);
+    let oranj_balance = state
+        .oranj_balances
+        .get(&user_identity)
+        .copied()
+        .unwrap_or(0);
+    let vitamin_balance = state
+        .vitamin_balances
+        .get(&user_identity)
+        .copied()
+        .unwrap_or(0);
 
-    Ok(Json(balance))
+    Ok(Json(UserBalances {
+        oranj: oranj_balance,
+        vitamin: vitamin_balance,
+    }))
 }

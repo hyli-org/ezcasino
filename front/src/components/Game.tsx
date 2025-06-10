@@ -71,6 +71,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isDepositing, setIsDepositing] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [selectedWithdrawToken, setSelectedWithdrawToken] = useState<'oranj' | 'vitamin'>('oranj');
 
 
   // Surveiller les changements de wallet pour détecter la déconnexion
@@ -96,7 +97,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
         setShowStartGame(false);
       } else {
         // No existing game, just load balance for new game
-        const realBalance = await gameService.getBalance(wallet.address);
+        const realBalances = await gameService.getBalances(wallet.address);
         setGameState({
           bank: [],
           bank_count: 0,
@@ -104,7 +105,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
           user_count: 0,
           bet: 10,
           state: 'Ongoing',
-          balance: realBalance
+          balance: realBalances.oranj,
         });
         setShowStartGame(true);
       }
@@ -115,7 +116,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       console.error('Error loading user balance or checking existing game:', err);
       // Fallback to just loading balance
       try {
-        const realBalance = await gameService.getBalance(wallet.address);
+        const realBalances = await gameService.getBalances(wallet.address);
         setGameState({
           bank: [],
           bank_count: 0,
@@ -123,7 +124,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
           user_count: 0,
           bet: 10,
           state: 'Ongoing',
-          balance: realBalance
+          balance: realBalances.oranj,
         });
         setShowStartGame(true);
         // Load token balances even in fallback
@@ -395,8 +396,10 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
 
   const handleWithdraw = async () => {
     // Open the withdraw dialog instead of directly withdrawing
-    const maxAmount = tokenBalances?.oranjDeposited || 0;
-    setSelectedWithdraw(maxAmount); // Set default amount to full deposited amount
+    const maxAmount = selectedWithdrawToken === 'oranj' 
+      ? (tokenBalances?.oranjDeposited || 0)
+      : (tokenBalances?.vitEarned || 0);
+    setSelectedWithdraw(maxAmount); // Set default amount to full balance
     setShowWithdrawDialog(true);
   };
 
@@ -409,7 +412,9 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
         throw new Error('No session key found');
       }
       
-      const maxAmount = tokenBalances?.oranjDeposited || 0;
+      const maxAmount = selectedWithdrawToken === 'oranj' 
+        ? (tokenBalances?.oranjDeposited || 0)
+        : (tokenBalances?.vitEarned || 0);
       
       // Validate withdraw amount
       if (selectedWithdraw < 1) {
@@ -417,7 +422,8 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
         return;
       }
       if (selectedWithdraw > maxAmount) {
-        setError(`Withdraw amount cannot exceed your deposited balance of $${maxAmount}`);
+        const tokenName = selectedWithdrawToken === 'oranj' ? 'deposited $ORANJ' : '$VITAMIN';
+        setError(`Withdraw amount cannot exceed your ${tokenName} balance of $${maxAmount}`);
         return;
       }
       
@@ -425,7 +431,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       setIsWithdrawing(true);
       setError(null);
       const wallet_blobs = createIdentityBlobs();
-      const gameStateResult = await gameService.withdraw(wallet_blobs, wallet.address, selectedWithdraw);
+      const gameStateResult = await gameService.withdraw(wallet_blobs, wallet.address, selectedWithdraw, selectedWithdrawToken);
       handleGameResponse(gameStateResult, true);
       
       // Wait a moment to show success before closing modal
@@ -878,29 +884,40 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
             </div>
 
             <div className="game-container">
-              <div className="address-container">
-                <span className="counter-label">Address</span>
-                <div
-                  className="led-display"
-                  onClick={copyAddress}
-                  style={{ cursor: 'pointer', position: 'relative' }}
-                >
-                  {wallet?.address || "Not connected"}
-                  {copyMessage && <span className="copy-message">{copyMessage}</span>}
-                </div>
-              </div>
-              <div className="counters">
+              {/* Balances des tokens (pas partie de l'app blackjack) avec adresse au milieu */}
+              <div className="token-balances-network">
                 <div className="counter" onClick={loadTokenBalances} style={{ cursor: 'pointer' }} title="Click to refresh">
                   <span className="counter-label">$ORANJ Balance</span>
                   <div className="led-display">${tokenBalances?.oranjBalance || 0}</div>
                 </div>
+                
+                <div className="address-container-centered">
+                  <span className="counter-label">Address</span>
+                  <div
+                    className="led-display"
+                    onClick={copyAddress}
+                    style={{ cursor: 'pointer', position: 'relative' }}
+                  >
+                    {wallet?.address || "Not connected"}
+                    {copyMessage && <span className="copy-message">{copyMessage}</span>}
+                  </div>
+                </div>
+                
+                <div className="counter" onClick={loadTokenBalances} style={{ cursor: 'pointer' }} title="Click to refresh">
+                  <span className="counter-label">$VIT Balance</span>
+                  <div className="led-display">${tokenBalances?.vitBalance || 0}</div>
+                </div>
+              </div>
+              
+              {/* Balances déposées dans l'app blackjack */}
+              <div className="token-balances-blackjack">
                 <div className="counter" onClick={loadTokenBalances} style={{ cursor: 'pointer' }} title="Click to refresh">
                   <span className="counter-label">$ORANJ Deposited</span>
                   <div className="led-display">${tokenBalances?.oranjDeposited || 0}</div>
                 </div>
                 <div className="counter" onClick={loadTokenBalances} style={{ cursor: 'pointer' }} title="Click to refresh">
-                  <span className="counter-label">$VIT Balance</span>
-                  <div className="led-display">${tokenBalances?.vitBalance || 0}</div>
+                  <span className="counter-label">$VIT Earned</span>
+                  <div className="led-display">${tokenBalances?.vitEarned || 0}</div>
                 </div>
               </div>
 
@@ -915,7 +932,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                   ) : (
                     // Si l'utilisateur a des tokens déposés, afficher la section de pari
                     <div className="betting-section">
-                      <span className="counter-label">Choose Your Bet</span>
+                      <span className="counter-label">Choose your $ORANJ bet</span>
                       <div className="bet-buttons">
                         {[10, 25, 50, 100, 250].map(amount => {
                           return (
@@ -943,7 +960,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                         })}
                       </div>
                       <div className="selected-bet-display">
-                        <span>Selected: $</span>
+                        <span>Selected: </span>
                         <input
                           type="number"
                           min="10"
@@ -956,6 +973,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                           className="led-display-input"
                           placeholder="10"
                         />
+                        <span>$ORANJ</span>
                       </div>
                     </div>
                   )}
@@ -1074,32 +1092,66 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                 <div className="message-overlay">
                   <div className="error">
                     <div className="error-title-bar">
-                      <div className="error-title-text">Withdraw $ORANJ</div>
+                      <div className="error-title-text">Withdraw Tokens</div>
                       <div className="error-close-button" onClick={() => setShowWithdrawDialog(false)}>×</div>
                     </div>
                     <div className="error-content">
                       <div className="error-message-container">
                         <p className="error-message">
-                          Choose how much $ORANJ you want to withdraw from your deposited balance.
-                          <br />
-                          You currently have ${tokenBalances?.oranjDeposited || 0} $ORANJ deposited.
+                          Choose which token you want to withdraw.
                         </p>
                       </div>
+                      
+                      {/* Token Selection */}
                       <div className="deposit-section">
-                        <div className="counter-label">Choose Withdraw Amount (Available: ${tokenBalances?.oranjDeposited || 0})</div>
+                        <div className="counter-label">Select Token Type</div>
+                        <div className="bet-buttons">
+                          <button
+                            className={`win95-button bet-button ${selectedWithdrawToken === 'oranj' ? 'active' : ''}`}
+                            onClick={() => {
+                              setSelectedWithdrawToken('oranj');
+                              const maxAmount = tokenBalances?.oranjDeposited || 0;
+                              setSelectedWithdraw(maxAmount);
+                            }}
+                          >
+                            $ORANJ (${tokenBalances?.oranjDeposited || 0})
+                          </button>
+                          <button
+                            className={`win95-button bet-button ${selectedWithdrawToken === 'vitamin' ? 'active' : ''}`}
+                            onClick={() => {
+                              setSelectedWithdrawToken('vitamin');
+                              const maxAmount = tokenBalances?.vitEarned || 0;
+                              setSelectedWithdraw(maxAmount);
+                            }}
+                          >
+                            $VITAMIN (${tokenBalances?.vitEarned || 0})
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="deposit-section">
+                        <div className="counter-label">
+                          Choose Withdraw Amount (Available: ${selectedWithdrawToken === 'oranj' 
+                            ? (tokenBalances?.oranjDeposited || 0)
+                            : (tokenBalances?.vitEarned || 0)})
+                        </div>
                         <div className="selected-deposit-display">
                           <span>Withdraw Amount: $</span>
                           <input
                             type="number"
                             min="1"
-                            max={tokenBalances?.oranjDeposited || 0}
-                            value={selectedWithdraw || tokenBalances?.oranjDeposited || 0}
+                            max={selectedWithdrawToken === 'oranj' 
+                              ? (tokenBalances?.oranjDeposited || 0)
+                              : (tokenBalances?.vitEarned || 0)}
+                            value={selectedWithdraw || (selectedWithdrawToken === 'oranj' 
+                              ? (tokenBalances?.oranjDeposited || 0)
+                              : (tokenBalances?.vitEarned || 0))}
                             onChange={(e) => {
                               const value = parseInt(e.target.value) || 0;
                               setSelectedWithdraw(value);
                             }}
                             className="led-display-input"
-                            placeholder="10"
+                            placeholder="1"
                           />
                         </div>
                         {isWithdrawing && (
@@ -1116,10 +1168,12 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                           <button 
                             className="deposit-button" 
                             onClick={performWithdraw} 
-                            disabled={isLoading || isWithdrawing || selectedWithdraw < 1 || selectedWithdraw > (tokenBalances?.oranjDeposited || 0)}
+                            disabled={isLoading || isWithdrawing || selectedWithdraw < 1 || selectedWithdraw > (selectedWithdrawToken === 'oranj' 
+                              ? (tokenBalances?.oranjDeposited || 0)
+                              : (tokenBalances?.vitEarned || 0))}
                             style={{ padding: '10px 20px', flex: 1 }}
                           >
-                            {isWithdrawing ? 'WITHDRAWING...' : `WITHDRAW $${selectedWithdraw || 0}`}
+                            {isWithdrawing ? 'WITHDRAWING...' : `WITHDRAW $${selectedWithdraw || 0} ${selectedWithdrawToken.toUpperCase()}`}
                           </button>
                           <button 
                             className="win95-button" 
@@ -1141,7 +1195,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                   <button className="win95-button" onClick={startNewGame} disabled={isLoading}>
                     START GAME (${selectedBet})
                   </button>
-                  {gameState && gameState.balance > 0 && (
+                  {((tokenBalances?.oranjDeposited && tokenBalances.oranjDeposited > 0) || (tokenBalances?.vitEarned && tokenBalances.vitEarned > 0)) && (
                     <button className="win95-button" onClick={handleWithdraw} disabled={isLoading}>
                       WITHDRAW
                     </button>
@@ -1166,7 +1220,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                   <button className="win95-button" onClick={startNewGame} disabled={isLoading}>
                     DEAL (${selectedBet})
                   </button>
-                  {gameState && gameState.balance > 0 && (
+                  {((tokenBalances?.oranjDeposited && tokenBalances.oranjDeposited > 0) || (tokenBalances?.vitEarned && tokenBalances.vitEarned > 0)) && (
                     <button className="win95-button" onClick={handleWithdraw} disabled={isLoading}>
                       WITHDRAW
                     </button>

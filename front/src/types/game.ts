@@ -17,6 +17,7 @@ export interface TokenBalances {
   oranjBalance: number;
   oranjDeposited: number;
   vitBalance: number;
+  vitEarned: number;
 }
 
 export interface InitGameRequest {

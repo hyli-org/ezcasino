@@ -59,16 +59,17 @@ class GameService {
     return this.makeRequest('/api/deposit', 'POST', body, identity);
   }
 
-  async withdraw(wallet_blobs: [Blob, Blob], identity: string, withdraw: number): Promise<GameResponse> {
+  async withdraw(wallet_blobs: [Blob, Blob], identity: string, withdraw: number, token: string): Promise<GameResponse> {
     const body = {
       wallet_blobs,
-      withdraw
+      withdraw,
+      token
     };
     return this.makeRequest('/api/withdraw', 'POST', body, identity);
   }
 
-  async getBalance(identity: string): Promise<number> {
-    return this.makeRequest(`/v1/indexer/contract/blackjack/user/${identity}/balance`, 'GET');
+  async getBalances(identity: string): Promise<{ oranj: number; vitamin: number }> {
+    return this.makeRequest(`/v1/indexer/contract/blackjack/user/${identity}/balances`, 'GET');
   }
 
   async getConfig(): Promise<{ contract_name: string }> {
@@ -86,8 +87,8 @@ class GameService {
         return null; // No ongoing game
       }
 
-      // Get user balance
-      const balance = await this.getBalance(identity);
+      // Get user balances
+      const balances = await this.getBalances(identity);
 
 
       // Convert the table state to GameState format
@@ -98,7 +99,7 @@ class GameService {
         user_count: this.calculateHandValue(userTable.user),
         bet: userTable.bet,
         state: userTable.state,
-        balance: balance,
+        balance: balances.oranj,
       };
 
       return gameState;
@@ -158,26 +159,28 @@ class GameService {
 
   async getTokenBalances(identity: string): Promise<TokenBalances> {
     try {
-      const [oranjBalance, vitBalance, oranjDeposited] = await Promise.all([
+      const [oranjBalanceFromNode, vitBalanceFromNode, balancesFromBlackjack] = await Promise.all([
         this.getOranjBalanceFromNode(identity),
         this.getVitBalanceFromNode(identity),
-        this.getBalance(identity).catch(error => {
-          console.error('Error fetching deposited balance:', error);
-          return 0;
+        this.getBalances(identity).catch((error: any) => {
+          console.error('Error fetching deposited balances:', error);
+          return { oranj: 0, vitamin: 0 };
         })
       ]);
       
       return {
-        oranjBalance,
-        oranjDeposited,
-        vitBalance
+        oranjBalance: oranjBalanceFromNode,
+        oranjDeposited: balancesFromBlackjack.oranj,
+        vitEarned: balancesFromBlackjack.vitamin,
+        vitBalance: vitBalanceFromNode
       };
     } catch (error) {
       console.error('Error fetching token balances:', error);
       return {
         oranjBalance: 0,
         oranjDeposited: 0,
-        vitBalance: 0
+        vitBalance: 0,
+        vitEarned: 0
       };
     }
   }

@@ -1,13 +1,58 @@
 .address-container {
-  margin-bottom: 20px;
+  margin: 10px 0;
 }
 
 .address-container .counter-label {
   display: block;
   margin-bottom: 5px;
-  font-size: 14px;
-  color: #666;
+  font-size: 13px;
+  color: var(--win95-text);
   text-align: center;
+  font-weight: bold;
+}
+
+.address-container .led-display {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 10px;
+  font-size: 14px;
+  font-family: "Digital", monospace;
+  text-align: center;
+  background-color: var(--win95-led-bg);
+  color: var(--win95-led-red);
+  border: inset 2px var(--win95-shadow);
+  word-break: break-all;
+}
+
+/* Address container centered between balances */
+.address-container-centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1.5;
+  margin: 0 10px;
+}
+
+.address-container-centered .counter-label {
+  font-size: 11px;
+  color: var(--win95-text);
+  font-weight: bold;
+  text-align: center;
+}
+
+.address-container-centered .led-display {
+  width: 100%;
+  max-width: 200px;
+  box-sizing: border-box;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-family: "Digital", monospace;
+  text-align: center;
+  background-color: var(--win95-led-bg);
+  color: var(--win95-led-red);
+  border: inset 2px var(--win95-shadow);
+  word-break: break-all;
 }
 
 .address-container .session-key {
@@ -986,6 +1031,40 @@
   .welcome-message p {
     font-size: 12px;
   }
+
+  .token-balances-network,
+  .token-balances-blackjack {
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .token-balances-network {
+    align-items: stretch;
+  }
+
+  .token-balances-network .counter,
+  .token-balances-blackjack .counter {
+    width: 100%;
+  }
+
+  .token-balances-network .led-display,
+  .token-balances-blackjack .led-display {
+    font-size: 14px;
+    min-width: 80px;
+    margin: 0 auto;
+  }
+
+  .address-container-centered {
+    order: 2;
+    margin: 10px 0;
+  }
+
+  .address-container-centered .led-display {
+    max-width: 100%;
+    font-size: 10px;
+    padding: 4px 6px;
+  }
 }
 
 /* Mobile styles (480px and below) */
@@ -1137,8 +1216,8 @@
   }
 
   .address-container .led-display {
-    font-size: 8px;
-    padding: 3px;
+    font-size: 10px;
+    padding: 4px 6px;
   }
 
   .error {
@@ -1219,6 +1298,18 @@
 
   .led-display-input {
     font-size: 16px; /* Prevent zoom on mobile */
+  }
+
+  .token-balances-network .counter-label,
+  .token-balances-blackjack .counter-label {
+    font-size: 10px;
+  }
+
+  .token-balances-network .led-display,
+  .token-balances-blackjack .led-display {
+    font-size: 12px;
+    padding: 2px 6px;
+    min-width: 60px;
   }
 }
 
@@ -1434,4 +1525,57 @@
     height: 16px;
     margin: 8px 0;
   }
+}
+
+/* Balances styling improvements */
+.token-balances-network {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 15px;
+  background-color: var(--win95-gray);
+  margin-bottom: 5px;
+  border: 1px inset var(--win95-gray);
+  border-radius: 2px;
+}
+
+.token-balances-blackjack {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 15px;
+  background-color: var(--win95-gray);
+  margin-top: 5px;
+  margin-bottom: 10px;
+  border: 1px inset var(--win95-gray);
+  border-radius: 2px;
+}
+
+.token-balances-network .counter,
+.token-balances-blackjack .counter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+}
+
+.token-balances-network .counter-label,
+.token-balances-blackjack .counter-label {
+  font-size: 11px;
+  color: var(--win95-text);
+  font-weight: bold;
+  text-align: center;
+}
+
+.token-balances-network .led-display,
+.token-balances-blackjack .led-display {
+  background-color: var(--win95-led-bg);
+  color: var(--win95-led-red);
+  font-family: "Digital", monospace;
+  padding: 3px 10px;
+  border: inset 2px var(--win95-shadow);
+  font-size: 16px;
+  min-width: 70px;
+  text-align: right;
+  font-weight: bold;
 }

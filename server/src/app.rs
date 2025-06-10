@@ -183,6 +183,7 @@ struct ConfigResponse {
 struct WithdrawRequest {
     wallet_blobs: [Blob; 2],
     withdraw: u32,
+    token: String,
 }
 
 #[derive(serde::Deserialize)]
@@ -209,7 +210,7 @@ async fn withdraw(
     let auth = AuthHeaders::from_headers(&headers)?;
     send(
         ctx,
-        BlackJackAction::Withdraw(request.withdraw),
+        BlackJackAction::Withdraw(request.withdraw, request.token),
         auth,
         request.wallet_blobs,
     )
@@ -292,8 +293,8 @@ async fn send(
         BlackJackAction::Deposit(amount) => {
             handle_deposit_action(amount, &ctx, &identity, &mut blobs).await?;
         }
-        BlackJackAction::Withdraw(amount) => {
-            handle_withdraw_action(amount, &ctx, &identity, &mut blobs).await?;
+        BlackJackAction::Withdraw(amount, token) => {
+            handle_withdraw_action(amount, token, &ctx, &identity, &mut blobs).await?;
         }
         _ => {
             blobs.push(action.as_blob(ctx.blackjack_cn.clone(), None, None));
@@ -336,6 +337,7 @@ async fn handle_deposit_action(
 
 async fn handle_withdraw_action(
     amount: u32,
+    token: String,
     ctx: &RouterCtx,
     identity: &Identity,
     blobs: &mut Vec<Blob>,
@@ -346,12 +348,12 @@ async fn handle_withdraw_action(
         amount: amount as u128,
     };
 
-    blobs.push(BlackJackAction::Withdraw(amount).as_blob(
+    blobs.push(BlackJackAction::Withdraw(amount, token.clone()).as_blob(
         ctx.blackjack_cn.clone(),
         None,
         Some(vec![BlobIndex(3)]),
     ));
-    blobs.push(transfer_action.as_blob("oranj".into(), Some(BlobIndex(2)), None));
+    blobs.push(transfer_action.as_blob(token.into(), Some(BlobIndex(2)), None));
 
     Ok(())
 }
@@ -404,7 +406,7 @@ async fn execute_transaction(
                     event: AutoProverEvent::SuccessTx(sequenced_tx_hash, state),
                 } => {
                     if sequenced_tx_hash == tx_hash {
-                        let balance = state.balances.get(&identity).copied().unwrap_or(0);
+                        let balance = state.oranj_balances.get(&identity).copied().unwrap_or(0);
                         let mut table: ApiTable = state
                             .tables
                             .get(&identity)
