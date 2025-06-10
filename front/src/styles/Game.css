@@ -306,6 +306,34 @@
   color: var(--win95-text);
 }
 
+.withdraw-section {
+  margin: 20px 0;
+  padding: 0 20px;
+}
+
+.withdraw-section .counter-label {
+  text-align: center;
+  margin-bottom: 12px;
+  font-family: "MS Sans Serif", sans-serif;
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--win95-text);
+}
+
+.selected-withdraw-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: bold;
+  margin: 8px 0;
+}
+
+.selected-withdraw-display span {
+  color: var(--win95-text);
+}
+
 .led-display-input {
   background-color: var(--win95-led-bg);
   color: var(--win95-led-red);
@@ -680,7 +708,7 @@
 }
 
 .message-overlay {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
@@ -689,7 +717,7 @@
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 100;
+  z-index: 10000;
 }
 
 .message-overlay .welcome-message,

@@ -598,6 +598,84 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
     </button>
   );
 
+  // Composant réutilisable pour la section de dépôt
+  const DepositSection: React.FC<{
+    title: string;
+    showFaucetLink?: boolean;
+    faucetLinkHandler?: () => void;
+    className?: string;
+  }> = ({ title, showFaucetLink = true, faucetLinkHandler, className = "deposit-section" }) => (
+    <div className={className}>
+      <div className="counter-label">{title}</div>
+      <div className="bet-buttons">
+        {[10, 25, 50, 100, 250].map(amount => (
+          <button
+            key={amount}
+            className={`win95-button bet-button ${selectedDeposit === amount ? 'active' : ''}`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setSelectedDeposit(amount);
+            }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            style={{
+              pointerEvents: 'auto',
+              zIndex: 20,
+              position: 'relative'
+            }}
+          >
+            ${amount}
+          </button>
+        ))}
+      </div>
+      <div className="selected-deposit-display">
+        <span>Deposit Amount: $</span>
+        <input
+          type="number"
+          min="1"
+          max="10000"
+          value={selectedDeposit || ''}
+          onChange={(e) => {
+            const value = parseInt(e.target.value) || 0;
+            setSelectedDeposit(value);
+          }}
+          className="led-display-input"
+          placeholder="10"
+        />
+      </div>
+      <button 
+        className="deposit-button" 
+        onClick={handleDeposit} 
+        disabled={isLoading || selectedDeposit < 1 || selectedDeposit > 10000}
+        style={{ marginTop: '10px', padding: '10px 20px' }}
+      >
+        DEPOSIT ${selectedDeposit || 0}
+      </button>
+      {showFaucetLink && (
+        <div style={{ marginTop: '10px', textAlign: 'center' }}>
+          <a
+            href={import.meta.env.VITE_FAUCET_URL}
+            onClick={(e) => {
+              e.preventDefault();
+              if (faucetLinkHandler) {
+                faucetLinkHandler();
+              } else {
+                window.open(import.meta.env.VITE_FAUCET_URL, '_blank');
+              }
+            }}
+            className="faucet-link"
+            style={{ fontSize: '12px', color: '#0000ff', textDecoration: 'underline' }}
+          >
+            Need $ORANJ tokens? Get them here!
+          </a>
+        </div>
+      )}
+    </div>
+  );
+
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined = undefined;
@@ -754,50 +832,61 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
               </div>
 
               {wallet && wallet.sessionKey && (showStartGame || (!showStartGame && gameOver)) && (
-                <div className="betting-section">
-                  <span className="counter-label">Choose Your Bet</span>
-                  <div className="bet-buttons">
-                    {[10, 25, 50, 100, 250].map(amount => {
-                      return (
-                        <button
-                          key={amount}
-                          className={`win95-button bet-button ${selectedBet === amount ? 'active' : ''}`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setSelectedBet(amount);
-                          }}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                          style={{
-                            pointerEvents: 'auto',
-                            zIndex: 20,
-                            position: 'relative'
-                          }}
-                        >
-                          ${amount}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="selected-bet-display">
-                    <span>Selected: $</span>
-                    <input
-                      type="number"
-                      min="10"
-                      max="10000"
-                      value={selectedBet || ''}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value) || 0;
-                        setSelectedBet(value);
-                      }}
-                      className="led-display-input"
-                      placeholder="10"
+                <>
+                  {/* Si l'utilisateur n'a pas de tokens déposés, afficher la section de dépôt */}
+                  {(!tokenBalances?.oranjDeposited || tokenBalances.oranjDeposited === 0) ? (
+                    <DepositSection 
+                      title="First, deposit some $ORANJ to start playing"
+                      className="deposit-initial-section"
                     />
-                  </div>
-                </div>
+                  ) : (
+                    // Si l'utilisateur a des tokens déposés, afficher la section de pari
+                    <div className="betting-section">
+                      <span className="counter-label">Choose Your Bet</span>
+                      <div className="bet-buttons">
+                        {[10, 25, 50, 100, 250].map(amount => {
+                          return (
+                            <button
+                              key={amount}
+                              className={`win95-button bet-button ${selectedBet === amount ? 'active' : ''}`}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setSelectedBet(amount);
+                              }}
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }}
+                              style={{
+                                pointerEvents: 'auto',
+                                zIndex: 20,
+                                position: 'relative'
+                              }}
+                            >
+                              ${amount}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="selected-bet-display">
+                        <span>Selected: $</span>
+                        <input
+                          type="number"
+                          min="10"
+                          max="10000"
+                          value={selectedBet || ''}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value) || 0;
+                            setSelectedBet(value);
+                          }}
+                          className="led-display-input"
+                          placeholder="10"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               <div className="play-area">
@@ -884,56 +973,14 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                                 Earn Oranj tokens here
                               </a>
                             </>
-                                                )}
+                          )}
                     </p>
                   </div>
                   {showDepositButton && (
-                    <div className="deposit-section">
-                      <div className="counter-label">Choose Deposit Amount</div>
-                      <div className="bet-buttons">
-                        {[10, 25, 50, 100, 250].map(amount => {
-                          return (
-                            <button
-                              key={amount}
-                              className={`win95-button bet-button ${selectedDeposit === amount ? 'active' : ''}`}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setSelectedDeposit(amount);
-                              }}
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                              }}
-                            >
-                              ${amount}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <div className="selected-deposit-display">
-                        <span>Selected: $</span>
-                        <input
-                          type="number"
-                          min="1"
-                          max="10000"
-                          value={selectedDeposit || ''}
-                          onChange={(e) => {
-                            const value = parseInt(e.target.value) || 0;
-                            setSelectedDeposit(value);
-                          }}
-                          className="led-display-input"
-                          placeholder="0"
-                        />
-                      </div>
-                      <button 
-                        className="deposit-button" 
-                        onClick={handleDeposit} 
-                        disabled={isLoading || selectedDeposit < 1 || selectedDeposit > 10000}
-                      >
-                        Deposit ${selectedDeposit || 0}
-                      </button>
-                    </div>
+                    <DepositSection 
+                      title="Choose Deposit Amount"
+                      showFaucetLink={false}
+                    />
                   )}
                       {error && error.includes("finished game") && (
                         <button className="win95-button" onClick={startNewGame} disabled={isLoading}>
@@ -945,12 +992,12 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                 </div>
               )}
 
-              {wallet && wallet.sessionKey && showStartGame && (
+              {wallet && wallet.sessionKey && showStartGame && (tokenBalances?.oranjDeposited || 0) > 0 && (
                 <div className="controls">
                   <button className="win95-button" onClick={startNewGame} disabled={isLoading}>
                     START GAME (${selectedBet})
                   </button>
-                  {gameState && gameState.balance > 0 && gameState.state !== 'Ongoing' && (
+                  {gameState && gameState.balance > 0 && (
                     <button className="win95-button" onClick={handleWithdraw} disabled={isLoading}>
                       WITHDRAW
                     </button>
