@@ -10,6 +10,7 @@ import { WindowsLoader } from './WindowsLoader';
 import BigRedButton from './BigRedButton';
 import Hyli from './Hyli';
 import TransactionNotification, { Notification } from './TransactionNotification';
+import { TamagotchiLibrary } from 'hyligotchi-js';
 
 const funnyLoadingMessages = [
   "Shuffling the virtual deck...",
@@ -73,7 +74,38 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [selectedWithdrawToken, setSelectedWithdrawToken] = useState<'oranj' | 'vitamin'>('oranj');
   const [showDepositDialog, setShowDepositDialog] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [hyligotchiExpanded, setHyligotchiExpanded] = useState(false);
+  const [pendingHyligotchiReopen, setPendingHyligotchiReopen] = useState(false);
+  
 
+
+  // Detect mobile devices
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Handle wallet connection and hyligotchi reopen
+  useEffect(() => {
+    if (pendingHyligotchiReopen && wallet) {
+      // Wallet connected, reopen hyligotchi
+      setPendingHyligotchiReopen(false);
+      // Small delay to ensure smooth transition
+      setTimeout(() => {
+        const expandButton = document.querySelector('[data-hyligotchi-mini]');
+        if (expandButton instanceof HTMLElement) {
+          expandButton.click();
+        }
+      }, 500);
+    }
+  }, [pendingHyligotchiReopen, wallet]);
 
   // Surveiller les changements de wallet pour détecter la déconnexion
   useEffect(() => {
@@ -616,6 +648,26 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
 
   const handleStartClick = () => {
     setShowStartMenu(!showStartMenu);
+  }
+
+  const handleShareResult = () => {
+    if (!gameState || gameState.state === 'Ongoing') return;
+    
+    const amount = selectedBet;
+    const playerScore = gameState.user_count || 0;
+    const dealerScore = gameState.bank_count || 0;
+    
+    let message = '';
+    if (gameState.state === 'Won') {
+      message = `🎉 Just WON ${amount} $ORANJ playing Blackjack on @hyli_org! 🎰\n\nMy hand: ${playerScore} vs Dealer: ${dealerScore}\n\nPlay at hyli.fun 🚀`;
+    } else if (gameState.state === 'Lost') {
+      message = `💸 Lost ${amount} $ORANJ to the house on @hyli_org! 🎰\n\nMy hand: ${playerScore} vs Dealer: ${dealerScore}\n\nTime to win it back at hyli.fun 💪`;
+    } else {
+      message = `🤝 Tied with the dealer on @hyli_org! 🎰\n\nBoth hands: ${playerScore}\n\nPlay Blackjack at hyli.fun 🎮`;
+    }
+    
+    const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
+    window.open(tweetUrl, '_blank', 'width=550,height=420');
   };
 
   const handleStartMenuItemClick = (action: string) => {
@@ -655,6 +707,36 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
     setShowStartMenu(false);
   };
 
+  // Hyligotchi handlers
+  const handleHyligotchiExpand = () => {
+    console.log('Hyligotchi expanded');
+    setHyligotchiExpanded(true);
+  };
+
+  const handleHyligotchiCollapse = () => {
+    console.log('Hyligotchi collapsed');
+    setHyligotchiExpanded(false);
+  };
+
+  const handleConnectWallet = () => {
+    console.log('handleConnectWallet called from Hyligotchi');
+    // If hyligotchi is expanded, collapse it first
+    if (hyligotchiExpanded) {
+      console.log('Collapsing hyligotchi first...');
+      setPendingHyligotchiReopen(true);
+      setHyligotchiExpanded(false);
+    }
+    
+    // Find and click the existing wallet connect button
+    // kind of hacky but it works
+    setTimeout(() => {
+      const walletButton = document.querySelector('.win95-wallet-button');
+      if (walletButton instanceof HTMLElement) {
+        walletButton.click();
+      }
+    }, hyligotchiExpanded ? 300 : 0);
+  };
+
   // Formater l'heure au format Windows 95
   const getFormattedTime = () => {
     const now = new Date();
@@ -664,7 +746,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   };
 
   const renderCustomWalletButton = ({ onClick }: { onClick: () => void }) => (
-    <button className="win95-button" onClick={onClick} style={{ padding: '10px 20px', fontSize: '1rem' }}>
+    <button className="win95-button win95-wallet-button" onClick={onClick} style={{ padding: '10px 20px', fontSize: '1rem' }}>
       {wallet ? "Log Out from Custom" : "Login or Signup"}
     </button>
   );
@@ -1270,6 +1352,11 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                   <button className="win95-button" onClick={startNewGame} disabled={isLoading}>
                     DEAL (${selectedBet})
                   </button>
+                  {gameState && gameState.state !== 'Ongoing' && (
+                    <button className="win95-button" onClick={handleShareResult} disabled={isLoading}>
+                      SHARE ON X
+                    </button>
+                  )}
                   {Boolean((tokenBalances?.oranjDeposited && tokenBalances.oranjDeposited > 0) || (tokenBalances?.vitEarned && tokenBalances.vitEarned > 0)) && (
                     <button className="win95-button" onClick={handleWithdraw} disabled={isLoading}>
                       WITHDRAW
@@ -1336,6 +1423,28 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
         notifications={notifications}
         onRemoveNotification={removeNotification}
       />
+      {!isMobile && (
+        <TamagotchiLibrary 
+          enabled={true}
+          showTutorial={false}
+          position="fixed"
+          miniSize={220}
+          expandOnClick={true}
+          onExpand={handleHyligotchiExpand}
+          onCollapse={handleHyligotchiCollapse}
+          isWalletConnected={!!wallet}
+          onConnectWallet={handleConnectWallet}
+          identity={wallet?.address}
+          createIdentityBlobs={createIdentityBlobs}
+          useAPI={true}
+          apiUrl={import.meta.env.VITE_HYLIGOTCHI_API_URL}
+          indexerUrl={import.meta.env.VITE_INDEXER_BASE_URL}
+          // Add data attribute for easier selection
+          miniRef={(el: HTMLDivElement | null) => {
+            if (el) el.setAttribute('data-hyligotchi-mini', 'true');
+          }}
+        />
+      )}
     </div>
   );
 };

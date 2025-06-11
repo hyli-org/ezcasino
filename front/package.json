@@ -19,6 +19,7 @@
     "hyli": "^0.3.0",
     "hyli-check-secret": "^0.3.5",
     "hyli-wallet": "^0.3.2",
+    "hyligotchi-js": "file:../../hyligotchi-landing/hyligotchi/front",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.2",
