@@ -14,8 +14,8 @@ use hyle_modules::modules::prover::AutoProverEvent;
 use sdk::{
     tracing::{debug, info},
     utils::as_hyle_output,
-    Blob, BlobTransaction, Calldata, Hashed, Identity, RegisterContractEffect, TxContext,
-    ZkContract,
+    Blob, BlobTransaction, Calldata, Hashed, Identity, RegisterContractEffect, StateCommitment,
+    TxContext, ZkContract,
 };
 
 use client_sdk::contract_indexer::axum;
@@ -46,6 +46,10 @@ impl TxExecutorHandler for BlackJack {
             calldata,
             &mut res,
         ))
+    }
+
+    fn get_state_commitment(&self) -> StateCommitment {
+        <Self as ZkContract>::commit(self)
     }
 
     fn construct_state(
