@@ -76,19 +76,6 @@ async fn main() -> Result<()> {
 
     std::fs::create_dir_all(&config.data_directory).context("creating data directory")?;
 
-    let registry = Registry::new();
-    // Init global metrics meter we expose as an endpoint
-    let provider = opentelemetry_sdk::metrics::SdkMeterProvider::builder()
-        .with_reader(
-            opentelemetry_prometheus::exporter()
-                .with_registry(registry.clone())
-                .build()
-                .context("starting prometheus exporter")?,
-        )
-        .build();
-
-    opentelemetry::global::set_meter_provider(provider.clone());
-
     let mut handler = ModulesHandler::new(&bus).await;
 
     let build_api_ctx = Arc::new(BuildApiContextInner {
@@ -156,7 +143,7 @@ async fn main() -> Result<()> {
         .build_module::<RestApi>(RestApiRunContext {
             port: config.rest_server_port,
             max_body_size: config.rest_server_max_body_size,
-            registry,
+            registry: Registry::new(),
             router,
             openapi,
             info: NodeInfo {
