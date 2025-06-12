@@ -10,7 +10,7 @@ import { WindowsLoader } from './WindowsLoader';
 import BigRedButton from './BigRedButton';
 import Hyli from './Hyli';
 import TransactionNotification, { Notification } from './TransactionNotification';
-import { TamagotchiLibrary } from 'hyligotchi-js';
+//import { TamagotchiLibrary } from 'hyligotchi-js';
 
 const funnyLoadingMessages = [
   "Shuffling the virtual deck...",
@@ -74,23 +74,23 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [selectedWithdrawToken, setSelectedWithdrawToken] = useState<'oranj' | 'vitamin'>('oranj');
   const [showDepositDialog, setShowDepositDialog] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [hyligotchiExpanded, setHyligotchiExpanded] = useState(false);
+  //const [isMobile, setIsMobile] = useState(false);
+  //const [hyligotchiExpanded, setHyligotchiExpanded] = useState(false);
   const [pendingHyligotchiReopen, setPendingHyligotchiReopen] = useState(false);
   
 
 
   // Detect mobile devices
-  useEffect(() => {
+  /*useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth <= 768);
-    };
+    };*/
     
-    checkMobile();
+    /*checkMobile();
     window.addEventListener('resize', checkMobile);
     
     return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  }, []);*/
 
   // Handle wallet connection and hyligotchi reopen
   useEffect(() => {
@@ -707,6 +707,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
     setShowStartMenu(false);
   };
 
+  /*
   // Hyligotchi handlers
   const handleHyligotchiExpand = () => {
     console.log('Hyligotchi expanded');
@@ -735,7 +736,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
         walletButton.click();
       }
     }, hyligotchiExpanded ? 300 : 0);
-  };
+  };*/
 
   // Formater l'heure au format Windows 95
   const getFormattedTime = () => {
