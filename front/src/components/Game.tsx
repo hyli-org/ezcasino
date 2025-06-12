@@ -1423,7 +1423,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
         notifications={notifications}
         onRemoveNotification={removeNotification}
       />
-      {!isMobile && (
+      {/* {!isMobile && (
         <TamagotchiLibrary 
           enabled={true}
           showTutorial={false}
@@ -1444,7 +1444,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
             if (el) el.setAttribute('data-hyligotchi-mini', 'true');
           }}
         />
-      )}
+       )} */}
     </div>
   );
 };
