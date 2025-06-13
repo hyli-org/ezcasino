@@ -22,7 +22,7 @@ COPY --from=builder /app/target/debug/server ./
 
 RUN apt-get update && apt-get install -y libdbus-1-dev
 
-EXPOSE 4008
+EXPOSE 4000
 
 ENV RISC0_EXECUTOR=local
 
