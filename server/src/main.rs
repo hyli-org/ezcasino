@@ -123,6 +123,7 @@ async fn main() -> Result<()> {
                 node: app_ctx.node_client.clone(),
                 buffer_blocks: config.buffer_blocks,
                 max_txs_per_proof: config.max_txs_per_proof,
+                tx_working_window_size: config.tx_working_window_size,
                 default_state: BlackJack::default(),
             }
             .into(),

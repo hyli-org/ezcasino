@@ -14,3 +14,4 @@ da_address = "127.0.0.1:4141"
 
 buffer_blocks = 0
 max_txs_per_proof = 100
+tx_working_window_size = 400

@@ -18,6 +18,7 @@ pub struct Conf {
 
     pub buffer_blocks: u32,
     pub max_txs_per_proof: usize,
+    pub tx_working_window_size: usize,
 }
 
 impl Conf {
