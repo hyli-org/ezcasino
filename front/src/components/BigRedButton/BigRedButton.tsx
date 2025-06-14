@@ -35,6 +35,7 @@ const BigRedButton: React.FC<BigRedButtonProps> = ({ onClose }) => {
   const [showMenu, setShowMenu] = useState(false);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const [orangePops, setOrangePops] = useState<OrangePop[]>([]);
+  const [transitionDuration, setTransitionDuration] = useState(0.3);
   const buttonRef = useRef<HTMLDivElement>(null);
   const nextIdRef = useRef(0);
   
@@ -70,10 +71,9 @@ const BigRedButton: React.FC<BigRedButtonProps> = ({ onClose }) => {
     
     if (e.target instanceof HTMLElement && e.target.closest('.win95-title-bar')) {
       setIsDragging(true);
-      const rect = e.currentTarget.getBoundingClientRect();
       setDragStart({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
+        x: e.clientX - position.x,
+        y: e.clientY - position.y
       });
     }
   };
@@ -138,6 +138,34 @@ const BigRedButton: React.FC<BigRedButtonProps> = ({ onClose }) => {
     setIsPressed(true);
     setPressCount(prevCount => prevCount + 1);
     
+    // Move window to random position
+    const windowElement = buttonRef.current?.closest('.win95-window');
+    const windowWidth = windowElement?.offsetWidth || 450;
+    const windowHeight = windowElement?.offsetHeight || 500;
+    const maxX = window.innerWidth - windowWidth;
+    const maxY = window.innerHeight - windowHeight;
+    
+    const randomX = Math.random() * maxX;
+    const randomY = Math.random() * maxY;
+    
+    // Calculate distance for smooth animation
+    const distance = Math.sqrt(
+      Math.pow(randomX - position.x, 2) + 
+      Math.pow(randomY - position.y, 2)
+    );
+    
+    // Scale duration based on distance (min 0.2s, max 0.6s)
+    const duration = Math.min(0.6, Math.max(0.2, distance / 1500));
+    setTransitionDuration(duration);
+    
+    // Use requestAnimationFrame to ensure transition is applied before position change
+    requestAnimationFrame(() => {
+      setPosition({
+        x: Math.max(0, randomX),
+        y: Math.max(0, randomY)
+      });
+    });
+    
     // Send blob tx
     if (wallet?.address) {
     const blobTransfer = blob_builder.smt_token.transfer("faucet", wallet.address, "oranj", BigInt(1), 1);
@@ -189,8 +217,11 @@ const BigRedButton: React.FC<BigRedButtonProps> = ({ onClose }) => {
     <div 
       className="win95-window"
       style={{
-        transform: `translate(${position.x}px, ${position.y}px)`,
-        cursor: isDragging ? 'grabbing' : 'default'
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        transform: 'none',
+        cursor: isDragging ? 'grabbing' : 'default',
+        transition: isDragging ? 'none' : `left ${transitionDuration}s cubic-bezier(0.68, -0.55, 0.265, 1.55), top ${transitionDuration}s cubic-bezier(0.68, -0.55, 0.265, 1.55)`
       }}
       onMouseDown={handleMouseDown}
     >
