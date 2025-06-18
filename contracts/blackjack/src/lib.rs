@@ -24,6 +24,8 @@ use crate::client::OptimisticBlackJack;
 #[cfg(feature = "client")]
 pub mod client;
 
+impl sdk::FullStateRevert for BlackJack {}
+
 impl sdk::ZkContract for BlackJack {
     /// Entry point of the contract's logic
     fn execute(&mut self, calldata: &sdk::Calldata) -> RunResult {
