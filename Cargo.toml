@@ -4,7 +4,7 @@ members = ["contracts", "contracts/blackjack", "server"]
 
 [workspace.dependencies]
 # don't forget to update methods/guest/Cargo.toml 
-sdk = { git = "/home/alexandre/Documents/repos/hyle/", package = "hyle-contract-sdk", branch = "main" }
+sdk = { git = "https://github.com/hyle-org/hyle", package = "hyle-contract-sdk", branch = "main" }
 client-sdk = { git = "https://github.com/hyle-org/hyle", default-features = false, package = "hyle-client-sdk", branch = "main" }
 hyle_modules = { git = "https://github.com/hyle-org/hyle", package = "hyle-modules", branch = "main" }
 hyle-smt-token = { git = "https://github.com/Hyle-org/hyle.git", branch = "main", default-features = false, package = "hyle-smt-token" }
