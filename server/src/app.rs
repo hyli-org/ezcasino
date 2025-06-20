@@ -287,7 +287,7 @@ async fn send(
     wallet_blobs: [Blob; 2],
 ) -> Result<impl IntoResponse, AppError> {
     let identity = Identity(auth.identity);
-    let mut blobs = wallet_blobs.into_iter().collect::<Vec<_>>();
+    let mut blobs = vec![];
 
     match action {
         BlackJackAction::Deposit(amount) => {
@@ -300,6 +300,8 @@ async fn send(
             blobs.push(action.as_blob(ctx.blackjack_cn.clone(), None, None));
         }
     }
+
+    blobs.extend_from_slice(&wallet_blobs);
 
     execute_transaction(ctx, identity, blobs).await
 }
@@ -348,12 +350,18 @@ async fn handle_withdraw_action(
         amount: amount as u128,
     };
 
-    blobs.push(BlackJackAction::Withdraw(amount, token.clone()).as_blob(
-        ctx.blackjack_cn.clone(),
-        None,
-        Some(vec![BlobIndex(3)]),
-    ));
-    blobs.push(transfer_action.as_blob(token.into(), Some(BlobIndex(2)), None));
+    blobs.insert(
+        0,
+        BlackJackAction::Withdraw(amount, token.clone()).as_blob(
+            ctx.blackjack_cn.clone(),
+            None,
+            Some(vec![BlobIndex(1)]),
+        ),
+    );
+    blobs.insert(
+        1,
+        transfer_action.as_blob(token.into(), Some(BlobIndex(0)), None),
+    );
 
     Ok(())
 }
