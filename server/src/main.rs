@@ -125,6 +125,7 @@ async fn main() -> Result<()> {
                 max_txs_per_proof: config.max_txs_per_proof,
                 tx_working_window_size: config.tx_working_window_size,
                 default_state: BlackJack::default(),
+                api: Some(build_api_ctx.clone()),
             }
             .into(),
         )
@@ -170,7 +171,7 @@ async fn main() -> Result<()> {
 
     handler.start_modules().await?;
     handler.exit_process().await?;
-    
+
     if args.pg {
         warn!("--pg option given. Postgres server will stop. Cleaning data dir");
         std::fs::remove_dir_all(&config.data_directory).context("removing data directory")?;
