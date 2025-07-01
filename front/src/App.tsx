@@ -56,19 +56,6 @@ function App() {
     };
   }, []);
 
-  // Add event listener for toggle-hyli-explorer event
-  useEffect(() => {
-    const handleToggleHyliExplorer = () => {
-      toggleHyliExplorer();
-    };
-    
-    window.addEventListener('toggle-hyli-explorer', handleToggleHyliExplorer);
-    
-    return () => {
-      window.removeEventListener('toggle-hyli-explorer', handleToggleHyliExplorer);
-    };
-  }, []);
-
   const handleMouseDown = (e: React.MouseEvent) => {
     // Only start selection if directly clicking on the desktop background
     // Check if the click target is the desktop container itself or the body
@@ -142,7 +129,8 @@ function App() {
   };
 
   const toggleHyliExplorer = () => {
-    setShowHyliExplorer(!showHyliExplorer);
+    // Open explorer.hyli.org in a new tab
+    window.open('https://explorer.hyli.org', '_blank');
   };
 
   return (

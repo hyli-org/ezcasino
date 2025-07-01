@@ -964,8 +964,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                   </div>
                 )}
               </div>
-              <span className="menu-item">Options</span>
-              <span className="menu-item">Help</span>
+              <span className="menu-item"><a target="_blank" rel="noopener noreferrer" href="https://blog.hyli.org/deep-dive-ezkasino/">Learn more</a></span>
             </div>
 
             <div className="game-container">
