@@ -423,7 +423,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
         return;
       }
       // Check if the deposit amount is greater than the current balance
-      if (gameState && selectedDeposit > tokenBalances?.oranjBalance || 0) {
+      if (selectedDeposit > (tokenBalances?.oranjBalance || 0)) {
         setError(`Insufficient balance. Your current balance is $${tokenBalances?.oranjBalance || 0}.`);
         return;
       }
