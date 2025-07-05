@@ -40,7 +40,7 @@ interface GameProps {
 }
 
 const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
-  const { wallet, logout, registerSessionKey, createIdentityBlobs, cleanExpiredSessionKey } = useWallet();
+  const { wallet, logout, createIdentityBlobs, cleanExpiredSessionKey } = useWallet();
   const [playerHand, setPlayerHand] = useState<CardType[]>([]);
   const [dealerHand, setDealerHand] = useState<CardType[]>([]);
   const [gameOver, setGameOver] = useState(false);
@@ -60,11 +60,10 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   const [showStartMenu, setShowStartMenu] = useState(false);
   const [showShutdown, setShowShutdown] = useState(false);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
-  const [password, setPassword] = useState('password123');
   const [currentFunnyMessage, setCurrentFunnyMessage] = useState("");
   const [showBigRedButton, setShowBigRedButton] = useState(false);
   const [showHyliExplorer, setShowHyliExplorer] = useState(false);
-  const [showAuthLoader, setShowAuthLoader] = useState(false);
+  const [showAuthLoader, _] = useState(false);
   const [selectedBet, setSelectedBet] = useState(10);
   const [selectedDeposit, setSelectedDeposit] = useState(10);
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
@@ -174,6 +173,13 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       loadUserBalanceAndCheckExistingGame();
     }
   }, [wallet?.address]); // Reload when wallet changes
+
+  // Auto-disconnect if wallet is connected but has no valid session key
+  useEffect(() => {
+    if (wallet && !wallet.sessionKey) {
+      logout();
+    }
+  }, [wallet, logout]);
 
   // Load token balances immédiatement
   useEffect(() => {
@@ -631,35 +637,6 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
     }
   };
 
-  const handleNewSessionKey = async () => {
-    if (!wallet || !registerSessionKey) {
-      setError("Wallet not connected or session key registration unavailable.");
-      return;
-    }
-    try {
-      setShowAuthLoader(true);
-      setIsLoading(true);
-      setError(null);
-
-      const expiration = Date.now() + (7 * 24 * 60 * 60 * 1000); // 7 days
-      const whitelist = ["blackjack", "oranj"]; // Example whitelist
-
-      await registerSessionKey(password, expiration, whitelist);
-
-      setShowAuthLoader(false);
-
-      await startNewGame();
-      setShowGameMenu(false);
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.error || err.message || 'Failed to create new session key.';
-      setError(formatErrorMessage(errorMessage));
-      setShowAuthLoader(false);
-      console.error('Error creating new session key:', err);
-    } finally {
-      setIsLoading(false);
-      setShowAuthLoader(false);
-    }
-  };
 
   const handleDisconnect = () => {
     logout();
@@ -1025,9 +1002,6 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                 Game
                 {showGameMenu && (
                   <div className="menu-dropdown">
-                    <div className="menu-option" onClick={handleNewSessionKey}>
-                      New session key
-                    </div>
                     {wallet && (
                       <div className="menu-option" onClick={handleDisconnect}>
                         Disconnect
@@ -1191,25 +1165,6 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                         button={renderCustomWalletButton}
                       />
                     </div>
-                  </div>
-                </div>
-              )}
-
-              {wallet && !wallet.sessionKey && !error && !showAuthLoader && (
-                <div className="message-overlay">
-                  <div className="welcome-message">
-                    <h2>Welcome to EZ Casino {wallet.username}!</h2>
-                    <p>Now that you're connected, create a session key to start playing.</p>
-                    <input
-                      type="password"
-                      placeholder="Enter your wallet password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="win95-input"
-                    />
-                    <button className="win95-button" onClick={handleNewSessionKey}>
-                      Create Session Key
-                    </button>
                   </div>
                 </div>
               )}
