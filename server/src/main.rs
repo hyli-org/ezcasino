@@ -8,6 +8,7 @@ use conf::Conf;
 use hyle_modules::{
     bus::{metrics::BusMetrics, SharedMessageBus},
     modules::{
+        admin::{AdminApi, AdminApiRunContext},
         contract_state_indexer::{ContractStateIndexer, ContractStateIndexerCtx},
         da_listener::{DAListener, DAListenerConf},
         prover::{AutoProver, AutoProverCtx, AutoProverEvent},
@@ -157,6 +158,17 @@ async fn main() -> Result<()> {
             },
         })
         .await?;
+
+    if config.run_admin_server {
+        handler
+            .build_module::<AdminApi>(AdminApiRunContext::new(
+                config.admin_server_port,
+                Router::new(),
+                config.admin_server_max_body_size,
+                config.data_directory.clone(),
+            ))
+            .await?;
+    }
 
     handler.start_modules().await?;
     handler.exit_process().await?;

@@ -18,6 +18,10 @@ pub struct Conf {
     pub buffer_blocks: u32,
     pub max_txs_per_proof: usize,
     pub tx_working_window_size: usize,
+
+    pub run_admin_server: bool,
+    pub admin_server_port: u16,
+    pub admin_server_max_body_size: usize,
 }
 
 impl Conf {
