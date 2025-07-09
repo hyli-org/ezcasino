@@ -22,7 +22,7 @@ use hyle_modules::{
     },
 };
 use sdk::{Blob, BlobIndex, BlobTransaction, ContractAction, ContractName, Identity};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use tokio::sync::Mutex;
 use tower_http::cors::{Any, CorsLayer};
 
@@ -33,7 +33,6 @@ pub struct AppModule {
 pub struct AppModuleCtx {
     pub api: Arc<BuildApiContextInner>,
     pub node_client: Arc<NodeApiHttpClient>,
-    pub wallet_indexer_url: Arc<String>,
     pub blackjack_cn: ContractName,
 }
 
@@ -55,7 +54,6 @@ impl Module for AppModule {
                 bus: bus.new_handle(),
             })),
             client: ctx.node_client.clone(),
-            wallet_indexer_url: ctx.wallet_indexer_url.clone(),
         };
 
         // Créer un middleware CORS
@@ -89,7 +87,7 @@ impl Module for AppModule {
 
     async fn run(&mut self) -> Result<()> {
         module_handle_messages! {
-            on_bus self.bus,
+            on_self self,
         };
 
         Ok(())
@@ -100,7 +98,6 @@ impl Module for AppModule {
 struct RouterCtx {
     pub app: Arc<Mutex<HyleOofCtx>>,
     pub client: Arc<NodeApiHttpClient>,
-    pub wallet_indexer_url: Arc<String>,
     pub blackjack_cn: ContractName,
 }
 
@@ -301,7 +298,7 @@ async fn send(
     wallet_blobs: [Blob; 2],
 ) -> Result<impl IntoResponse, AppError> {
     let identity = Identity(auth.identity);
-    let mut blobs = wallet_blobs.into_iter().collect::<Vec<_>>();
+    let mut blobs = vec![];
 
     match action {
         BlackJackAction::Deposit(amount) => {
@@ -315,6 +312,8 @@ async fn send(
         }
     }
 
+    blobs.extend_from_slice(&wallet_blobs);
+
     execute_transaction(ctx, identity, blobs).await
 }
 
@@ -324,19 +323,6 @@ async fn handle_deposit_action(
     identity: &Identity,
     blobs: &mut Vec<Blob>,
 ) -> Result<(), AppError> {
-    let balance = get_user_token_balance(ctx, identity).await?;
-
-    if balance < amount as u128 {
-        return Err(AppError(
-            StatusCode::BAD_REQUEST,
-            anyhow::anyhow!(
-                "Insufficient balance. Current balance is {} while deposit is {}",
-                balance,
-                amount
-            ),
-        ));
-    }
-
     let transfer_action = SmtTokenAction::Transfer {
         sender: identity.clone(),
         recipient: ctx.blackjack_cn.0.clone().into(),
@@ -362,39 +348,20 @@ async fn handle_withdraw_action(
         amount: amount as u128,
     };
 
-    blobs.push(BlackJackAction::Withdraw(amount, token.clone()).as_blob(
-        ctx.blackjack_cn.clone(),
-        None,
-        Some(vec![BlobIndex(3)]),
-    ));
-    blobs.push(transfer_action.as_blob(token.into(), Some(BlobIndex(2)), None));
+    blobs.insert(
+        0,
+        BlackJackAction::Withdraw(amount, token.clone()).as_blob(
+            ctx.blackjack_cn.clone(),
+            None,
+            Some(vec![BlobIndex(1)]),
+        ),
+    );
+    blobs.insert(
+        1,
+        transfer_action.as_blob(token.into(), Some(BlobIndex(0)), None),
+    );
 
     Ok(())
-}
-
-#[derive(Deserialize)]
-struct Balance {
-    #[allow(dead_code)]
-    pub address: String,
-    pub balance: u128,
-}
-
-async fn get_user_token_balance(ctx: &RouterCtx, identity: &Identity) -> Result<u128, AppError> {
-    tracing::warn!(
-        "{}/v1/indexer/contract/oranj/balance/{}",
-        ctx.wallet_indexer_url,
-        &identity.0,
-    );
-    let balance = reqwest::get(&format!(
-        "{}/v1/indexer/contract/oranj/balance/{}",
-        ctx.wallet_indexer_url, &identity.0
-    ))
-    .await
-    .map_err(|e| AppError(StatusCode::INTERNAL_SERVER_ERROR, anyhow::anyhow!(e)))?
-    .json::<Balance>()
-    .await?;
-
-    Ok(balance.balance)
 }
 
 async fn execute_transaction(

@@ -40,7 +40,7 @@ interface GameProps {
 }
 
 const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
-  const { wallet, logout, registerSessionKey, createIdentityBlobs, cleanExpiredSessionKey } = useWallet();
+  const { wallet, logout, createIdentityBlobs, cleanExpiredSessionKey } = useWallet();
   const [playerHand, setPlayerHand] = useState<CardType[]>([]);
   const [dealerHand, setDealerHand] = useState<CardType[]>([]);
   const [gameOver, setGameOver] = useState(false);
@@ -60,11 +60,10 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
   const [showStartMenu, setShowStartMenu] = useState(false);
   const [showShutdown, setShowShutdown] = useState(false);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
-  const [password, setPassword] = useState('password123');
   const [currentFunnyMessage, setCurrentFunnyMessage] = useState("");
   const [showBigRedButton, setShowBigRedButton] = useState(false);
   const [showHyliExplorer, setShowHyliExplorer] = useState(false);
-  const [showAuthLoader, setShowAuthLoader] = useState(false);
+  const [showAuthLoader, _] = useState(false);
   const [selectedBet, setSelectedBet] = useState(10);
   const [selectedDeposit, setSelectedDeposit] = useState(10);
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
@@ -174,6 +173,13 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       loadUserBalanceAndCheckExistingGame();
     }
   }, [wallet?.address]); // Reload when wallet changes
+
+  // Auto-disconnect if wallet is connected but has no valid session key
+  useEffect(() => {
+    if (wallet && !wallet.sessionKey) {
+      logout();
+    }
+  }, [wallet, logout]);
 
   // Load token balances immédiatement
   useEffect(() => {
@@ -290,6 +296,14 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
         setError("Minimum bet is 10.");
         return;
       }
+      // Check our bet is lower than our balance
+      if (tokenBalances?.oranjDeposited === undefined || selectedBet > tokenBalances.oranjDeposited) {
+        setError(`Insufficient balance. Your current balance is $${tokenBalances?.oranjDeposited}.`);
+        setShowDepositButton(true);
+        // Set default deposit amount to the selected bet
+        setSelectedDeposit(selectedBet);
+        return;
+      }
 
       setIsLoading(true);
       setError(null);
@@ -391,7 +405,20 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
       if (!wallet.sessionKey?.privateKey) {
         throw new Error('No session key found');
       }
-      
+
+      // Check last deposit time in localStorage
+      const lastDepositKey = `ezkasino_last_deposit`;
+      const lastDepositStr = localStorage.getItem(lastDepositKey);
+      if (lastDepositStr) {
+        const lastDeposit = parseInt(lastDepositStr, 10);
+        const now = Date.now();
+        if (!isNaN(lastDeposit) && now - lastDeposit < 10 * 60 * 1000) { // 10 minutes
+          const minutesLeft = Math.ceil((10 * 60 * 1000 - (now - lastDeposit)) / 60000);
+          setError(`You must wait ${minutesLeft} more minute(s) before depositing again.`);
+          return;
+        }
+      }
+
       // Validate deposit amount
       if (selectedDeposit < 1) {
         setError('Deposit amount must be at least $1');
@@ -401,21 +428,29 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
         setError('Deposit amount cannot exceed $10,000');
         return;
       }
-      
+      // Check if the deposit amount is greater than the current balance
+      if (selectedDeposit > (tokenBalances?.oranjBalance || 0)) {
+        setError(`Insufficient balance. Your current balance is $${tokenBalances?.oranjBalance || 0}.`);
+        return;
+      }
+
       setIsLoading(true);
       setIsDepositing(true);
       setError(null);
       const wallet_blobs = createIdentityBlobs();
       const gameStateResult = await gameService.deposit(wallet_blobs, wallet.address, selectedDeposit);
       handleGameResponse(gameStateResult, true);
-      
+
+      // Store deposit time in localStorage
+      localStorage.setItem(lastDepositKey, Date.now().toString());
+
       // Wait a moment to show success before closing modal
       setTimeout(() => {
         setShowDepositButton(false);
         setShowDepositDialog(false);
         setIsDepositing(false);
       }, 1500);
-      
+
       setGameOver(true);
       setTimeout(() => loadAllBalances(), 2000);
     } catch (err: any) {
@@ -602,35 +637,6 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
     }
   };
 
-  const handleNewSessionKey = async () => {
-    if (!wallet || !registerSessionKey) {
-      setError("Wallet not connected or session key registration unavailable.");
-      return;
-    }
-    try {
-      setShowAuthLoader(true);
-      setIsLoading(true);
-      setError(null);
-
-      const expiration = Date.now() + (7 * 24 * 60 * 60 * 1000); // 7 days
-      const whitelist = ["blackjack", "oranj"]; // Example whitelist
-
-      await registerSessionKey(password, expiration, whitelist);
-
-      setShowAuthLoader(false);
-
-      await startNewGame();
-      setShowGameMenu(false);
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.error || err.message || 'Failed to create new session key.';
-      setError(formatErrorMessage(errorMessage));
-      setShowAuthLoader(false);
-      console.error('Error creating new session key:', err);
-    } finally {
-      setIsLoading(false);
-      setShowAuthLoader(false);
-    }
-  };
 
   const handleDisconnect = () => {
     logout();
@@ -758,87 +764,130 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
     showFaucetLink?: boolean;
     faucetLinkHandler?: () => void;
     className?: string;
-  }> = ({ title, showFaucetLink = true, faucetLinkHandler, className = "deposit-section" }) => (
-    <div className={className}>
-      <div className="counter-label">{title}</div>
-      <div className="bet-buttons">
-        {[10, 25, 50, 100, 250].map(amount => (
-          <button
-            key={amount}
-            className={`win95-button bet-button ${selectedDeposit === amount ? 'active' : ''}`}
-            onClick={(e) => {
+  }> = ({ title, showFaucetLink = true, faucetLinkHandler, className = "deposit-section" }) => {
+    // Check last deposit time for error display
+    const lastDepositKey = wallet?.address ? `ezkasino_last_deposit` : null;
+    const canDeposit = React.useMemo(() => {
+      if (!lastDepositKey) return true;
+      const lastDepositStr = localStorage.getItem(lastDepositKey);
+      if (lastDepositStr) {
+        const lastDeposit = parseInt(lastDepositStr, 10);
+        const now = Date.now();
+        if (!isNaN(lastDeposit) && now - lastDeposit < 10 * 60 * 1000) {
+          return false;
+        }
+      }
+      return true;
+    }, [lastDepositKey, isDepositing]);
+
+    const handleDepositClick = (e: React.MouseEvent) => {
+      if (!canDeposit) {
+        if (lastDepositKey) {
+          const lastDepositStr = localStorage.getItem(lastDepositKey);
+          if (lastDepositStr) {
+            const lastDeposit = parseInt(lastDepositStr, 10);
+            const now = Date.now();
+            if (!isNaN(lastDeposit) && now - lastDeposit < 10 * 60 * 1000) {
+              const minutesLeft = Math.ceil((10 * 60 * 1000 - (now - lastDeposit)) / 60000);
+              setError(`You must wait ${minutesLeft} more minute(s) before depositing again.`);
               e.preventDefault();
               e.stopPropagation();
-              setSelectedDeposit(amount);
-            }}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-            style={{
-              pointerEvents: 'auto',
-              zIndex: 20,
-              position: 'relative'
-            }}
-          >
-            ${amount}
-          </button>
-        ))}
-      </div>
-      <div className="selected-deposit-display">
-        <span>Deposit Amount: $</span>
-        <input
-          type="number"
-          min="1"
-          max="10000"
-          value={selectedDeposit || ''}
-          onChange={(e) => {
-            const value = parseInt(e.target.value) || 0;
-            setSelectedDeposit(value);
-          }}
-          className="led-display-input"
-          placeholder="10"
-        />
-      </div>
-      <button 
-        className="deposit-button" 
-        onClick={handleDeposit} 
-        disabled={isLoading || isDepositing || selectedDeposit < 1 || selectedDeposit > 10000}
-        style={{ marginTop: '10px', padding: '10px 20px' }}
-      >
-        {isDepositing ? 'DEPOSITING...' : `DEPOSIT $${selectedDeposit || 0}`}
-      </button>
-      {isDepositing && (
-        <div style={{ marginTop: '10px', textAlign: 'center' }}>
-          <div className="loading-bar">
-            <div className="loading-progress"></div>
-          </div>
-          <div style={{ fontSize: '12px', marginTop: '5px', color: '#008000' }}>
-            Processing deposit transaction...
-          </div>
+              return;
+            }
+          }
+        }
+      }
+      handleDeposit();
+    };
+
+    return (
+      <div className={className}>
+        <div className="counter-label">{title}</div>
+        <div className="bet-buttons">
+          {[10, 25, 50, 100, 250].map(amount => (
+            <button
+              key={amount}
+              className={`win95-button bet-button ${selectedDeposit === amount ? 'active' : ''}`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setSelectedDeposit(amount);
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              style={{
+                pointerEvents: 'auto',
+                zIndex: 20,
+                position: 'relative'
+              }}
+              disabled={(tokenBalances?.oranjBalance || 0) < amount}
+            >
+              ${amount}
+            </button>
+          ))}
         </div>
-      )}
-      {showFaucetLink && (
-        <div style={{ marginTop: '10px', textAlign: 'center' }}>
-          <a
-            href={import.meta.env.VITE_FAUCET_URL}
-            onClick={(e) => {
-              e.preventDefault();
-              if (faucetLinkHandler) {
-                faucetLinkHandler();
-              } else {
-                window.open(import.meta.env.VITE_FAUCET_URL, '_blank');
-              }
+        <div className="selected-deposit-display">
+          <span>Deposit Amount: $</span>
+          <input
+            type="number"
+            min="1"
+            max="10000"
+            value={selectedDeposit || ''}
+            onChange={(e) => {
+              const value = parseInt(e.target.value) || 0;
+              setSelectedDeposit(value);
             }}
-            className="faucet-link"
-            style={{ fontSize: '12px', color: '#0000ff', textDecoration: 'underline' }}
-          >
-            Need $ORANJ tokens? Get them here!
-          </a>
+            className="led-display-input"
+            placeholder="10"
+          />
         </div>
-      )}
-    </div>
-  );
+        <button 
+          className="deposit-button" 
+          onClick={handleDepositClick} 
+          disabled={!canDeposit || isLoading || isDepositing || selectedDeposit < 1 || selectedDeposit > 10000 || (tokenBalances?.oranjBalance || 0) < (+selectedDeposit || 0)}
+          style={{ marginTop: '10px', padding: '10px 20px' }}
+        >
+          {isDepositing ? 'DEPOSITING...' : `DEPOSIT $${selectedDeposit || 0}`}
+        </button>
+        {!canDeposit && (
+          <div style={{ color: 'red', fontSize: '12px', marginTop: '8px' }}>
+            You must wait 10 minutes between deposits.
+          </div>
+        )}
+        {isDepositing && (
+          <div style={{ marginTop: '10px', textAlign: 'center' }}>
+            <div className="loading-bar">
+              <div className="loading-progress"></div>
+            </div>
+            <div style={{ fontSize: '12px', marginTop: '5px', color: '#008000' }}>
+              Processing deposit transaction...
+            </div>
+          </div>
+        )}
+        {showFaucetLink && (
+          <div style={{ marginTop: '10px', textAlign: 'center' }}>
+            <a
+              href={import.meta.env.VITE_FAUCET_URL}
+              onClick={(e) => {
+                e.preventDefault();
+                if (faucetLinkHandler) {
+                  faucetLinkHandler();
+                } else {
+                  window.open(import.meta.env.VITE_FAUCET_URL, '_blank');
+                }
+              }}
+              className="faucet-link"
+              style={{ fontSize: '12px', color: '#0000ff', textDecoration: 'underline' }}
+            >
+              Need $ORANJ tokens? Get them here!
+            </a>
+          </div>
+        )}
+      </div>
+    );
+  };
 
 
   useEffect(() => {
@@ -953,9 +1002,6 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                 Game
                 {showGameMenu && (
                   <div className="menu-dropdown">
-                    <div className="menu-option" onClick={handleNewSessionKey}>
-                      New session key
-                    </div>
                     {wallet && (
                       <div className="menu-option" onClick={handleDisconnect}>
                         Disconnect
@@ -964,8 +1010,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                   </div>
                 )}
               </div>
-              <span className="menu-item">Options</span>
-              <span className="menu-item">Help</span>
+              <span className="menu-item"><a target="_blank" rel="noopener noreferrer" href="https://blog.hyli.org/deep-dive-ezkasino/">Learn more</a></span>
             </div>
 
             <div className="game-container">
@@ -1051,6 +1096,7 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                                 zIndex: 20,
                                 position: 'relative'
                               }}
+                              disabled={(tokenBalances?.oranjDeposited || 0) < amount}
                             >
                               ${amount}
                             </button>
@@ -1118,69 +1164,6 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                         providers={['password', 'google', 'github', 'x']}
                         button={renderCustomWalletButton}
                       />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {wallet && !wallet.sessionKey && !error && !showAuthLoader && (
-                <div className="message-overlay">
-                  <div className="welcome-message">
-                    <h2>Welcome to EZ Casino {wallet.username}!</h2>
-                    <p>Now that you're connected, create a session key to start playing.</p>
-                    <input
-                      type="password"
-                      placeholder="Enter your wallet password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="win95-input"
-                    />
-                    <button className="win95-button" onClick={handleNewSessionKey}>
-                      Create Session Key
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {error && !showAuthLoader && (
-                <div className="message-overlay">
-                  <div className="error">
-                    <div className="error-title-bar">
-                      <div className="error-title-text">Error</div>
-                      <div className="error-close-button" onClick={handleErrorClose}>×</div>
-                    </div>
-                    <div className="error-content">
-                      <div className="error-message-container">
-                        <img src="/error-icon.png" alt="Error" className="error-icon" />
-                        <p className="error-message">
-                          {error ? formatErrorMessage(error) : ''}
-                          {showDepositButton && (
-                            <>
-                              <br />
-                              Please send funds to your account, then deposit them here
-                              <br />
-                              <a
-                                href="#"
-                                onClick={() => setShowBigRedButton(true)}
-                                className="faucet-link"
-                              >
-                                Earn Oranj tokens here
-                              </a>
-                            </>
-                          )}
-                    </p>
-                  </div>
-                  {showDepositButton && (
-                    <DepositSection 
-                      title="Choose Deposit Amount"
-                      showFaucetLink={false}
-                    />
-                  )}
-                      {error && error.includes("finished game") && (
-                        <button className="win95-button" onClick={startNewGame} disabled={isLoading}>
-                          NEW GAME
-                        </button>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -1335,6 +1318,51 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                   )}
                 </div>
               )}
+
+              {error && !showAuthLoader && (
+                <div className="message-overlay">
+                  <div className="error">
+                    <div className="error-title-bar">
+                      <div className="error-title-text">Error</div>
+                      <div className="error-close-button" onClick={handleErrorClose}>×</div>
+                    </div>
+                    <div className="error-content">
+                      <div className="error-message-container">
+                        <img src="/error-icon.png" alt="Error" className="error-icon" />
+                        <p className="error-message">
+                          {error ? formatErrorMessage(error) : ''}
+                          {showDepositButton && (
+                            <>
+                              <br />
+                              Please send funds to your account, then deposit them here
+                              <br />
+                              <a
+                                href="#"
+                                onClick={() => setShowBigRedButton(true)}
+                                className="faucet-link"
+                              >
+                                Earn Oranj tokens here
+                              </a>
+                            </>
+                          )}
+                    </p>
+                  </div>
+                  {showDepositButton && (
+                    <DepositSection 
+                      title="Choose Deposit Amount"
+                      showFaucetLink={false}
+                    />
+                  )}
+                      {error && error.includes("finished game") && (
+                        <button className="win95-button" onClick={startNewGame} disabled={isLoading}>
+                          NEW GAME
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {!error && !showStartGame && !gameOver && gameState && (
                 <div className="controls">
                   <button className="win95-button" onClick={hit} disabled={isLoading}>
@@ -1343,14 +1371,14 @@ const Game: React.FC<GameProps> = ({ theme, toggleWeatherWidget }) => {
                   <button className="win95-button" onClick={stand} disabled={isLoading}>
                     STAND
                   </button>
-                  <button className="win95-button" onClick={doubleDown} disabled={isLoading}>
+                  <button className="win95-button" onClick={doubleDown} disabled={isLoading || (tokenBalances?.oranjDeposited || 0) < (selectedBet * 2)}>
                     DOUBLE
                   </button>
                 </div>
               )}
               {!error && !showStartGame && gameOver && (
                 <div className="controls">
-                  <button className="win95-button" onClick={startNewGame} disabled={isLoading}>
+                  <button className="win95-button" onClick={startNewGame} disabled={isLoading || selectedBet < 1 || (tokenBalances?.oranjDeposited || 0) < selectedBet}>
                     DEAL (${selectedBet})
                   </button>
                   {gameState && gameState.state !== 'Ongoing' && (

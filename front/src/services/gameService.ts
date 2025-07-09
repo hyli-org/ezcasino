@@ -137,8 +137,7 @@ class GameService {
   // Nouvelles méthodes pour les balances des tokens
   async getOranjBalanceFromNode(identity: string): Promise<number> {
     try {
-      const contractState = await this.makeRequest('/v1/indexer/contract/oranj/state', 'GET', undefined, undefined, INDEXER_BASE_URL);
-      const userState = contractState[identity];
+      const userState = await this.makeRequest(`/v1/indexer/contract/oranj/balance/${identity}`, 'GET', undefined, undefined, INDEXER_BASE_URL);
       console.log('Oranj balance from node:', userState?.balance || 0);
       return userState?.balance || 0;
     } catch (error) {
@@ -148,9 +147,8 @@ class GameService {
 
   async getVitBalanceFromNode(identity: string): Promise<number> {
     try {
-      const contractState = await this.makeRequest('/v1/indexer/contract/vitamin/state', 'GET', undefined, undefined, INDEXER_BASE_URL);
-      const userState = contractState[identity];
-      return userState?.balance || 0;
+      const contractState = await this.makeRequest(`/v1/indexer/contract/vitamin/balance/${identity}`, 'GET', undefined, undefined, INDEXER_BASE_URL);
+      return contractState?.balance || 0;
     } catch (error) {
       console.error('Error fetching VIT balance from node:', error);
       return 0;

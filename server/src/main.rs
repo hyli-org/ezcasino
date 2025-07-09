@@ -3,10 +3,7 @@ use app::{AppModule, AppModuleCtx};
 use axum::Router;
 use blackjack::BlackJack;
 use clap::Parser;
-use client_sdk::{
-    helpers::risc0::Risc0Prover,
-    rest_client::{IndexerApiHttpClient, NodeApiHttpClient},
-};
+use client_sdk::{helpers::risc0::Risc0Prover, rest_client::NodeApiHttpClient};
 use conf::Conf;
 use hyle_modules::{
     bus::{metrics::BusMetrics, SharedMessageBus},
@@ -55,16 +52,8 @@ async fn main() -> Result<()> {
 
     let node_client =
         Arc::new(NodeApiHttpClient::new(config.node_url.clone()).context("build node client")?);
-    let indexer_client = Arc::new(
-        IndexerApiHttpClient::new(config.indexer_url.clone()).context("build indexer client")?,
-    );
-    match init::init_node(
-        node_client.clone(),
-        indexer_client.clone(),
-        args.contract_name.clone(),
-    )
-    .await
-    {
+
+    match init::init_node(node_client.clone(), args.contract_name.clone()).await {
         Ok(_) => {}
         Err(e) => {
             error!("Error initializing node: {:?}", e);
@@ -99,7 +88,6 @@ async fn main() -> Result<()> {
     let app_ctx = Arc::new(AppModuleCtx {
         api: build_api_ctx.clone(),
         node_client,
-        wallet_indexer_url: Arc::new(config.indexer_url.clone()),
         blackjack_cn: args.contract_name.into(),
     });
 
@@ -125,6 +113,7 @@ async fn main() -> Result<()> {
                 max_txs_per_proof: config.max_txs_per_proof,
                 tx_working_window_size: config.tx_working_window_size,
                 default_state: BlackJack::default(),
+                api: Some(build_api_ctx.clone()),
             }
             .into(),
         )
@@ -135,6 +124,7 @@ async fn main() -> Result<()> {
             start_block: None,
             data_directory: config.data_directory.clone(),
             da_read_from: config.da_read_from.clone(),
+            timeout_client_secs: 10,
         })
         .await?;
 
@@ -170,7 +160,7 @@ async fn main() -> Result<()> {
 
     handler.start_modules().await?;
     handler.exit_process().await?;
-    
+
     if args.pg {
         warn!("--pg option given. Postgres server will stop. Cleaning data dir");
         std::fs::remove_dir_all(&config.data_directory).context("removing data directory")?;
