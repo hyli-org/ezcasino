@@ -48,6 +48,14 @@ impl sdk::ZkContract for BlackJack {
             BlackJackAction::Withdraw(amount, token) => {
                 self.withdraw(amount, user, token, &mut ctx)?
             }
+            BlackJackAction::CleanTick(_nonce) => {
+                // Remove all tables and balances that are 0
+                self.tables
+                    .retain(|_, table| !matches!(table.state, TableState::Ongoing));
+                self.oranj_balances.retain(|_, &mut balance| balance > 0);
+                self.vitamin_balances.retain(|_, &mut balance| balance > 0);
+                "Cleaned state".to_string()
+            }
         };
 
         Ok((res.into(), ctx, alloc::vec![]))
@@ -101,6 +109,7 @@ pub enum BlackJackAction {
     DoubleDown,
     Deposit(u32),
     Withdraw(u32, String), // amount, token ("oranj" or "vitamin")
+    CleanTick(u128),       // remove all tables and balances that are 0
 }
 
 impl ContractAction for BlackJackAction {
