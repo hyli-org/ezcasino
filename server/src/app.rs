@@ -72,6 +72,7 @@ impl Module for AppModule {
             .route("/api/hit", post(hit))
             .route("/api/stand", post(stand))
             .route("/api/double_down", post(double_down))
+            .route("/api/clean_state", post(clean_state))
             .route("/api/config", get(get_config))
             .with_state(state)
             .layer(cors); // Appliquer le middleware CORS
@@ -272,6 +273,19 @@ async fn double_down(
 ) -> Result<impl IntoResponse, AppError> {
     let auth = AuthHeaders::from_headers(&headers)?;
     send(ctx, BlackJackAction::DoubleDown, auth, wallet_blobs).await
+}
+
+async fn clean_state(
+    State(ctx): State<RouterCtx>,
+    headers: HeaderMap,
+    Json(wallet_blobs): Json<[Blob; 2]>,
+) -> Result<impl IntoResponse, AppError> {
+    let auth = AuthHeaders::from_headers(&headers)?;
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis();
+    send(ctx, BlackJackAction::CleanTick(now), auth, wallet_blobs).await
 }
 
 async fn get_config(State(ctx): State<RouterCtx>) -> impl IntoResponse {
